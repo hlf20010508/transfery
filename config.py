@@ -3,12 +3,12 @@ import json
 
 def init():
     host_minio = input('请输入minio服务器完整域名或ip地址 (eg: http://example.com:9000)：')
-    user_minio = input('请输入用户名：')
+    username_minio = input('请输入用户名：')
     password_minio = input('请输入密码：')
     bucket = input('请输入bucket名：')
     host_mysql = input(
         '请输入mysql服务器域名或ip地址，必须使用默认端口 (eg: example.com) ：')
-    user_mysql = input('请输入用户名：')
+    username_mysql = input('请输入用户名：')
     password_mysql = input('请输入密码：')
     database = input('请输入数据库名：')
     table = input('请输入表名：')
@@ -16,11 +16,11 @@ def init():
 
     config = {
         'host_minio': host_minio,
-        'user_minio': user_minio,
+        'username_minio': username_minio,
         'password_minio': password_minio,
         'bucket': bucket,
         'host_mysql': host_mysql,
-        'user_mysql': user_mysql,
+        'username_mysql': username_mysql,
         'password_mysql': password_mysql,
         'database': database,
         'table': table,
