@@ -1,0 +1,17 @@
+{
+    "messages": [
+        {
+            "content": "message2",
+            "type": "text",
+            "showTime": true,
+            "time": 1656058257658
+        },
+        {
+            "content": "file1",
+            "type": "file",
+            "showTime": true,
+            "time": 1656058247658,
+            "url": "http://124.223.224.49:9000/transfer/test.txt"
+        }
+    ]
+}
