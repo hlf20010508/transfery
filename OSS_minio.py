@@ -1,5 +1,6 @@
 from minio import Minio
 from minio.error import S3Error
+import config as myconfig
 
 
 class OSS:
@@ -29,10 +30,11 @@ class OSS:
             return address
         except S3Error as exc:
             print("error occurred.", exc)
-    
-    def upload_stream(self,remote_path,data):
+
+    def upload_stream(self, remote_path, data):
         try:
-            self.client.put_object(self.bucket,remote_path,data,-1,part_size=5*1024*1024)
+            self.client.put_object(
+                self.bucket, remote_path, data, -1, part_size=5*1024*1024)
             print(
                 "file is successfully uploaded as \n object %s to bucket %s." % (
                     remote_path, self.bucket)
@@ -78,8 +80,9 @@ class OSS:
 
 
 def init():
-    host = "124.223.224.49:9000"
-    username = "hlf01"
-    password = "1486922887"
-    bucket = 'transfer'
+    config=myconfig.load()
+    host = config['host_minio'].split('//')[1] #config.json中的地址必须包含协议，如http://, https://
+    username = config['username_minio']
+    password = config['password_minio']
+    bucket = config['bucket']
     return OSS(host, username, password, bucket)
