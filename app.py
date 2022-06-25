@@ -38,7 +38,7 @@ def page():
     return flask.jsonify({'messages': result})
 
 
-@app.route('/post/files', methods=['POST'])
+@app.route('/post/upload', methods=['POST'])
 def upload():
     f = flask.request.files.get('file')
     print('uploading ...')
@@ -47,9 +47,15 @@ def upload():
     time_parse = int(round(time.time() * 1000))
     return {
         "time": time_parse,
-        "url": os.path.join(host_minio, f.filename)
     }
 
+@app.route('/post/download', methods=['POST'])
+def download():
+    item = flask.request.get_json(silent=True)
+    file_name=item['name']
+    print('downloading ...')
+    file_stream=client.download_stream(file_name) #流式下载
+    return flask.send_file(file_stream,download_name=file_name,as_attachment=True)
 
 @app.route('/post/message', methods=['POST'])
 def send():
