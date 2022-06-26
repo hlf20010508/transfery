@@ -1,9 +1,9 @@
-import flask
+import os
 import time
+import flask
 import OSS_minio
 import mysql_db
 import config as myconfig
-import os
 
 config = myconfig.load()
 
@@ -45,22 +45,31 @@ def upload():
     client.upload_stream(f.filename, f)  # 流式上传
 
     time_parse = int(round(time.time() * 1000))
-    return {
-        "time": time_parse,
-    }
+    return flask.jsonify({"time": time_parse})
+
 
 @app.route('/post/download', methods=['POST'])
 def download():
     item = flask.request.get_json(silent=True)
-    file_name=item['name']
+    file_name = item['content']
     print('downloading ...')
-    file_stream=client.download_stream(file_name) #流式下载
-    return flask.send_file(file_stream,download_name=file_name,as_attachment=True)
+    file_stream = client.download_stream(file_name)  # 流式下载
+    return flask.send_file(file_stream,download_name=file_name, as_attachment=True)
+
 
 @app.route('/post/message', methods=['POST'])
 def send():
     item = flask.request.get_json(silent=True)
     push_item(item)
-    return {
-        "sucess": True
-    }
+    return flask.jsonify({"success": True})
+
+
+@app.route('/post/remove', methods=['POST'])
+def remove():
+    item = flask.request.get_json(silent=True)
+    if item['change']:
+        db.table_update(table, {"showTime": True}, "time", item['change'])
+    db.query('delete from %s where time="%s"' % (table, item['time']))
+    if item['type']=='file':
+        client.remove(item['content'])
+    return flask.jsonify({"success": True})
