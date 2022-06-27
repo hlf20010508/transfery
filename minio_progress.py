@@ -46,7 +46,8 @@ class Progress(Thread):
         self.initial_time = time.time()
         self.stdout = stdout
         self.flag=True
-
+        self.start()
+        
     def set_meta(self, total_length, object_name):
         """
         Metadata settings for the object. This method called before uploading
