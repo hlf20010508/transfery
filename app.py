@@ -1,10 +1,6 @@
 import os
-import time
-from queue import Empty
 import flask
-from flask_socketio import SocketIO
 import OSS_minio
-import minio_progress
 import mysql_db
 import config as myconfig
 
@@ -15,12 +11,9 @@ db, table = mysql_db.db()
 
 client = OSS_minio.init()
 
-upload_progress_thread = None
-
 host_minio = os.path.join(config['host_minio'], config['bucket'])
 
 app = flask.Flask(__name__)
-socketio = SocketIO(app)
 
 
 def query_items(start, amount):
@@ -51,22 +44,16 @@ def upload():
     size = flask.request.form.get('size')
     print(size)
     print('uploading ...')
-    # global upload_progress_thread
-    # upload_progress_thread=minio_progress.Progress()
-    # upload_progress_thread.start()
     client.upload_stream(f.filename, f, size)  # 流式上传
-    # upload_progress_thread=None
     print("uploaded")
     return flask.jsonify({"success": True})
 
 
-@app.route('/post/download', methods=['POST'])
+@app.route('/get/download', methods=['GET'])
 def download():
-    item = flask.request.get_json(silent=True)
-    file_name = item['content']
-    print('downloading ...')
-    file_stream = client.download_stream(file_name)  # 流式下载
-    return flask.send_file(file_stream, download_name=file_name, as_attachment=True)
+    file_name = flask.request.args['content']
+    url=client.get_download_url(file_name)
+    return flask.jsonify({"success": True,"url":url})
 
 
 @app.route('/post/message', methods=['POST'])
