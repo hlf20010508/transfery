@@ -2,12 +2,12 @@ import json
 
 
 def init():
-    host_minio = input('请输入minio服务器完整域名或ip地址 (eg: http://example.com:9000)：')
+    host_minio = input('请输入minio服务器完整域名或ip地址；如果minio与transfery在同一个服务器则使用127.0.0.1 (eg: http://example.com:9000)：')
     username_minio = input('请输入用户名：')
     password_minio = input('请输入密码：')
     bucket = input('请输入bucket名：')
     host_mysql = input(
-        '请输入mysql服务器域名或ip地址，必须使用默认端口 (eg: example.com) ：')
+        '请输入mysql服务器域名或ip地址，必须使用默认端口；如果mysql与transfery在同一个服务器，则使用127.0.0.1 (eg: example.com) ：')
     username_mysql = input('请输入用户名：')
     password_mysql = input('请输入密码：')
     database = input('请输入数据库名：')

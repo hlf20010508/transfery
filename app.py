@@ -1,9 +1,9 @@
 import os
-import time
 import flask
 import OSS_minio
 import mysql_db
 import config as myconfig
+
 
 config = myconfig.load()
 
@@ -41,20 +41,19 @@ def page():
 @app.route('/post/upload', methods=['POST'])
 def upload():
     f = flask.request.files.get('file')
+    size = flask.request.form.get('size')
+    print(size)
     print('uploading ...')
-    client.upload_stream(f.filename, f)  # 流式上传
+    client.upload_stream(f.filename, f, size)  # 流式上传
+    print("uploaded")
+    return flask.jsonify({"success": True})
 
-    time_parse = int(round(time.time() * 1000))
-    return flask.jsonify({"time": time_parse})
 
-
-@app.route('/post/download', methods=['POST'])
+@app.route('/get/download', methods=['GET'])
 def download():
-    item = flask.request.get_json(silent=True)
-    file_name = item['content']
-    print('downloading ...')
-    file_stream = client.download_stream(file_name)  # 流式下载
-    return flask.send_file(file_stream,download_name=file_name, as_attachment=True)
+    file_name = flask.request.args['content']
+    url=client.get_download_url(file_name)
+    return flask.jsonify({"success": True,"url":url})
 
 
 @app.route('/post/message', methods=['POST'])
@@ -70,6 +69,6 @@ def remove():
     if item['change']:
         db.table_update(table, {"showTime": True}, "time", item['change'])
     db.query('delete from %s where time="%s"' % (table, item['time']))
-    if item['type']=='file':
+    if item['type'] == 'file':
         client.remove(item['content'])
     return flask.jsonify({"success": True})

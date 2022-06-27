@@ -1,6 +1,7 @@
 from minio import Minio
 from minio.error import S3Error
 import config as myconfig
+import minio_progress
 
 
 class OSS:
@@ -31,10 +32,10 @@ class OSS:
         except S3Error as exc:
             print("error occurred.", exc)
 
-    def upload_stream(self, remote_path, data):
+    def upload_stream(self, remote_path, data, size, progress=None):
         try:
             self.client.put_object(
-                self.bucket, remote_path, data, -1, part_size=5*1024*1024)
+                self.bucket, remote_path, data, int(size), progress=minio_progress.Progress())
             print(
                 "file is successfully uploaded as \n object %s to bucket %s." % (
                     remote_path, self.bucket)
@@ -78,10 +79,35 @@ class OSS:
         except S3Error as exc:
             print("error occurred.", exc)
 
+    def get_download_url(self, remote_path):
+        try:
+            url = self.client.presigned_get_object(
+                self.bucket,
+                remote_path,
+            )
+            print("successfully created download url %s for %s from bucket %s" %
+                  (url, remote_path, self.bucket))
+            return url
+        except S3Error as exc:
+            print("error occurred.", exc)
+
+    def get_upload_url(self, remote_path):
+        try:
+            url = self.client.presigned_put_object(
+                self.bucket,
+                remote_path,
+            )
+            print("successfully created upload url %s for %s to bucket %s" %
+                  (url, remote_path, self.bucket))
+            return url
+        except S3Error as exc:
+            print("error occurred.", exc)
+
 
 def init():
-    config=myconfig.load()
-    host = config['host_minio'].split('//')[1] #config.json中的地址必须包含协议，如http://, https://
+    config = myconfig.load()
+    # config.json中的地址必须包含协议，如http://, https://
+    host = config['host_minio'].split('//')[1]
     username = config['username_minio']
     password = config['password_minio']
     bucket = config['bucket']
