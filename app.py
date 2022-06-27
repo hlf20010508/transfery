@@ -110,5 +110,8 @@ def remove():
         db.table_update(table, {"showTime": True}, "time", item['change'])
     db.query('delete from %s where time="%s"' % (table, item['time']))
     if item['type']=='file':
-        client.remove(item['content'])
+        try:
+            client.remove(item['content'])
+        except:
+            print('no such file in bucket')
     return flask.jsonify({"success": True})
