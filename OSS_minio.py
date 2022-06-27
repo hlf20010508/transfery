@@ -2,7 +2,6 @@ from minio import Minio
 from minio.error import S3Error
 import config as myconfig
 
-
 class OSS:
     # Create a client with the MinIO server playground, its access key
     # and secret key.
@@ -31,10 +30,10 @@ class OSS:
         except S3Error as exc:
             print("error occurred.", exc)
 
-    def upload_stream(self, remote_path, data):
+    def upload_stream(self, remote_path, data,size,progress=None):
         try:
             self.client.put_object(
-                self.bucket, remote_path, data, -1, part_size=5*1024*1024)
+                self.bucket, remote_path, data, int(size),progress=progress)
             print(
                 "file is successfully uploaded as \n object %s to bucket %s." % (
                     remote_path, self.bucket)
