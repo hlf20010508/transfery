@@ -9,26 +9,32 @@ thread_lock=threading.Lock()
 
 config = myconfig.load()
 
-db= mysql_db.db()
 table=config['table']
-
-client = OSS_minio.init()
-
-host_minio = os.path.join(config['host_minio'], config['bucket'])
 
 app = flask.Flask(__name__)
 
 
 def query_items(start, amount):
-    return db.query('select * from %s order by id desc LIMIT %d, %d' % (table, start, amount))
+    db= mysql_db.db()
+    result=db.query('select * from %s order by id desc LIMIT %d, %d' % (table, start, amount))
+    db.close()
+    return result
 
 
 def push_item(item):
-    print(item)
+    db= mysql_db.db()
     db.table_insert(table, item)
+    db.close()
 
 def update_item(content,time):
+    db= mysql_db.db()
     db.query('update %s set showTime=1 where content="%s" and time="%s"'%(table,content,time))
+    db.close()
+
+def remove_item(content,time):
+    db= mysql_db.db()
+    db.query('delete from %s where content="%s" and time="%s"' % (table, content,time))
+    db.close()
 
 def rename(old_filename,time):
     temp=old_filename.split('.')
@@ -59,6 +65,7 @@ def upload():
     time = flask.request.form.get('time')
     print('uploading ...')
     file_name=rename(f.filename,time)
+    client = OSS_minio.Client()
     client.upload_stream(file_name, f, size)  # 流式上传
     print("uploaded")
     thread_lock.release()
@@ -69,6 +76,11 @@ def upload():
 def download():
     thread_lock.acquire()
     file_name = flask.request.args['fileName']
+    client=None
+    if config['local_minio']:
+        client = OSS_minio.Client(host=config['host_minio'])
+    else:
+        client=OSS_minio.Client()
     url=client.get_download_url(file_name)
     thread_lock.release()
     return flask.jsonify({"success": True,"url":url})
@@ -89,8 +101,9 @@ def remove():
     item = flask.request.get_json(silent=True)
     if item['change']:
         update_item(table,item['change']['content'],item['change']['time'])
-    db.query('delete from %s where content="%s" and time="%s"' % (table, item["content"],item['time']))
+    remove_item(item["content"],item['time'])
     if item['type'] == 'file':
+        client = OSS_minio.Client()
         client.remove(item['fileName'])
     thread_lock.release()
     return flask.jsonify({"success": True})

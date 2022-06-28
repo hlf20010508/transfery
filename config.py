@@ -2,12 +2,14 @@ import json
 
 
 def init():
-    host_minio = input('请输入minio服务器完整域名或ip地址；如果minio与transfery在同一个服务器则使用127.0.0.1 (eg: http://example.com:9000)：')
+    host_minio = input('请输入minio服务器域名或ip地址 (eg: example.com:9000)：')
+    local_minio =True if input('minio是否与transfery在同一个服务器？ 0 否 1 是 ')=='1' else False
     username_minio = input('请输入用户名：')
     password_minio = input('请输入密码：')
     bucket = input('请输入bucket名：')
     host_mysql = input(
-        '请输入mysql服务器域名或ip地址，必须使用默认端口；如果mysql与transfery在同一个服务器，则使用127.0.0.1 (eg: example.com) ：')
+        '请输入mysql服务器域名或ip地址 (eg: example.com:3306) ：')
+    local_mysql = True if input('mysql是否与transfery在同一个服务器？ 0 否 1 是 ')=='1' else False
     username_mysql = input('请输入用户名：')
     password_mysql = input('请输入密码：')
     database = input('请输入数据库名：')
@@ -16,10 +18,12 @@ def init():
 
     config = {
         'host_minio': host_minio,
+        'local_minio': local_minio,
         'username_minio': username_minio,
         'password_minio': password_minio,
         'bucket': bucket,
         'host_mysql': host_mysql,
+        'local_mysql': local_mysql,
         'username_mysql': username_mysql,
         'password_mysql': password_mysql,
         'database': database,
@@ -35,7 +39,7 @@ def load():
     try:
         config_file = open('config.json', 'r')
     except:
-        print('未找到数据库配置文件，请先运行config.py')
+        print('未找到\配置文件，请先运行config.py')
         print('python config.py')
         exit()
     config = json.load(config_file)

@@ -3,11 +3,17 @@ from minio.error import S3Error
 import config as myconfig
 import minio_progress
 
+config = myconfig.load()
+port=config['host_minio'].split(':')[1]
+host = '127.0.0.1:%s'%port if config['local_minio'] else config['host_minio']
+username = config['username_minio']
+password = config['password_minio']
+bucket = config['bucket']
 
-class OSS:
+class Client:
     # Create a client with the MinIO server playground, its access key
     # and secret key.
-    def __init__(self, host, username, password, bucket):
+    def __init__(self, host=host, username=username, password=password, bucket=bucket):
         self.host = host
         self.client = Minio(
             host,
@@ -102,13 +108,3 @@ class OSS:
             return url
         except S3Error as exc:
             print("error occurred.", exc)
-
-
-def init():
-    config = myconfig.load()
-    # config.json中的地址必须包含协议，如http://, https://
-    host = config['host_minio'].split('//')[1]
-    username = config['username_minio']
-    password = config['password_minio']
-    bucket = config['bucket']
-    return OSS(host, username, password, bucket)
