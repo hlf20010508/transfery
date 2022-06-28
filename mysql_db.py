@@ -8,7 +8,6 @@ def db():
     username = config['username_mysql']
     password = config['password_mysql']
     database = config['database']
-    table = config['table']
 
     # create connection
     return ConnectionSync(
@@ -16,4 +15,4 @@ def db():
         database,
         username,
         password,
-    ), table
+    )
