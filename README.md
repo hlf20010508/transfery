@@ -110,8 +110,8 @@ pip install pipenv
 # 使用pipenv安装依赖
 pipenv sync
 
-# 运行配置脚本，会自动初始化好minio和mysql
-python config.py
+# 运行配置脚本
+pipenv run python config.py
 
 # 运行服务
 pipenv run python flask run
