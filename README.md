@@ -63,8 +63,8 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 运行Transfery，你需要
 - <a href="https://github.com/minio/minio.git">Minio</a>，作为对象存储服务
 - MySQL，作为数据库
-- Flask，作为后端服务。
-- 一台服务器，以便随时随地使用	
+- Flask，作为后端服务
+- 一台服务器，以便随时随地使用
 
 <br/>
 
@@ -74,25 +74,63 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 
 ### 注意
 
-transfery-vue使用vue-cli 2.0编写。
+本项目仅为后端，如需自定义前端界面，请前往<a href="https://github.com/hlf20010508/transfery-vue.git">transfery-vue</a>。
 
-本项目仅为前端，在开发环境下使用mock.js传递json数据，无法很好地测试文件上传下载的功能。
+将transfery与transfery-vue放在同级目录下，进入transfery-vue项目文件夹，运行：
+```bash
+npm run build
+```
 
-在生产环境下会自动屏蔽mock.js，使用后端数据。
+会自动将webpack打包好的html和js文件导入transfery。
 
 <br/>
 
 ## 项目运行
 
 ``` bash
-# 安装依赖
-npm install
+# 安装pipenv
+pip install pipenv
 
-# 在127.0.0.1:8080上运行开发环境
-npm run dev
+# 使用pipenv安装依赖
+pipenv sync
 
-# 使用webpack编译，得到html和js
-# 项目中已设置自动将编译好的文件复制到transfery后端项目中
-# 默认后端项目文件夹名为transfery且与transfery-vue同级
-# 请根据实际情况编辑package.json第十行
-npm run build
+# 运行配置脚本
+python config.py
+
+# 运行服务
+pipenv run python flask run
+
+# 自定义host和port，运行在服务器上必须使用0.0.0.0，否则无法访问
+pipenv run python flask run -h 0.0.0.0 -p 5000
+```
+
+<br/>
+
+### 后台运行与开机自启
+
+```bash
+# 编辑transfery@.service
+vim transfery@.service
+
+# 参照已有命令更改第6行ExecStart和第11行WorkingDirectory
+
+# 将transfery@.service复制到/etc/systemd/system
+sudo cp transfery@.service /etc/systemd/system
+
+# 启动服务 USERNAME是本机用户名，下同
+sudo systemctl start transfery@USERNAME
+
+# 查看状态
+sudo systemctl status transfery@USERNAME
+
+# 开机自启
+sudo systemctl enable transfery@USERNAME
+
+# 重启服务
+sudo systemctl restart transfery@USERNAME
+
+# 关闭服务
+sudo systemctl stop transfery@USERNAME
+
+# 取消开机自启
+sudo systemctl disable transfery@USERNAME
