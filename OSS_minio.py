@@ -1,5 +1,5 @@
 from minio import Minio
-from minio.error import S3Error
+from minio.error import S3Error, InvalidResponseError
 import config as myconfig
 import minio_progress
 
@@ -22,6 +22,13 @@ class Client:
             secure=False
         )
         self.bucket = bucket
+
+    def init(self):
+        try:
+            if not self.client.bucket_exists(self.bucket):
+                self.client.make_bucket(self.bucket)
+        except InvalidResponseError as err:
+            print(err)
 
     def upload(self, remote_path, local_path):
         try:
