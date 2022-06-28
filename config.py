@@ -2,7 +2,7 @@ import json
 
 
 def init():
-    host_minio = input('请输入minio服务器域名或ip地址 (eg: example.com:9000)：')
+    host_minio = input('请输入minio服务器域名或ip地址 (eg: example.com:9000) ：')
     local_minio =True if input('minio是否与transfery在同一个服务器？ 0 否 1 是 ')=='1' else False
     username_minio = input('请输入用户名：')
     password_minio = input('请输入密码：')
@@ -14,7 +14,7 @@ def init():
     password_mysql = input('请输入密码：')
     database = input('请输入数据库名：')
     table = input('请输入表名：')
-    item_per_page = input('请输入每次加载的项目条数：')
+    item_per_page = input('请输入每次加载的项目条数 (eg: 15) ：')
 
     config = {
         'host_minio': host_minio,
