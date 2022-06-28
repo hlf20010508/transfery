@@ -95,7 +95,7 @@ pip install pipenv
 pipenv sync
 
 # 运行配置脚本
-python config.py
+pipenv run python config.py
 
 # 运行服务
 pipenv run python flask run
