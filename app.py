@@ -100,7 +100,7 @@ def remove():
     thread_lock.acquire()
     item = flask.request.get_json(silent=True)
     if item['change']:
-        update_item(table,item['change']['content'],item['change']['time'])
+        update_item(item['change']['content'],item['change']['time'])
     remove_item(item["content"],item['time'])
     if item['type'] == 'file':
         client = OSS_minio.Client()

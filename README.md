@@ -3,14 +3,25 @@
 
 <br/>
 
-## 项目部分界面展示
+## 目录
+- <a href="#h1">项目部分界面展示</a>
+- <a href="#h2">项目功能</a>
+- <a href="#h3">项目意义</a>
+- <a href="#h4">项目所需环境</a>
+  - <a href="#sh41">项目所需环境</a>
+- <a href="#h5">项目运行</a>
+  - <a href="#sh51">后台运行与开机自启</a>
+
+<br/>
+
+## 项目部分界面展示<span id="h1"></span>
 <img width="1082" alt="image" src="https://user-images.githubusercontent.com/76218469/176151027-c40cc300-7c22-42c5-9da8-2984066a8b99.png">
 <img width="1082" alt="image" src="https://user-images.githubusercontent.com/76218469/176161205-42b4f732-569d-4cd4-876e-6d0ae31c5f84.png">
 <img width="1082" alt="image" src="https://user-images.githubusercontent.com/76218469/176152167-abc40d1f-26d6-4b19-8438-519ff1c774a1.png">
 
 <br/>
 
-## 项目功能
+## 项目功能<span id="h2"></span>
 
 - 发送文字消息
 
@@ -20,7 +31,7 @@
 
 <br/>
 
-## 项目意义
+## 项目意义<span id="h3"></span>
 
 假设一个场景：
 
@@ -58,7 +69,7 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 
 <br/>
 
-## 项目所需环境
+## 项目所需环境<span id="h4"></span>
 
 运行Transfery，你需要
 - <a href="https://github.com/minio/minio.git">Minio</a>，作为对象存储服务
@@ -68,11 +79,16 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 
 <br/>
 
-由于没有设置密码，因此请不要将Transfery的服务网址分享到网络上，以免被恶意上传。
+仅需安装好并能正常连接Minio和Mysql即可
+config.py会自动在Minio中创建bucket并在MySQL中创建数据库和表
 
 <br/>
 
-### 注意
+### 注意<span id="sh41"></span>
+
+由于没有设置密码，因此请不要将Transfery的服务网址分享到网络上，以免被恶意上传。
+
+<br/>
 
 本项目仅为后端，如需自定义前端界面，请前往<a href="https://github.com/hlf20010508/transfery-vue.git">transfery-vue</a>。
 
@@ -85,7 +101,7 @@ npm run build
 
 <br/>
 
-## 项目运行
+## 项目运行<span id="h5"></span>
 
 ``` bash
 # 安装pipenv
@@ -94,7 +110,7 @@ pip install pipenv
 # 使用pipenv安装依赖
 pipenv sync
 
-# 运行配置脚本
+# 运行配置脚本，会自动初始化好minio和mysql
 python config.py
 
 # 运行服务
@@ -106,7 +122,7 @@ pipenv run python flask run -h 0.0.0.0 -p 5000
 
 <br/>
 
-### 后台运行与开机自启
+### 后台运行与开机自启<span id="sh51"></span>
 
 ```bash
 # 编辑transfery@.service
