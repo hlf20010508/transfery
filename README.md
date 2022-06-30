@@ -98,7 +98,6 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 - flask-socketio 5.2.0
 - minio 7.1.9
 - ezmysql 0.9.0
-- typing-extensions 4.2.0
 
 更多依赖请参考Pipfile.lock
 
