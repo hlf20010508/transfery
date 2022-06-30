@@ -9,9 +9,10 @@
 - <a href="#h2">项目功能</a>
 - <a href="#h3">项目意义</a>
 - <a href="#h4">项目所需环境</a>
-  - <a href="#sh41">注意</a>
-- <a href="#h5">项目运行</a>
-  - <a href="#sh51">后台运行与开机自启</a>
+  - <a href="#sh41">transfery 依赖</a>
+- <a href="#h5">注意</a>
+- <a href="#h6">项目运行</a>
+  - <a href="#sh61">后台运行与开机自启</a>
 
 <br/>
 
@@ -35,14 +36,11 @@ ios webapp（增加到主屏幕）
 
 <br/>
 
-<br/>
-
 ## 项目功能<span id="h2"></span>
 
 - 发送文字消息
-
 - 传输文件，支持多文件
-
+- 全双工即时通信
 - 删除历史记录
 
 <br/>
@@ -93,31 +91,28 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 - Flask，作为后端服务
 - 一台服务器，以便随时随地使用
 
-<br/>
+### transfery 依赖<span id="sh41"></span>
 
-仅需安装好并能正常连接Minio和Mysql即可
-config.py会自动在Minio中创建bucket并在MySQL中创建数据库和表
+- flask 2.1.2
+- flask-socketio 5.2.0
+- minio 7.1.9
+- ezmysql 0.9.0
+- typing-extensions 4.2.0
 
-<br/>
-
-### 注意<span id="sh41"></span>
-
-由于没有设置密码，因此请不要将Transfery的服务网址分享到网络上，以免被恶意上传。
-
-<br/>
-
-本项目仅为后端，如需自定义前端界面，请前往<a href="https://github.com/hlf20010508/transfery-vue.git">transfery-vue</a>。
-
-将transfery与transfery-vue放在同级目录下，进入transfery-vue项目文件夹，运行：
-```bash
-npm run build
-```
-
-会自动将webpack打包好的html和js文件导入transfery。
+更多依赖请参考Pipfile.lock
 
 <br/>
 
-## 项目运行<span id="h5"></span>
+### 注意<span id="h5"></span>
+
+- 由于没有设置密码，因此请不要将Transfery的服务网址分享到网络上，以免被恶意上传。
+- 仅需安装好Minio和Mysql并能正常连接即可,config.py会自动在Minio中创建bucket以及在MySQL中创建数据库和表。
+- 本项目仅为后端，如需自定义前端界面，请前往<a href="https://github.com/hlf20010508/transfery-vue.git">transfery-vue</a>。
+- 若将transfery与transfery-vue放在同级目录下，使用 npm run build 会自动将webpack打包好的html和js文件导入transfery。
+
+<br/>
+
+## 项目运行<span id="h6"></span>
 
 ``` bash
 # 安装pipenv
@@ -138,7 +133,7 @@ pipenv run python flask run -h 0.0.0.0 -p 5000
 
 <br/>
 
-### 后台运行与开机自启<span id="sh51"></span>
+### 后台运行与开机自启<span id="sh61"></span>
 
 ```bash
 # 编辑transfery@.service
@@ -166,3 +161,4 @@ sudo systemctl stop transfery@USERNAME
 
 # 取消开机自启
 sudo systemctl disable transfery@USERNAME
+```
