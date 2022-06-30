@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "6770fe56406e20dee55166589eb51dc2b76db00b938a3d4818d2ced58746a042"
+            "sha256": "f5f35ee6cde5553b5a622731895698e78cd3fe6aa483c7a589c5bded9db7f910"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -21,6 +21,14 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==0.1.1"
+        },
+        "bidict": {
+            "hashes": [
+                "sha256:415126d23a0c81e1a8c584a8fb1f6905ea090c772571803aeee0a2242e8e7ba0",
+                "sha256:5c826b3e15e97cc6e615de295756847c282a79b79c5430d3bfc909b1ac9f5bd8"
+            ],
+            "markers": "python_version >= '3.7'",
+            "version": "==0.22.0"
         },
         "certifi": {
             "hashes": [
@@ -52,6 +60,14 @@
             ],
             "index": "pypi",
             "version": "==2.1.2"
+        },
+        "flask-socketio": {
+            "hashes": [
+                "sha256:19c3d0cea49c53505fa457fedc133b32cb6eeaaa30d28cdab9d6ca8f16045427",
+                "sha256:c82672b843fa271ec2961d356c608bc94a730660ac73a623bddb66c4b3d72215"
+            ],
+            "index": "pypi",
+            "version": "==5.2.0"
         },
         "importlib-metadata": {
             "hashes": [
@@ -138,6 +154,22 @@
             ],
             "markers": "python_version >= '3.6'",
             "version": "==1.0.2"
+        },
+        "python-engineio": {
+            "hashes": [
+                "sha256:cd3dfa8a939471db60d2704ab0108493c827f399ed5f59c8217e3c3b02c9ea64",
+                "sha256:e02f8d6686663408533726be2d4ceb403914fd17285d247791c6a91623777bdd"
+            ],
+            "markers": "python_version >= '3.6'",
+            "version": "==4.3.2"
+        },
+        "python-socketio": {
+            "hashes": [
+                "sha256:41d6d93831aac6e0e4917dee2a1d0a0fadaa3fb362d34fc14e98c379e6f20503",
+                "sha256:f1f2eabdea500dbcb384902418cacedd98b7fe4d0fed818415ddf8af10e428fa"
+            ],
+            "markers": "python_version >= '3.6'",
+            "version": "==5.6.0"
         },
         "typing-extensions": {
             "hashes": [
