@@ -9,18 +9,19 @@ host = '127.0.0.1:%s' % port if config['local_minio'] else config['host_minio']
 username = config['username_minio']
 password = config['password_minio']
 bucket = config['bucket']
+secure = config['secure_minio']
 
 
 class Client:
     # Create a client with the MinIO server playground, its access key
     # and secret key.
-    def __init__(self, host=host, username=username, password=password, bucket=bucket):
+    def __init__(self, host=host, username=username, password=password, bucket=bucket, secure=secure):
         self.host = host
         self.client = Minio(
             host,
             access_key=username,
             secret_key=password,
-            secure=False
+            secure=secure
         )
         self.bucket = bucket
 
@@ -98,7 +99,7 @@ class Client:
             obj_list = self.client.list_objects(self.bucket, recursive=True)
             obj_list = [{'name': obj.object_name, 'size': obj.size,
                          'last_modified': obj.last_modified} for obj in obj_list]
-            print(obj_list)
+            print('objects list:',obj_list)
             return obj_list
         except S3Error as exc:
             print("error occurred.", exc)

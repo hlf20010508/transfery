@@ -27,7 +27,7 @@ def init():
                            password=password, port=port, charset='utf8mb4')
     cursor = conn.cursor()
 
-    sql = "create datebase if not exists %s"%database
+    sql = "create datebase if not exists %s" % database
     cursor.execute(sql)
 
     sql = '''create table if not exists %s(

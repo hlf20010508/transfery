@@ -13,13 +13,20 @@ table = config['table']
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app,cors_allowed_origins='*')
+socketio = SocketIO(app, cors_allowed_origins='*')
 
 
 def query_items(start, amount):
     _db = db()
     result = _db.query(
         'select * from %s order by id desc LIMIT %d, %d' % (table, start, amount))
+    _db.close()
+    return result
+
+def sync_items(id):
+    _db = db()
+    result = _db.query(
+        'select * from %s where id > %s' % (table,id))
     _db.close()
     return result
 
@@ -41,13 +48,15 @@ def update_item(id):
 def remove_item(id):
     _db = db()
     _db.query('delete from %s where id="%d"' %
-            (table, id))
+              (table, id))
     _db.close()
+
 
 def remove_all_items():
     _db = db()
-    _db.query('delete from %s'%table)
+    _db.query('delete from %s' % table)
     _db.close()
+
 
 def rename(old_filename, time):
     temp = old_filename.split('.')
@@ -69,6 +78,15 @@ def page():
     result = query_items(start, item_per_page)
     thread_lock.release()
     return jsonify({'messages': result})
+
+    
+@app.route('/get/sync', methods=['GET'])
+def sync():
+    thread_lock.acquire()
+    last_id = int(request.args['lastId'])
+    result=sync_items(last_id)
+    thread_lock.release()
+    return jsonify({'newItems': result})
 
 
 @app.route('/post/upload', methods=['POST'])
@@ -108,7 +126,7 @@ def handle_item(item):
     print('received item: ', item)
     id = push_item(item)
     print('pushed to db')
-    item['id']=id
+    item['id'] = id
     emit('getNewItem', item, broadcast=True, include_self=False)
     print('broadcasted')
     thread_lock.release()
@@ -132,6 +150,7 @@ def remove(item):
     print('broadcasted')
     thread_lock.release()
     return True
+
 
 @socketio.on('removeAll')
 def remove_all():

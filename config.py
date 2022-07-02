@@ -5,6 +5,8 @@ from minio import Minio
 
 def init():
     host_minio = input('请输入minio服务器域名或ip地址 (eg: example.com:9000) ：')
+    secure_minio = True if input(
+        '请选择minio服务器使用的协议： 0 http 1 https ')=='1' else False
     local_minio = True if input(
         'minio是否与transfery在同一个服务器？ 0 否 1 是 ') == '1' else False
     username_minio = input('请输入用户名：')
@@ -22,6 +24,7 @@ def init():
 
     config = {
         'host_minio': host_minio,
+        'secure_minio': secure_minio,
         'local_minio': local_minio,
         'username_minio': username_minio,
         'password_minio': password_minio,

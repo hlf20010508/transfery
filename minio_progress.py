@@ -42,12 +42,12 @@ class Progress(Thread):
         self.current_size = 0
 
         self.display_queue = Queue()
-        self.percentage_queue=Queue() #传输当前百分比的管道
+        self.percentage_queue = Queue()  # 传输当前百分比的管道
         self.initial_time = time.time()
         self.stdout = stdout
-        self.flag=True
+        self.flag = True
         self.start()
-        
+
     def set_meta(self, total_length, object_name):
         """
         Metadata settings for the object. This method called before uploading
@@ -60,7 +60,7 @@ class Progress(Thread):
         self.prefix = self.object_name + ': ' if self.object_name else ''
 
     def run(self):
-        self.flag=True
+        self.flag = True
         displayed_time = 0
         while self.flag:
             try:
@@ -104,7 +104,7 @@ class Progress(Thread):
 
     def done_progress(self):
 
-        self.flag=False
+        self.flag = False
 
     def print_status(self, current_size, total_length, displayed_time, prefix):
         formatted_str = prefix + format_string(
