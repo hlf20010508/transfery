@@ -13,7 +13,7 @@ table = config['table']
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app,cors_allowed_origins='*')
+socketio = SocketIO(app, cors_allowed_origins='*')
 
 
 def query_items(start, amount):
@@ -41,13 +41,15 @@ def update_item(id):
 def remove_item(id):
     _db = db()
     _db.query('delete from %s where id="%d"' %
-            (table, id))
+              (table, id))
     _db.close()
+
 
 def remove_all_items():
     _db = db()
-    _db.query('delete from %s'%table)
+    _db.query('delete from %s' % table)
     _db.close()
+
 
 def rename(old_filename, time):
     temp = old_filename.split('.')
@@ -108,7 +110,7 @@ def handle_item(item):
     print('received item: ', item)
     id = push_item(item)
     print('pushed to db')
-    item['id']=id
+    item['id'] = id
     emit('getNewItem', item, broadcast=True, include_self=False)
     print('broadcasted')
     thread_lock.release()
@@ -132,6 +134,7 @@ def remove(item):
     print('broadcasted')
     thread_lock.release()
     return True
+
 
 @socketio.on('removeAll')
 def remove_all():
