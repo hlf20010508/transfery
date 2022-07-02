@@ -4,8 +4,10 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-minio = "*"
-flask = "*"
+sanic = "*"
 ezmysql = "*"
 typing-extensions = "*"
-flask-socketio = "*"
+python-socketio = "*"
+sanic-jinja2 = "*"
+minio = "*"
+minio-async = "*"
