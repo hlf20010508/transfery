@@ -95,6 +95,7 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 
 ### transfery 依赖<span id="sh41"></span>
 
+- python 3.7 (必须&must)
 - sanic 22.6.0
 - python-socketio 5.6.0
 - minio 7.1.9
