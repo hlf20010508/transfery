@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 minio = "*"
+flask = "*"
 ezmysql = "*"
 typing-extensions = "*"
 flask-socketio = "*"
