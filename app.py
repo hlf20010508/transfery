@@ -81,7 +81,7 @@ def page():
 
     
 @app.route('/get/sync', methods=['GET'])
-def page():
+def sync():
     thread_lock.acquire()
     last_id = int(request.args['lastId'])
     result=sync_items(last_id)
