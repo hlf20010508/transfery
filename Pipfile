@@ -11,3 +11,6 @@ python-socketio = "*"
 sanic-jinja2 = "*"
 minio = "*"
 minio-async = "*"
+
+[requires]
+python_version = "3.7"
