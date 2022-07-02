@@ -41,6 +41,7 @@ ios webapp（增加到主屏幕）
 - 发送文字消息
 - 传输文件，支持多文件
 - 全双工即时通信
+- 异步框架，支持边上传边发送消息
 - 手机使用屏幕键盘时页面弹性缩放
 - 删除历史记录
 
@@ -89,13 +90,13 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 运行Transfery，你需要
 - <a href="https://github.com/minio/minio.git">Minio</a>，作为对象存储服务
 - MySQL，作为数据库
-- Flask，作为后端服务
+- Sanic，作为后端服务
 - 一台服务器，以便随时随地使用
 
 ### transfery 依赖<span id="sh41"></span>
 
-- flask 2.1.2
-- flask-socketio 5.2.0
+- sanic 22.6.0
+- python-socketio 5.6.0
 - minio 7.1.9
 - ezmysql 0.9.0
 
@@ -125,10 +126,10 @@ pipenv sync
 pipenv run python config.py
 
 # 运行服务
-pipenv run python flask run
+pipenv run python sanic run.app
 
 # 自定义host和port，运行在服务器上必须使用0.0.0.0，否则无法访问
-pipenv run python flask run -h 0.0.0.0 -p 5000
+pipenv run python sanic run.app -H 0.0.0.0 -p 5000
 ```
 
 <br/>

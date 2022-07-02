@@ -3,7 +3,7 @@ Description=Transfery
 After=network.target
 
 [Service]
-ExecStart=/home/ubuntu/.local/bin/pipenv run flask run -p 5020 -h 0.0.0.0
+ExecStart=/home/ubuntu/.local/bin/pipenv run sanic run.app -p 5020 -H 0.0.0.0
 Restart=always
 RestartSec=10
 StartLimitInterval=0
