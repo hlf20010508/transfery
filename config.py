@@ -2,7 +2,6 @@ import json
 import pymysql
 from minio import Minio
 
-
 def init():
     host_minio = input('请输入minio服务器域名或ip地址 (eg: example.com:9000) ：')
     secure_minio = True if input(
@@ -23,6 +22,7 @@ def init():
     item_per_page = input('请输入每次加载的项目条数 (eg: 15) ：')
 
     config = {
+        'cache_path': 'cache',
         'host_minio': host_minio,
         'secure_minio': secure_minio,
         'local_minio': local_minio,
@@ -37,6 +37,7 @@ def init():
         'table': table,
         'item_per_page': int(item_per_page)
     }
+
     config_file = open('config.json', 'w')
     json.dump(config, config_file)
     config_file.close()
@@ -73,7 +74,6 @@ def init_minio(host, username, password, bucket):
         secret_key=password,
         secure=False
     )
-
     if not client.bucket_exists(bucket):
         client.make_bucket(bucket)
 

@@ -1,5 +1,5 @@
 import pymysql
-from ezmysql import ConnectionSync
+from ezmysql import ConnectionAsync
 import config as myconfig
 
 config = myconfig.load()
@@ -13,12 +13,12 @@ database = config['database']
 
 def db():
     # create connection
-    return ConnectionSync(
+    return ConnectionAsync(
         host,
         database,
         username,
         password,
-        port
+        port=port
     )
 
 
