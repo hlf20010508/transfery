@@ -23,6 +23,13 @@ def query_items(start, amount):
     _db.close()
     return result
 
+def sync_items(id):
+    _db = db()
+    result = _db.query(
+        'select * from %s where id > %s' % id)
+    _db.close()
+    return result
+
 
 def push_item(item):
     _db = db()
@@ -71,6 +78,15 @@ def page():
     result = query_items(start, item_per_page)
     thread_lock.release()
     return jsonify({'messages': result})
+
+    
+@app.route('/get/sync', methods=['GET'])
+def page():
+    thread_lock.acquire()
+    last_id = int(request.args['lastId'])
+    result=sync_items(last_id)
+    thread_lock.release()
+    return jsonify({'newItems': result})
 
 
 @app.route('/post/upload', methods=['POST'])
