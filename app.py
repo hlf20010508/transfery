@@ -26,7 +26,7 @@ def query_items(start, amount):
 def sync_items(id):
     _db = db()
     result = _db.query(
-        'select * from %s where id > %s' % id)
+        'select * from %s where id > %s' % (table,id))
     _db.close()
     return result
 
