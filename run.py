@@ -1,5 +1,3 @@
-from io import BytesIO
-import asyncio
 import os
 import aiofiles
 from sanic import Sanic

@@ -9,5 +9,7 @@ ezmysql = "*"
 typing-extensions = "*"
 python-socketio = "*"
 sanic-jinja2 = "*"
-minio = "*"
-minio-async = "*"
+minio-async = {git = "https://gitee.com/hlf01/minio-async.git"}
+
+[requires]
+python_version = "3.7"
