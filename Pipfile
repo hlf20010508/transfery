@@ -9,7 +9,6 @@ ezmysql = "*"
 typing-extensions = "*"
 python-socketio = "*"
 sanic-jinja2 = "*"
-minio = "*"
 minio-async = "*"
 
 [requires]

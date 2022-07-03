@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "4657adf246e1627235aeae8faafdea087e5ac63eb7ad08751175b4fc95609233"
+            "sha256": "5c881d5df16022a6c84fa59708922870acb133ae28251037eb676b3fadffefc3"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -21,7 +21,7 @@
                 "sha256:0aefa1d91d000d3a20a515d153db2ebf713076c7c94edf2fca85d3d83316abc5",
                 "sha256:0e2a524e4714efda47ce8964b13d4da94cf553411f9f6da813df615a4cd73d95"
             ],
-            "markers": "python_full_version >= '3.5.0' and python_version < '4'",
+            "markers": "python_version >= '3.5' and python_version < '4'",
             "version": "==3.7.4"
         },
         "aiofiles": {
@@ -172,7 +172,7 @@
                 "sha256:ea0e87d1206acd8954ac08eb24fef8b0e3475fd12f9b521325561bda723a324e",
                 "sha256:fb499c23e03894a0f6d055d393087785b4b1578fe883f5da56d95ecf737365e6"
             ],
-            "markers": "python_full_version >= '3.5.0' and python_version < '4'",
+            "markers": "python_version >= '3.5' and python_version < '4'",
             "version": "==0.9.6"
         },
         "certifi": {
@@ -300,7 +300,7 @@
                 "sha256:fcddfe70553be717d9745990dfdb194e22ee0f60eb8f48c0794e7bfeda30d2d5",
                 "sha256:fdb9f9ed79bc6f46b021b3319184699ba1a22410a82204e6e89c774530069683"
             ],
-            "markers": "python_full_version >= '3.5.0'",
+            "markers": "python_version >= '3.5'",
             "version": "==0.4.0"
         },
         "idna": {
@@ -308,7 +308,7 @@
                 "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff",
                 "sha256:9d643ff0a55b762d5cdb124b8eaa99c66322e2157b69160bc32796e824360e6d"
             ],
-            "markers": "python_full_version >= '3.5.0'",
+            "markers": "python_version >= '3.5'",
             "version": "==3.3"
         },
         "jinja2": {
@@ -364,14 +364,6 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==2.1.1"
-        },
-        "minio": {
-            "hashes": [
-                "sha256:a711f3e6961ef083c161cee79f42a01d73369fc9111ccf76a74fb8d58b41d00a",
-                "sha256:f87ef2adf55e9beeb2216b41bbe1c8837fd1276e6bac2921f785f74e1b4e4a06"
-            ],
-            "index": "pypi",
-            "version": "==7.1.9"
         },
         "minio-async": {
             "hashes": [
@@ -556,14 +548,6 @@
             ],
             "markers": "sys_platform != 'win32' and implementation_name == 'cpython'",
             "version": "==5.4.0"
-        },
-        "urllib3": {
-            "hashes": [
-                "sha256:44ece4d53fb1706f667c9bd1c648f5469a2ec925fcf3a776667042d645472c14",
-                "sha256:aabaf16477806a5e1dd19aa41f8c2b7950dd3c746362d7e3223dbe6de6ac448e"
-            ],
-            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4'",
-            "version": "==1.26.9"
         },
         "uvloop": {
             "hashes": [

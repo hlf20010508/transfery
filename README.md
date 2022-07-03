@@ -98,7 +98,7 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 - python 3.7 (必须&must)
 - sanic 22.6.0
 - python-socketio 5.6.0
-- minio 7.1.9
+- minio-async 1.0.0
 - ezmysql 0.9.0
 
 更多依赖请参考Pipfile.lock
