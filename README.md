@@ -101,13 +101,13 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 - minio-async 1.0.0
 - ezmysql 0.9.0
 
-其中minio-async为minio的async版，与minio有版本差且无人维护
+其中minio-async为minio的async版，与minio有版本差且无人维护；
 
-实测python3.7.10和python3.7.13运行正常，python3.8无法运行，python3.6.0无法运行
+实测python3.7.10和python3.7.13运行正常，python3.8无法运行，python3.6.0无法运行；
 
-而且使用pip的源来安装可能有较大困难
+而且使用pip的源来安装可能有较大困难；
 
-因此我为minio-async在github和gitee上都创建了仓库
+因此我为minio-async在github和gitee上都创建了仓库。
 
 Pipfile里使用的是gitee上的仓库<a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
 
@@ -115,7 +115,28 @@ github上的仓库为<a href="https://github.com/hlf20010508/minio-async.git">ht
 
 <br/>
 
-更多依赖请参考Pipfile.lock
+安装pyenv来管理python版本。
+
+国内的linux用户可以使用我更改的镜像：
+```bash
+curl -L https://gitee.com/hlf01/pyenv-installer/raw/master/bin/pyenv-installer | bash
+```
+
+已经将所有所需的仓库做了镜像。
+
+安装好后在环境变量中加入：
+```bash
+export PYENV_ROOT="$HOME/.pyenv"
+export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init --path)"
+eval "$(pyenv init -)"
+```
+
+不要使用脚本中的指导，它无法调用安装好的库，安装好后直接复制我的命令就可以了。
+
+<br/>
+
+更多依赖请参考Pipfile.lock。
 
 <br/>
 
