@@ -21,7 +21,7 @@ class Client:
             secret_key=password,
             secure=secure
         )
-        #打印
+        #for printing
         self.host = host
         self.bucket = bucket
 
