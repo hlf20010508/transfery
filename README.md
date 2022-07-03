@@ -8,8 +8,10 @@
 - <a href="https://github.com/hlf20010508/transfery/blob/master/README.md">English</a>
 - <a href="https://github.com/hlf20010508/transfery/blob/master/README/README.zh_CN.md">简体中文</a>
 
+<br/>
+
 ## Catalogue
-- <a href="#h1">Interface Presentation</a>
+- <a href="#h1">Interface</a>
 - <a href="#h2">Functionality</a>
 - <a href="#h3">Significance</a>
 - <a href="#h4">Environment</a>
@@ -20,7 +22,7 @@
 
 <br/>
 
-## Interface Presentation<span id="h1"></span>
+## Interface<span id="h1"></span>
 
 Web Browser
 
