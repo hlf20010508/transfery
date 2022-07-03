@@ -95,7 +95,7 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 
 ### transfery 依赖<span id="sh41"></span>
 
-- python 3.7 (必须&must)
+- python > 3.6
 - sanic 22.6.0
 - python-socketio 5.6.0
 - minio-async 1.0.0
@@ -103,9 +103,9 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 
 其中minio-async为minio的async版，与minio有版本差且无人维护
 
-实测python3.7.10和python3.7.13运行正常，python3.8无法运行，python3.6.0无法运行；
+实测python3.7.10、3.8.0、3.8.13、3.9.0、3.9.13、3.10.0、3.10.5可以运行，python3.6.0无法运行；
 
-而且使用pip的源来安装可能有较大困难；
+由于使用pip的源来安装可能有较大困难；
 
 因此我为minio-async在github和gitee上都创建了仓库。
 

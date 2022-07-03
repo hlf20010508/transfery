@@ -12,4 +12,4 @@ sanic-jinja2 = "*"
 minio-async = {git = "https://gitee.com/hlf01/minio-async.git"}
 
 [requires]
-python_version = "3.7"
+python_version = ">3.6"
