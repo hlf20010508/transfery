@@ -4,6 +4,10 @@
 
 <br/>
 
+## 语言
+- <a href="https://github.com/hlf20010508/transfery/blob/master/README.md">English</a>
+- <a href="https://github.com/hlf20010508/transfery/blob/master/README/README.zh_CN.md">简体中文</a>
+
 ## 目录
 - <a href="#h1">项目部分界面展示</a>
 - <a href="#h2">项目功能</a>
