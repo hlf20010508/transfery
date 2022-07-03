@@ -1,5 +1,5 @@
-from minio import Minio
-from minio.error import S3Error, InvalidResponseError
+from minio_async import Minio
+from minio_async.error import S3Error, InvalidResponseError
 import config as myconfig
 
 config = myconfig.load()

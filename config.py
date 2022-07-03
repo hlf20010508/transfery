@@ -1,6 +1,6 @@
 import json
 import pymysql
-from minio import Minio
+from minio_async import Minio
 
 def init():
     host_minio = input('请输入minio服务器域名或ip地址 (eg: example.com:9000) ：')

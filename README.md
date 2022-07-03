@@ -101,7 +101,7 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 - minio-async 1.0.0
 - ezmysql 0.9.0
 
-其中minio-async为minio的async版，与minio有版本差，无人维护，且会覆盖现有minio
+其中minio-async为minio的async版，与minio有版本差且无人维护
 
 实测python3.7.10和python3.7.13运行正常，python3.8无法运行，python3.6.0无法运行；
 
@@ -110,6 +110,8 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 因此我为minio-async在github和gitee上都创建了仓库。
 
 仓库代码的来源为<a href="https://pypi.tuna.tsinghua.edu.cn/simple/minio-async/">清华源minio-async</a>
+
+我对其作了修改，更改了包的名字为minio_async，避免其覆盖minio
 
 Pipfile里使用的是gitee上的仓库<a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
 
