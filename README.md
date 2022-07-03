@@ -134,6 +134,20 @@ eval "$(pyenv init -)"
 
 不要使用脚本中的指导，它无法调用安装好的库，安装好后直接复制我的命令就可以了。
 
+然后运行命令，使用国内镜像源安装python3.7.13
+```bash
+v=3.7.13; wget https://npm.taobao.org/mirrors/python//$v/Python-$v.tar.xz -P ~/.pyenv/cache/; pyenv install $v 
+```
+
+如果要安装其他版本，先运行
+```
+pyenv install list
+```
+
+查看可用的python版本
+
+然后把上面命令中的v=3.7.13改为你需要的版本即可
+
 <br/>
 
 更多依赖请参考Pipfile.lock。
