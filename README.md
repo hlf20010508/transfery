@@ -95,60 +95,30 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 
 ### transfery 依赖<span id="sh41"></span>
 
-- python 3.7 (必须&must)
+- python>3.6
 - sanic 22.6.0
 - python-socketio 5.6.0
 - minio-async 1.0.0
 - ezmysql 0.9.0
 
-其中minio-async为minio的async版，与minio有版本差，无人维护，且会覆盖现有minio
+minio-async为minio的async版，与minio有版本差且无人维护
 
-实测python3.7.10和python3.7.13运行正常，python3.8无法运行，python3.6.0无法运行；
+minio-async在pypi官方源被下架，国内某些源没有收录，清华源在我的远程主机上无法下载
 
-而且使用pip的源来安装可能有较大困难；
-
-因此我为minio-async在github和gitee上都创建了仓库。
+说明使用pip的源来安装可能有较大困难,因此我为minio-async在github和gitee上都创建了仓库。
 
 仓库代码的来源为<a href="https://pypi.tuna.tsinghua.edu.cn/simple/minio-async/">清华源minio-async</a>
+
+我对其作了修改，更改了包的名字为minio_async，避免其覆盖minio
 
 Pipfile里使用的是gitee上的仓库<a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
 
 github上的仓库为<a href="https://github.com/hlf20010508/minio-async.git">https://github.com/hlf20010508/minio-async.git</a>
 
-<br/>
-
-安装pyenv来管理python版本。
-
-国内的linux用户可以使用我更改的镜像：
+使用gitee是为了方便国内用户，但由于gitee新增公开仓库审核机制，若出现gitee仓库无法访问，请在Pipfile中手动更改为github仓库并用Pipfile安装
 ```bash
-curl -L https://gitee.com/hlf01/pyenv-installer/raw/master/bin/pyenv-installer | bash
+pipenv install
 ```
-
-已经将所有所需的仓库做了镜像。
-
-安装好后在环境变量中加入：
-```bash
-export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init --path)"
-eval "$(pyenv init -)"
-```
-
-不要使用脚本中的指导，它无法调用安装好的库，安装好后直接复制我的命令就可以了。
-
-然后运行命令，使用国内镜像源安装python3.7.13
-```bash
-v=3.7.13; wget https://npm.taobao.org/mirrors/python//$v/Python-$v.tar.xz -P ~/.pyenv/cache/; pyenv install $v 
-```
-
-如果要安装其他版本，先运行
-```
-pyenv install list
-```
-
-查看可用的python版本
-
-然后把上面命令中的v=3.7.13改为你需要的版本即可
 
 <br/>
 
