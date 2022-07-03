@@ -1,24 +1,28 @@
 # transfery
 
-> 便捷的临时消息文件传输项目
+> A Convenient Temporary Message and File transfer Project
 
 <br/>
 
-## 目录
-- <a href="#h1">项目部分界面展示</a>
-- <a href="#h2">项目功能</a>
-- <a href="#h3">项目意义</a>
-- <a href="#h4">项目所需环境</a>
-  - <a href="#sh41">transfery 依赖</a>
-- <a href="#h5">注意</a>
-- <a href="#h6">项目运行</a>
-  - <a href="#sh61">后台运行与开机自启</a>
+## Languages
+- <a href="https://github.com/hlf20010508/transfery/blob/master/README.md">English</a>
+- <a href="https://github.com/hlf20010508/transfery/blob/master/README/README.zh_CN.md">简体中文</a>
+
+## Catalogue
+- <a href="#h1">Interface Presentation</a>
+- <a href="#h2">Functionality</a>
+- <a href="#h3">Significance</a>
+- <a href="#h4">Environment</a>
+  - <a href="#sh41">Dependencies</a>
+- <a href="#h5">Note</a>
+- <a href="#h6">Running</a>
+  - <a href="#sh61">Background Running and Boots up</a>
 
 <br/>
 
-## 项目部分界面展示<span id="h1"></span>
+## Interface Presentation<span id="h1"></span>
 
-浏览器样式
+Web Browser
 
 <img width="1082" alt="image" src="https://user-images.githubusercontent.com/76218469/176151027-c40cc300-7c22-42c5-9da8-2984066a8b99.png">
 
@@ -28,7 +32,7 @@
 
 <br/>
 
-ios webapp（增加到主屏幕）
+ios WebApp（Add to Home Screen）
 
 <div align=center>
 <img width="300" alt="image" src="https://user-images.githubusercontent.com/76218469/176231809-af30a998-f494-479e-8355-2a4c5b5f18dd.PNG"> <img width="300" alt="image" src="https://user-images.githubusercontent.com/76218469/176233010-944534ff-9db5-4935-9e71-44a28af17b28.PNG"> <img width="300" alt="image" src="https://user-images.githubusercontent.com/76218469/176233015-457633fd-bb43-4a7f-b021-4a3e85ef02b2.PNG"> <img width="300" alt="image" src="https://user-images.githubusercontent.com/76218469/176664354-69f6b382-44ef-4592-aa34-57333a22240f.PNG">
@@ -36,64 +40,64 @@ ios webapp（增加到主屏幕）
 
 <br/>
 
-## 项目功能<span id="h2"></span>
+## Functionality<span id="h2"></span>
 
-- 发送文字消息
-- 传输文件，支持多文件
-- 全双工即时通信
-- 异步框架，支持边上传边发送消息
-- 手机使用屏幕键盘时页面弹性缩放
-- 删除历史记录
-
-<br/>
-
-## 项目意义<span id="h3"></span>
-
-假设一个场景：
-
-你正在上课，这堂课需要你上台汇报。
-
-然而你虽然带了电脑，但忘记带上U盘，没有办法将PPT拷贝到教室的电脑里。
-
-教室的电脑比较新，没有安装通讯软件，你又不便直接在上面安装。
-
-此时比较靠谱的办法可能是将PPT通过电子邮件发送给自己，然后登录自己的邮箱进行下载。
-
-或者将PPT发送到自己的网盘，然后登录网盘的网页版进行下载。
-
-然而这些都需要进行登录操作，可能会让台下的人长时间观摩你的操作。
+- Send messages
+- Send files, multiple files uploads supported
+- Full-duplex instant messaging
+- Asynchronous framework, messaging while uploading supported
+- Scales page elastically when using soft keyboard on phone
+- Delete history messages
 
 <br/>
 
-再假设一个场景：
+## Significance<span id="h3"></span>
 
-你拥有三台电脑，一台是Windows电脑，一台是Mac电脑，一台是Linux电脑。
+Consider a scenario:
 
-你需要在这三台电脑之间发送大量的小文件，同时还要时不时传递文字信息。
+You're in class, and this class requires you to report on stage.
 
-如果是在手机和电脑上，你应该会直接使用通讯软件，这的确很方便。
+However, although you have brought a computer, but forget to bring a USB flash drive, there is no way to copy the PPT to the classroom computer.
 
-然而现在是三台电脑，三种操作系统，可能有一个操作系统无法装你想要的通讯软件，也有可能通讯软件不能同时登录三台电脑
+The computer in the classroom is relatively new, and there is no communication software installed, and it's not inconvenient for you to install it directly.
 
-<br/>
+At this time, the reliable way maybe is to send the PPT to yourself by e-mail and then log in to your mailbox to download it.
 
-生活中难免会遇到需要操作别人的或者公共的电脑时候，亦或者自己有很多不同平台的设备，此时传送小文件、发送文字是挺麻烦的一件事。
+Or send the PPT to your network disk, and then log in to the website of the network disk to download it.
 
-<br/>
-
-Transfery的意义，就是传送小型的临时文件，共享剪贴板，而无需登录，无设备数量限制。
+However, these require login, which may let people observe your operations for a long time.
 
 <br/>
 
-## 项目所需环境<span id="h4"></span>
+Let's take another scenario:
 
-运行Transfery，你需要
-- <a href="https://github.com/minio/minio.git">Minio</a>，作为对象存储服务
-- MySQL，作为数据库
-- Sanic，作为后端服务
-- 一台服务器，以便随时随地使用
+You have three computers, one is a Windows, one is a Mac, and one is a Linux.
 
-### transfery 依赖<span id="sh41"></span>
+You'll have to send a lot of small files and text messages between these three computers.
+
+If it's between a phone and a computer, using communication software is a good solution.
+
+However, now there are three computers with three different operating systems. Maybe one of the system can't install the communication software you want, or it's impossible to log in to three computers at the same time.
+
+<br/>
+
+It's inevitable that you need to operate other people's or public computers. Or maybe you have many different computer platforms. It's very troublesome to transfer small files and send text in this situation.
+
+<br/>
+
+Transfery's significance, is to transfer small temperary files and share text messages, without login, and no limit on the number of devices.
+
+<br/>
+
+## Environment<span id="h4"></span>
+
+To run Transfery, you need:
+- <a href="https://github.com/minio/minio.git">Minio</a>, as an object storage server
+- MySQL, as a database server
+- Sanic, as a back end 
+- A server, to enjoy it anytime
+
+### Dependencies<span id="sh41"></span>
 
 - python>3.6
 - sanic 22.6.0
@@ -101,87 +105,88 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 - minio-async 1.0.0
 - ezmysql 0.9.0
 
-minio-async为minio的async版，与minio有版本差且无人维护
+minio-async is an asynchronous version of minio-py, which has version backward and no one to maintain.
 
-minio-async在pypi官方源被下架，国内某些源没有收录，清华源在我的远程主机上无法下载
+You may not able to find minio-async on pypi.
 
-说明使用pip的源来安装可能有较大困难,因此我为minio-async在github和gitee上都创建了仓库。
+Thus I created repository for minio-async on github and gitee.
 
-仓库代码的来源为<a href="https://pypi.tuna.tsinghua.edu.cn/simple/minio-async/">清华源minio-async</a>
+The source code is from <a href="https://pypi.tuna.tsinghua.edu.cn/simple/minio-async/">https://pypi.tuna.tsinghua.edu.cn/simple/minio-async/</a>
 
-我对其作了修改，更改了包的名字为minio_async，避免其覆盖minio
+I did some editing, changed its name to minio_async, to avoid override minio
 
-Pipfile里使用的是gitee上的仓库<a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
+Pipfile uses gitee's repository <a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
 
-github上的仓库为<a href="https://github.com/hlf20010508/minio-async.git">https://github.com/hlf20010508/minio-async.git</a>
+The repository on github is <a href="https://github.com/hlf20010508/minio-async.git">https://github.com/hlf20010508/minio-async.git</a>
 
-使用gitee是为了方便国内用户，但由于gitee新增公开仓库审核机制，若出现gitee仓库无法访问，请在Pipfile中手动更改为github仓库并用Pipfile安装
+If you cannot visit the repository on gitee, please change the link to github in Pipfile, and run
 ```bash
 pipenv install
 ```
 
 <br/>
 
-更多依赖请参考Pipfile.lock。
+Refer to Pipfile.lock for more dependencies.
 
 <br/>
 
-### 注意<span id="h5"></span>
+### Note<span id="h5"></span>
 
-- 由于没有设置密码，因此请不要将Transfery的服务网址分享到网络上，以免被恶意上传。
-- 仅需安装好Minio和Mysql并能正常连接即可,config.py会自动在Minio中创建bucket以及在MySQL中创建数据库和表。
-- 本项目仅为后端，如需自定义前端界面，请前往<a href="https://github.com/hlf20010508/transfery-vue.git">transfery-vue</a>。
-- 若将transfery与transfery-vue放在同级目录下，使用 npm run build 会自动将webpack打包好的html和js文件导入transfery。
+- Because no password setting, please do not share you address of your Transfery server on the Internet.
+- What you should do is just install Minio and MySQL, and make sure they can run well. Bucket, database and table will be automatically initialized by running config.py.
+- This project is just a back end, if you want to modify front end, please go to <a href="https://github.com/hlf20010508/transfery-vue.git">transfery-vue</a>.
+- If you put transfery and transfery-vue under the same directory, running "npm run build" in transfery-vue will use webpack to generate html and js files and automatically import them to transfery.
 
 <br/>
 
-## 项目运行<span id="h6"></span>
+## Running<span id="h6"></span>
 
 ``` bash
-# 安装pipenv
+# install pipenv
 pip install pipenv
 
-# 使用pipenv安装依赖
+# use pipenv to install dependencies
 pipenv sync
 
-# 运行配置脚本
+# run configuration setting
 pipenv run python config.py
 
-# 运行服务
+# run service
 pipenv run python sanic run.app
 
-# 自定义host和port，运行在服务器上必须使用0.0.0.0，否则无法访问
+# provide host and port
+# if you run it on online server, make sure the host is 0.0.0.0
 pipenv run python sanic run.app -H 0.0.0.0 -p 5000
 ```
 
 <br/>
 
-### 后台运行与开机自启<span id="sh61"></span>
+### Background Running and Boots up<span id="sh61"></span>
 
 ```bash
-# 编辑transfery@.service
+# edit transfery@.service
 vim transfery@.service
 
-# 参照已有命令更改第6行ExecStart和第11行WorkingDirectory
+# edit ExecStart in line 6 and WorkingDirectory in line 11, refering the given example.
 
-# 将transfery@.service复制到/etc/systemd/system
+# copy transfery@.service to /etc/systemd/system
 sudo cp transfery@.service /etc/systemd/system
 
-# 启动服务 USERNAME是本机用户名，下同
+# launch service, USERNAME is the name of current user of os
 sudo systemctl start transfery@USERNAME
 
-# 查看状态
+# check status
 sudo systemctl status transfery@USERNAME
 
-# 开机自启
+# boots up
 sudo systemctl enable transfery@USERNAME
 
-# 重启服务
+# restart service
 sudo systemctl restart transfery@USERNAME
 
-# 关闭服务
+# close service
 sudo systemctl stop transfery@USERNAME
 
-# 取消开机自启
+# cancel boots up
 sudo systemctl disable transfery@USERNAME
 ```

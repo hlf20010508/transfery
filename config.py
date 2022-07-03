@@ -3,26 +3,26 @@ import pymysql
 from minio_async import Minio
 
 def init():
-    host_minio = input('请输入minio服务器域名或ip地址 (eg: example.com:9000) ：')
+    host_minio = input('Host name or ip address of minio server (eg: example.com:9000): ')
     secure_minio = True if input(
-        '请选择minio服务器使用的协议： 0 http 1 https ')=='1' else False
+        'Protocol of server: 0 http 1 https ')=='1' else False
     local_minio = True if input(
-        'minio是否与transfery在同一个服务器？ 0 否 1 是 ') == '1' else False
-    username_minio = input('请输入用户名：')
-    password_minio = input('请输入密码：')
-    bucket = input('请输入bucket名：')
+        'Is minio in the same server with transfery? 0 No 1 Yes ') == '1' else False
+    username_minio = input('Username: ')
+    password_minio = input('Password: ')
+    bucket = input('Bucket name: ')
     host_mysql = input(
-        '请输入mysql服务器域名或ip地址 (eg: example.com:3306) ：')
+        'Host name or ip address of mysql server (eg: example.com:3306) : ')
     local_mysql = True if input(
-        'mysql是否与transfery在同一个服务器？ 0 否 1 是 ') == '1' else False
-    username_mysql = input('请输入用户名：')
-    password_mysql = input('请输入密码：')
-    database = input('请输入数据库名：')
-    table = input('请输入表名：')
-    item_per_page = input('请输入每次加载的项目条数 (eg: 15) ：')
+        'Is mysql in the same server with transfery? 0 No 1 Yes ') == '1' else False
+    username_mysql = input('Username: ')
+    password_mysql = input('Password: ')
+    database = input('Database name: ')
+    table = input('Table name: ')
 
     config = {
         'cache_path': 'cache',
+        'item_per_page': 15,
         'host_minio': host_minio,
         'secure_minio': secure_minio,
         'local_minio': local_minio,
@@ -35,31 +35,30 @@ def init():
         'password_mysql': password_mysql,
         'database': database,
         'table': table,
-        'item_per_page': int(item_per_page)
     }
 
     config_file = open('config.json', 'w')
     json.dump(config, config_file)
     config_file.close()
-    print('设置成功！')
+    print('Configuration completed')
 
-    print('正在初始化minio...')
+    print('Initializing minio...')
     init_minio(host_minio, username_minio, password_minio, bucket)
 
-    print('正在初始化mysql...')
+    print('Initializing mysql...')
     port = int(host_mysql.split(':')[1])
     host = '127.0.0.1' if local_mysql else host_mysql.split(':')[0]
     init_mysql(host, username_mysql,
                password_mysql, port, database, table)
 
-    print('初始化完成')
+    print('Initialization completed')
 
 
 def load():
     try:
         config_file = open('config.json', 'r')
     except:
-        print('未找到\配置文件，请先运行config.py')
+        print('Configuration not found, run config.py first')
         print('python config.py')
         exit()
     config = json.load(config_file)
@@ -68,6 +67,7 @@ def load():
 
 
 def init_minio(host, username, password, bucket):
+    # create bucket if not exists
     client = Minio(
         host,
         access_key=username,
@@ -79,6 +79,7 @@ def init_minio(host, username, password, bucket):
 
 
 def init_mysql(host, user, password, port, database, table):
+    # create database and table if not exists
     conn = pymysql.connect(host=host, user=user,
                            password=password, port=port, charset='utf8mb4')
     cursor = conn.cursor()

@@ -23,6 +23,7 @@ def db():
 
 
 def init():
+    # create database and table if not exists
     conn = pymysql.connect(host=host, user=username,
                            password=password, port=port, charset='utf8mb4')
     cursor = conn.cursor()
