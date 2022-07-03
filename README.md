@@ -109,6 +109,8 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 
 因此我为minio-async在github和gitee上都创建了仓库。
 
+仓库代码的来源为<a href="https://pypi.tuna.tsinghua.edu.cn/simple/minio-async/">清华源minio-async</a>
+
 Pipfile里使用的是gitee上的仓库<a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
 
 github上的仓库为<a href="https://github.com/hlf20010508/minio-async.git">https://github.com/hlf20010508/minio-async.git</a>
