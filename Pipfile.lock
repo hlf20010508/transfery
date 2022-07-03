@@ -1,12 +1,10 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "3c75f85f2b3afa55cbbc3516d2389f210a86b2b949686b38d71c3bc31cd2aceb"
+            "sha256": "dd613c841a4434cad4bb7258ef11895508968fd2320ac4e178f07329ca045e85"
         },
         "pipfile-spec": 6,
-        "requires": {
-            "python_version": "3.7"
-        },
+        "requires": {},
         "sources": [
             {
                 "name": "pypi",
@@ -133,14 +131,6 @@
             ],
             "markers": "python_version >= '3.6'",
             "version": "==4.0.2"
-        },
-        "asynctest": {
-            "hashes": [
-                "sha256:5da6118a7e6d6b54d83a8f7197769d046922a44d2a99c21382f0a6e4fadae676",
-                "sha256:c27862842d15d83e6a34eb0b2866c323880eb3a75e4485b079ea11748fd77fac"
-            ],
-            "markers": "python_version < '3.8'",
-            "version": "==0.13.0"
         },
         "attrs": {
             "hashes": [
@@ -367,7 +357,7 @@
         },
         "minio-async": {
             "git": "https://gitee.com/hlf01/minio-async.git",
-            "ref": "70c1eceec37d5fc2acdb17dd4334d58c4443cf42"
+            "ref": "8508a8400dc0ab96b5bc58326dac0e5616f58b15"
         },
         "multidict": {
             "hashes": [
