@@ -101,7 +101,7 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 - minio-async 1.0.0
 - ezmysql 0.9.0
 
-其中minio-async为minio的async版，与minio有版本差且无人维护；
+其中minio-async为minio的async版，与minio有版本差，无人维护，且会覆盖现有minio
 
 实测python3.7.10和python3.7.13运行正常，python3.8无法运行，python3.6.0无法运行；
 
