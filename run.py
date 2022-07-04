@@ -69,7 +69,10 @@ async def remove_all_items():
 def rename(old_filename, time):
     temp = old_filename.split('.')
     temp[0] += '_'+str(time)[:-3]
-    return '.'.join(temp)
+    temp='.'.join(temp)
+    temp=temp.split()
+    temp='_'.join(temp)
+    return temp
 
 
 @app.route('/')
