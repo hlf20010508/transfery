@@ -1,0 +1,16 @@
+{
+  "orientation": "natural",
+  "display": "fullscreen",
+  "icons": [
+    {
+      "src": "/static/icon.png",
+      "sizes": "72x72 96x96 128x128 256x256 512*512 1024*1024"
+    }
+  ],
+  "name": "Transfery",
+  "short_name": "Transfery",
+  "description": "便捷的临时消息文件传输项目",
+  "start_url": "/",
+  "background_color": "#409eff",
+  "theme_color": "#409eff"
+}

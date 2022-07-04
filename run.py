@@ -85,17 +85,22 @@ async def index(request):
 
 @app.route('/get/page', methods=['GET'])
 async def page(request):
+    print('received new page request')
     item_per_page = config['item_per_page']
-    page_id = int(request.args['page'][0])
-    start = page_id*item_per_page
+    start = int(request.args['size'][0])
     result = await query_items(start, item_per_page)
+    print('new page pushed')
     return json({'messages': result})
 
 
 @app.route('/get/sync', methods=['GET'])
 async def sync(request):
+    print('received sync request')
     last_id = int(request.args['lastId'][0])
+    print('last_id:',last_id)
     result = await sync_items(last_id)
+    print('items to be syncd: ',result)
+    print('synced')
     return json({'newItems': result})
 
 
