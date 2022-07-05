@@ -69,9 +69,9 @@ async def remove_all_items():
 def rename(old_filename, time):
     temp = old_filename.split('.')
     temp[0] += '_'+str(time)[:-3]
-    temp='.'.join(temp)
-    temp=temp.split()
-    temp='_'.join(temp)
+    temp = '.'.join(temp)
+    temp = temp.split()
+    temp = '_'.join(temp)
     return temp
 
 
@@ -100,9 +100,9 @@ async def page(request):
 async def sync(request):
     print('received sync request')
     last_id = int(request.args['lastId'][0])
-    print('last_id:',last_id)
+    print('last_id:', last_id)
     result = await sync_items(last_id)
-    print('items to be syncd: ',result)
+    print('items to be syncd: ', result)
     print('synced')
     return json({'newItems': result})
 
@@ -129,7 +129,7 @@ async def upload(request):
     temp = open(save_path, 'rb')
     await client.upload(file_name, temp, size)
     temp.close()
-    
+
     for i in os.listdir(config['cache_path']):
         os.remove(os.path.join(config['cache_path'], i))
     print("uploaded")
@@ -181,7 +181,7 @@ async def remove(sid, item):
         client = OSS_minio.Client()
         await client.remove(item['fileName'])
         print('removed item in oss')
-        
+
     await socketio.emit('removeItem', item['id'], skip_sid=sid)
     print('broadcasted')
     return True
@@ -200,5 +200,10 @@ async def removeAll(sid):
 
 
 @socketio.event
+def connect(sid, environ, auth):
+    print('client %s connected' % sid)
+
+
+@socketio.event
 def disconnect(sid):
-    print('client %s disconnected'%sid)
+    print('client %s disconnected' % sid)
