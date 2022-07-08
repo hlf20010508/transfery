@@ -113,7 +113,6 @@ async def upload(request):
     if not os.path.exists(config['cache_path']):
         os.mkdir(config['cache_path'])
     file = request.files.get('file')
-    size = request.form.get('size')
     time = request.form.get('time')
 
     file_name = rename(file.name, time)
@@ -126,12 +125,8 @@ async def upload(request):
 
     # upload to minio from cache
     client = OSS_minio.Client()
-    temp = open(save_path, 'rb')
-    await client.upload(file_name, temp, size)
-    temp.close()
-
-    for i in os.listdir(config['cache_path']):
-        os.remove(os.path.join(config['cache_path'], i))
+    await client.upload(file_name, save_path)
+    os.remove(save_path)
     print("uploaded")
     return json({"success": True, "fileName": file_name})
 
