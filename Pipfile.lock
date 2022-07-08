@@ -19,7 +19,7 @@
                 "sha256:0aefa1d91d000d3a20a515d153db2ebf713076c7c94edf2fca85d3d83316abc5",
                 "sha256:0e2a524e4714efda47ce8964b13d4da94cf553411f9f6da813df615a4cd73d95"
             ],
-            "markers": "python_version < '4.0' and python_full_version >= '3.5.0'",
+            "markers": "python_version >= '3.5' and python_version < '4'",
             "version": "==3.7.4"
         },
         "aiofiles": {
@@ -27,7 +27,7 @@
                 "sha256:7a973fc22b29e9962d0897805ace5856e6a566ab1f0c8e5c91ff6c866519c937",
                 "sha256:8334f23235248a3b2e83b2c3a78a22674f39969b96397126cc93664d9a901e59"
             ],
-            "markers": "python_version >= '3.6' and python_version < '4.0'",
+            "markers": "python_version >= '3.6' and python_version < '4'",
             "version": "==0.8.0"
         },
         "aiohttp": {
@@ -162,7 +162,7 @@
                 "sha256:ea0e87d1206acd8954ac08eb24fef8b0e3475fd12f9b521325561bda723a324e",
                 "sha256:fb499c23e03894a0f6d055d393087785b4b1578fe883f5da56d95ecf737365e6"
             ],
-            "markers": "python_version < '4.0' and python_full_version >= '3.5.0'",
+            "markers": "python_version >= '3.5' and python_version < '4'",
             "version": "==0.9.6"
         },
         "certifi": {
@@ -290,7 +290,7 @@
                 "sha256:fcddfe70553be717d9745990dfdb194e22ee0f60eb8f48c0794e7bfeda30d2d5",
                 "sha256:fdb9f9ed79bc6f46b021b3319184699ba1a22410a82204e6e89c774530069683"
             ],
-            "markers": "python_full_version >= '3.5.0'",
+            "markers": "python_version >= '3.5'",
             "version": "==0.4.0"
         },
         "idna": {
@@ -298,7 +298,7 @@
                 "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff",
                 "sha256:9d643ff0a55b762d5cdb124b8eaa99c66322e2157b69160bc32796e824360e6d"
             ],
-            "markers": "python_full_version >= '3.5.0'",
+            "markers": "python_version >= '3.5'",
             "version": "==3.3"
         },
         "jinja2": {
@@ -357,7 +357,7 @@
         },
         "minio-async": {
             "git": "https://gitee.com/hlf01/minio-async.git",
-            "ref": "07088c34182af88c90d90c55e3f01aa09b097f4e"
+            "ref": "139f3761550321afb0f4c653c7505e7d50fd6240"
         },
         "multidict": {
             "hashes": [

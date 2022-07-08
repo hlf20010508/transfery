@@ -32,10 +32,10 @@ class Client:
         except InvalidResponseError as err:
             print(err)
 
-    async def upload(self, remote_path, data, size):
+    async def upload(self, remote_path, local_path,):
         try:
-            await self.client.put_object(
-                self.bucket, remote_path, data, int(size))
+            await self.client.fput_object(
+                self.bucket, remote_path, local_path)
             print(
                 "file is successfully uploaded as \n object %s to bucket %s." % (
                     remote_path, self.bucket)
