@@ -104,24 +104,18 @@ To run Transfery, you need:
 - python>3.6
 - sanic 22.6.0
 - python-socketio 5.6.0
-- minio-async 1.0.0
+- minio-async 1.1.0
 - ezmysql 0.9.0
 
-minio-async is an asynchronous version of minio-py, which has version backward and no one to maintain.
+Minio-async is maintained by me.
 
-You may not able to find minio-async on pypi.
+You may find minio-async on pypi or other sources, but that is the predecessor of what this project uses, which has a lot of bugs. I don't publish it yet, so you have to install it using git.
 
-Thus I created repository for minio-async on github and gitee.
+- Minio-async on gitee <a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
 
-The source code is from <a href="https://pypi.tuna.tsinghua.edu.cn/simple/minio-async/">https://pypi.tuna.tsinghua.edu.cn/simple/minio-async/</a>
+- Minio-async on github <a href="https://github.com/hlf20010508/minio-async.git">https://github.com/hlf20010508/minio-async.git</a>
 
-I did some editing, changed its name to minio_async, to avoid override minio
-
-Pipfile uses gitee's repository <a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
-
-The repository on github is <a href="https://github.com/hlf20010508/minio-async.git">https://github.com/hlf20010508/minio-async.git</a>
-
-If you cannot visit the repository on gitee, please change the link to github in Pipfile, and run
+Minio-async in Pipfile dafaultly use gitee's repository. If you cannot visit the repository on gitee, please change the link to github in Pipfile, and run
 ```bash
 pipenv install
 ```
@@ -136,7 +130,7 @@ Refer to Pipfile.lock for more dependencies.
 
 - Because no password setting, please do not share you address of your Transfery server on the Internet.
 - What you should do is just install Minio and MySQL, and make sure they can run well. Bucket, database and table will be automatically initialized by running config.py.
-- This project is just a back end, if you want to modify front end, please go to <a href="https://github.com/hlf20010508/transfery-vue.git">transfery-vue</a>.
+- This project is just a backend, if you want to modify frontend, please go to <a href="https://github.com/hlf20010508/transfery-vue.git">transfery-vue</a>.
 - If you put transfery and transfery-vue under the same directory, running "npm run build" in transfery-vue will use webpack to generate html and js files and automatically import them to transfery.
 
 <br/>

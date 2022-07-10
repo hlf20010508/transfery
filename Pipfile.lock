@@ -132,6 +132,14 @@
             "markers": "python_version >= '3.6'",
             "version": "==4.0.2"
         },
+        "asynctest": {
+            "hashes": [
+                "sha256:5da6118a7e6d6b54d83a8f7197769d046922a44d2a99c21382f0a6e4fadae676",
+                "sha256:c27862842d15d83e6a34eb0b2866c323880eb3a75e4485b079ea11748fd77fac"
+            ],
+            "markers": "python_version < '3.8'",
+            "version": "==0.13.0"
+        },
         "attrs": {
             "hashes": [
                 "sha256:2d27e3784d7a565d36ab851fe94887c5eccd6a463168875832a1be79c82828b4",
@@ -357,7 +365,7 @@
         },
         "minio-async": {
             "git": "https://gitee.com/hlf01/minio-async.git",
-            "ref": "139f3761550321afb0f4c653c7505e7d50fd6240"
+            "ref": "51cb20fbb6db2979cbd4bdf0544f57fc35598799"
         },
         "multidict": {
             "hashes": [
@@ -534,6 +542,14 @@
             ],
             "markers": "sys_platform != 'win32' and implementation_name == 'cpython'",
             "version": "==5.4.0"
+        },
+        "urllib3": {
+            "hashes": [
+                "sha256:8298d6d56d39be0e3bc13c1c97d133f9b45d797169a0e11cdd0e0489d786f7ec",
+                "sha256:879ba4d1e89654d9769ce13121e0f94310ea32e8d2f8cf587b77c08bbcdb30d6"
+            ],
+            "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4, 3.5' and python_version < '4'",
+            "version": "==1.26.10"
         },
         "uvloop": {
             "hashes": [

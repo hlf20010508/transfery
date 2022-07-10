@@ -23,6 +23,7 @@ app.config.REQUEST_MAX_SIZE = 10*1024*1024*1024
 socketio = socketio.AsyncServer(async_mode='sanic')
 socketio.attach(app)
 
+client = OSS_minio.Client()
 
 async def query_items(start, amount):
     _db = db()
@@ -124,7 +125,6 @@ async def upload(request):
     temp.close()
 
     # upload to minio from cache
-    client = OSS_minio.Client()
     await client.upload(file_name, save_path)
     os.remove(save_path)
     print("uploaded")
@@ -136,14 +136,12 @@ async def download(request):
     print('received download request')
     file_name = request.args['fileName'][0]
 
-    client = None
     if config['local_minio']:
-        # if minio is local, it will use 127.0.0.1 to create url,
-        # so at this time use host to create a minio object to create url properly
-        client = OSS_minio.Client(host=config['host_minio'])
-    else:
-        client = OSS_minio.Client()
-    url = await client.get_download_url(file_name)
+        # if minio is local, change the host to create url properly,
+        # or it will use 127.0.0.1 to create url
+        protocal = 'https://' if config['secure_minio'] else 'http://'
+        host = protocal + config['host_minio']
+        url = await client.get_download_url(file_name, change_host=host)
 
     print('url pushed')
     return json({"success": True, "url": url})
@@ -173,7 +171,6 @@ async def remove(sid, item):
     print('removed item in db')
 
     if item['type'] == 'file':
-        client = OSS_minio.Client()
         await client.remove(item['fileName'])
         print('removed item in oss')
 
@@ -187,7 +184,6 @@ async def removeAll(sid):
     print('received remove all item request')
     await remove_all_items()
     print('removed all items in db')
-    client = OSS_minio.Client()
     await client.remove_all()
     print('all items removed in oss')
     await socketio.emit('removeAll', skip_sid=sid)
