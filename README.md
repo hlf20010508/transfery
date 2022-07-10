@@ -111,9 +111,9 @@ Minio-async is maintained by me.
 
 You may not be able to find minio-async on pypi.
 
-Minio-async on gitee <a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
+- Minio-async on gitee <a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
 
-Minio-async on github <a href="https://github.com/hlf20010508/minio-async.git">https://github.com/hlf20010508/minio-async.git</a>
+- Minio-async on github <a href="https://github.com/hlf20010508/minio-async.git">https://github.com/hlf20010508/minio-async.git</a>
 
 Minio-async in Pipfile dafaultly use gitee's repository. If you cannot visit the repository on gitee, please change the link to github in Pipfile, and run
 ```bash
