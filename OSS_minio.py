@@ -74,11 +74,12 @@ class Client:
         except S3Error as exc:
             print("error occurred.", exc)
 
-    async def get_download_url(self, remote_path):
+    async def get_download_url(self, remote_path, change_host=None):
         try:
             url = await self.client.presigned_get_object(
                 self.bucket,
                 remote_path,
+                change_host=change_host
             )
             print("successfully created download url %s for %s from bucket %s" %
                   (url, remote_path, self.bucket))
