@@ -104,22 +104,16 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 - python>3.6
 - sanic 22.6.0
 - python-socketio 5.6.0
-- minio-async 1.0.0
+- minio-async 1.1.0
 - ezmysql 0.9.0
 
-minio-async为minio的async版，与minio有版本差且无人维护
+Minio-async是我维护的一个项目。
 
-minio-async在pypi官方源被下架，国内某些源没有收录，清华源在我的远程主机上无法下载
+此版本暂时还没有发行在pypi或其它国内源上。清华源上的是它的前身，有很多bug，不建议使用。
 
-说明使用pip的源来安装可能有较大困难,因此我为minio-async在github和gitee上都创建了仓库。
+- Minio-async on gitee <a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
 
-仓库代码的来源为<a href="https://pypi.tuna.tsinghua.edu.cn/simple/minio-async/">清华源minio-async</a>
-
-我对其作了修改，更改了包的名字为minio_async，避免其覆盖minio
-
-Pipfile里使用的是gitee上的仓库<a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
-
-github上的仓库为<a href="https://github.com/hlf20010508/minio-async.git">https://github.com/hlf20010508/minio-async.git</a>
+- Minio-async on github <a href="https://github.com/hlf20010508/minio-async.git">https://github.com/hlf20010508/minio-async.git</a>
 
 使用gitee是为了方便国内用户，但由于gitee新增公开仓库审核机制，若出现gitee仓库无法访问，请在Pipfile中手动更改为github仓库并用Pipfile安装
 ```bash
