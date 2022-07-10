@@ -109,7 +109,7 @@ To run Transfery, you need:
 
 Minio-async is maintained by me.
 
-You may not be able to find minio-async on pypi.
+You may find minio-async on pypi or other sources, but that is the predecessor of what this project uses, which has a lot of bugs. I don't publish it yet, so you have to install it using git.
 
 - Minio-async on gitee <a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
 
