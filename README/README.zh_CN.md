@@ -104,21 +104,8 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 - python>3.6
 - sanic 22.6.0
 - python-socketio 5.6.0
-- minio-async 1.1.0
+- miniopy-async 1.1
 - ezmysql 0.9.0
-
-Minio-async是我维护的一个项目。
-
-此版本暂时还没有发行在pypi或其它国内源上。清华源上的是它的前身，有很多bug，不建议使用。
-
-- Minio-async on gitee <a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
-
-- Minio-async on github <a href="https://github.com/hlf20010508/minio-async.git">https://github.com/hlf20010508/minio-async.git</a>
-
-使用gitee是为了方便国内用户，但由于gitee新增公开仓库审核机制，若出现gitee仓库无法访问，请在Pipfile中手动更改为github仓库并用Pipfile安装
-```bash
-pipenv install
-```
 
 <br/>
 

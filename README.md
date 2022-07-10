@@ -104,21 +104,8 @@ To run Transfery, you need:
 - python>3.6
 - sanic 22.6.0
 - python-socketio 5.6.0
-- minio-async 1.1.0
+- miniopy-async 1.1
 - ezmysql 0.9.0
-
-Minio-async is maintained by me.
-
-You may find minio-async on pypi or other sources, but that is the predecessor of what this project uses, which has a lot of bugs. I don't publish it yet, so you have to install it using git.
-
-- Minio-async on gitee <a href="https://gitee.com/hlf01/minio-async.git">https://gitee.com/hlf01/minio-async.git</a>
-
-- Minio-async on github <a href="https://github.com/hlf20010508/minio-async.git">https://github.com/hlf20010508/minio-async.git</a>
-
-Minio-async in Pipfile dafaultly use gitee's repository. If you cannot visit the repository on gitee, please change the link to github in Pipfile, and run
-```bash
-pipenv install
-```
 
 <br/>
 
