@@ -15,8 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from minio_async import Minio
-from minio_async.error import S3Error, InvalidResponseError
+from miniopy_async import Minio
+from miniopy_async.error import S3Error, InvalidResponseError
 import config as myconfig
 
 config = myconfig.load()
