@@ -17,7 +17,8 @@
 
 import json
 import pymysql
-from minio_async import Minio
+import asyncio
+from miniopy_async import Minio
 
 def init():
     host_minio = input('Host name or ip address of minio server (eg: example.com:9000): ')
@@ -61,14 +62,16 @@ def init():
 
     print('Initializing minio...')
     init_minio(host_minio, username_minio, password_minio, bucket)
+    print('Minio initialized')
 
     print('Initializing mysql...')
     port = int(host_mysql.split(':')[1])
     host = '127.0.0.1' if local_mysql else host_mysql.split(':')[0]
     init_mysql(host, username_mysql,
                password_mysql, port, database, table)
-
-    print('Initialization completed')
+    print('Mysql initialized')
+    
+    print('All initialization completed')
 
 
 def load():
@@ -91,8 +94,12 @@ def init_minio(host, username, password, bucket):
         secret_key=password,
         secure=False
     )
-    if not client.bucket_exists(bucket):
-        client.make_bucket(bucket)
+    async def main():
+        if not await client.bucket_exists(bucket):
+            await client.make_bucket(bucket)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
+    loop.close()
 
 
 def init_mysql(host, user, password, port, database, table):
