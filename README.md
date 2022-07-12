@@ -11,18 +11,20 @@
 <br/>
 
 ## Catalogue
-- <a href="#h1">Interface</a>
-- <a href="#h2">Functionality</a>
-- <a href="#h3">Significance</a>
-- <a href="#h4">Environment</a>
-  - <a href="#sh41">Dependencies</a>
-- <a href="#h5">Note</a>
-- <a href="#h6">Running</a>
-  - <a href="#sh61">Background Running and Boots up</a>
+- [Interface](#interface)
+- [Functionality](#functionality)
+- [Significance](#significance)
+- [Environment](#environment)
+  - [Dependencies](#dependencies)
+- [Note](#note)
+- [Running](#running)
+  - [Background Running and Boots up](#background&boot)
 
 <br/>
 
-## Interface<span id="h1"></span>
+<span id="interface"></span>
+
+## Interface
 
 Web Browser
 
@@ -42,7 +44,9 @@ ios WebApp（Add to Home Screen）
 
 <br/>
 
-## Functionality<span id="h2"></span>
+<span id="functionality"></span>
+
+## Functionality
 
 - Send messages
 - Send files, multiple files uploads supported
@@ -53,7 +57,9 @@ ios WebApp（Add to Home Screen）
 
 <br/>
 
-## Significance<span id="h3"></span>
+<span id="significance"></span>
+
+## Significance
 
 Consider a scenario:
 
@@ -91,7 +97,9 @@ Transfery's significance, is to transfer small temperary files and share text me
 
 <br/>
 
-## Environment<span id="h4"></span>
+<span id="environment"></span>
+
+## Environment
 
 To run Transfery, you need:
 - <a href="https://github.com/minio/minio.git">Minio</a>, as an object storage server
@@ -99,12 +107,14 @@ To run Transfery, you need:
 - Sanic, as a back end 
 - A server, to enjoy it anytime
 
-### Dependencies<span id="sh41"></span>
+<span id="dependencies"></span>
+
+### Dependencies
 
 - python>3.6
 - sanic 22.6.0
-- python-socketio 5.6.0
-- miniopy-async 1.1
+- python-socketio 5.7.0
+- miniopy-async 1.5
 - ezmysql 0.9.0
 
 <br/>
@@ -113,7 +123,9 @@ Refer to Pipfile.lock for more dependencies.
 
 <br/>
 
-### Note<span id="h5"></span>
+<span id="note"></span>
+
+## Note
 
 - Because no password setting, please do not share you address of your Transfery server on the Internet.
 - What you should do is just install Minio and MySQL, and make sure they can run well. Bucket, database and table will be automatically initialized by running config.py.
@@ -122,7 +134,9 @@ Refer to Pipfile.lock for more dependencies.
 
 <br/>
 
-## Running<span id="h6"></span>
+<span id="running"></span>
+
+## Running
 
 ``` bash
 # install pipenv
@@ -139,12 +153,14 @@ pipenv run python sanic run.app
 
 # provide host and port
 # if you run it on online server, make sure the host is 0.0.0.0
-pipenv run python sanic run.app -H 0.0.0.0 -p 5000
+pipenv run python sanic run.app -H 0.0.0.0 -p 8080
 ```
 
 <br/>
 
-### Background Running and Boots up<span id="sh61"></span>
+<span id="background&boot"></span>
+
+### Background Running and Boots up
 
 ```bash
 # edit transfery@.service
