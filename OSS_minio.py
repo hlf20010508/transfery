@@ -52,7 +52,7 @@ class Client:
     async def upload(self, remote_path, local_path,):
         try:
             await self.client.fput_object(
-                self.bucket, remote_path, local_path)
+                self.bucket, remote_path, local_path, progress=True)
             print(
                 "file is successfully uploaded as \n object %s to bucket %s." % (
                     remote_path, self.bucket)
