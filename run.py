@@ -1,19 +1,7 @@
-# -*- coding: utf-8 -*-
-# A Convenient Temporary Message and File transfer Project
-# (C) 2022 L-ING <hlf01@icloud.com>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# :project: transfery
+# :author: L-ING
+# :copyright: (C) 2022 L-ING <hlf01@icloud.com>
+# :license: MIT, see LICENSE for more details.
 
 import os
 import aiofiles
@@ -41,6 +29,7 @@ socketio = socketio.AsyncServer(async_mode='sanic')
 socketio.attach(app)
 
 client = OSS_minio.Client()
+
 
 async def query_items(start, amount):
     _db = db()
@@ -125,27 +114,36 @@ async def sync(request):
     return json({'newItems': result})
 
 
-@app.route('/post/upload', methods=['POST'])
-async def upload(request):
-    print('received upload request')
-    if not os.path.exists(config['cache_path']):
-        os.mkdir(config['cache_path'])
-    file = request.files.get('file')
-    time = request.form.get('time')
+@app.route('/post/getUploadId', methods=['POST'])
+async def get_upload_id(request):
+    print('received get upload id request')
+    content = request.json['content']
+    time = request.json['time']
+    file_name = rename(content, time)
+    upload_id = await client.create_multipart_upload_id(file_name)
+    print('upload id pushed')
+    return json({"success": True, "uploadId": upload_id, "fileName": file_name})
 
-    file_name = rename(file.name, time)
-    save_path = os.path.join(cache_path, file_name)
 
-    # save to cache
-    async with aiofiles.open(save_path, 'wb') as temp:
-        await temp.write(file.body)
-    temp.close()
+@app.route('/post/uploadPart', methods=['POST'])
+async def upload_part(request):
+    file_part = request.files.get('filePart').body
+    content = request.form.get('content')
+    upload_id = request.form.get('uploadId')
+    part_number = request.form.get('partNumber')
+    etag = await client.multipart_upload(content, upload_id, file_part, part_number)
+    return json({"success": True, "etag": etag})
 
-    # upload to minio from cache
-    await client.upload(file_name, save_path)
-    os.remove(save_path)
-    print("uploaded")
-    return json({"success": True, "fileName": file_name})
+
+@app.route('/post/completeUpload', methods=['POST'])
+async def complete_upload(request):
+    print('received complete upload request')
+    content = request.json['content']
+    upload_id = request.json['uploadId']
+    parts = request.json['parts']
+    await client.complete_multipart_upload(content, upload_id, parts)
+    print('complete upload finished')
+    return json({"success": True})
 
 
 @app.route('/get/download', methods=['GET'])
