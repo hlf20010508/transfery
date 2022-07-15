@@ -114,7 +114,7 @@ To run Transfery, you need:
 - python>3.6
 - sanic 22.6.0
 - python-socketio 5.7.0
-- miniopy-async 1.5
+- miniopy-async 1.9
 - ezmysql 0.9.0
 
 <br/>
