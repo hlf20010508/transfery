@@ -1,22 +1,12 @@
-# -*- coding: utf-8 -*-
-# A Convenient Temporary Message and File transfer Project
-# (C) 2022 L-ING <hlf01@icloud.com>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# :project: transfery
+# :author: L-ING
+# :copyright: (C) 2022 L-ING <hlf01@icloud.com>
+# :license: MIT, see LICENSE for more details.
 
 from miniopy_async import Minio
 from miniopy_async.error import S3Error, InvalidResponseError
+from miniopy_async.helpers import genheaders
+from miniopy_async.datatypes import Part
 import config as myconfig
 
 config = myconfig.load()
@@ -38,7 +28,7 @@ class Client:
             secret_key=password,
             secure=secure
         )
-        #for printing
+        # for printing
         self.host = host
         self.bucket = bucket
 
@@ -49,17 +39,37 @@ class Client:
         except InvalidResponseError as err:
             print(err)
 
-    async def upload(self, remote_path, local_path,):
+    async def create_multipart_upload_id(self, remote_path):
         try:
-            await self.client.fput_object(
-                self.bucket, remote_path, local_path, progress=True)
+            headers = genheaders(headers=None, sse=None,
+                                 tags=None, retention=None, legal_hold=False)
+            headers["Content-Type"] = "application/octet-stream"
+            upload_id = await self.client._create_multipart_upload(self.bucket, remote_path, headers)
+            return upload_id
+        except S3Error as exc:
+            print("error occurred.", exc)
+
+    async def multipart_upload(self, remote_path, upload_id, part_data, part_number):
+        try:
+            args = (self.bucket, remote_path, part_data,
+                    None, upload_id, part_number)
+            etag = await self.client._upload_part(*args)
+            return etag
+        except S3Error as exc:
+            print("error occurred.", exc)
+
+    async def complete_multipart_upload(self, remote_path, upload_id, parts):
+        try:
+            parts = [Part(part['partNumber'], part['etag']) for part in parts]
+            await self.client._complete_multipart_upload(
+                self.bucket, remote_path, upload_id, parts,
+            )
             print(
                 "file is successfully uploaded as \n object %s to bucket %s." % (
                     remote_path, self.bucket)
             )
             address = 'http://'+self.host+'/'+self.bucket+'/'+remote_path
             print(address)
-            return address
         except S3Error as exc:
             print("error occurred.", exc)
 
@@ -86,7 +96,7 @@ class Client:
             obj_list = await self.client.list_objects(self.bucket, recursive=True)
             obj_list = [{'name': obj.object_name, 'size': obj.size,
                          'last_modified': obj.last_modified} for obj in obj_list]
-            print('objects list:',obj_list)
+            print('objects list:', obj_list)
             return obj_list
         except S3Error as exc:
             print("error occurred.", exc)
