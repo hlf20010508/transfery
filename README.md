@@ -49,7 +49,7 @@ ios WebApp（Add to Home Screen）
 ## Functionality
 
 - Send messages
-- Send files, multiple files uploads supported
+- Send files, multiple files uploads and multipart uploads supported
 - Full-duplex instant messaging
 - Asynchronous framework, messaging while uploading supported
 - Scales page elastically when using soft keyboard on phone
