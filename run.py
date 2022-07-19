@@ -4,7 +4,6 @@
 # :license: MIT, see LICENSE for more details.
 
 import os
-import aiofiles
 from sanic import Sanic
 from sanic.response import json
 from sanic_jinja2 import SanicJinja2
@@ -157,7 +156,9 @@ async def download(request):
         protocal = 'https://' if config['secure_minio'] else 'http://'
         host = protocal + config['host_minio']
         url = await client.get_download_url(file_name, change_host=host)
-
+    else:
+        url = await client.get_download_url(file_name)
+        
     print('url pushed')
     return json({"success": True, "url": url})
 
