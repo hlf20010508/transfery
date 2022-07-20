@@ -32,7 +32,7 @@ client = OSS_minio.Client()
 
 async def query_items(start, amount):
     _db = db()
-    result = await _db.query('select * from %s order by time desc, id desc LIMIT %d, %d' % (table, start, amount))
+    result = await _db.query('select * from %s order by time desc, showTime asc, id desc LIMIT %d, %d' % (table, start, amount))
     _db.close()
     return result
 
