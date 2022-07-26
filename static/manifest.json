@@ -4,7 +4,7 @@
   "icons": [
     {
       "src": "/static/icon.png",
-      "sizes": "72x72 96x96 128x128 256x256 512*512 1024*1024"
+      "sizes": "1024*1024"
     }
   ],
   "name": "Transfery",
