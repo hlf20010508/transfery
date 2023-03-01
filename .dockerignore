@@ -1,0 +1,9 @@
+*
+!static
+!templates
+!mysql_db.py
+!OSS_minio.py
+!config.py
+!Pipfile
+!Pipfile.lock
+!run.py

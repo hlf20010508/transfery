@@ -3,6 +3,7 @@
 # :copyright: (C) 2022 L-ING <hlf01@icloud.com>
 # :license: MIT, see LICENSE for more details.
 
+import os
 import json
 import pymysql
 import asyncio
@@ -65,13 +66,32 @@ def init():
 def load():
     try:
         config_file = open('config.json', 'r')
+        config = json.load(config_file)
+        config_file.close()
+        return config
     except:
-        print('Configuration not found, run config.py first')
-        print('python config.py')
-        exit()
-    config = json.load(config_file)
-    config_file.close()
-    return config
+        try:
+            config = {
+                'host_mysql': os.environ['host_mysql'],
+                'local_mysql': True if os.environ['local_mysql']=='true' else False,
+                'username_mysql': os.environ['username_mysql'],
+                'password_mysql': os.environ['password_mysql'],
+                'database': os.environ['database'],
+                'table': os.environ['table'],
+                'host_minio': os.environ['host_minio'],
+                'secure_minio': True if os.environ['secure_minio']=='true' else False,
+                'local_minio': True if os.environ['local_minio']=='true' else False,
+                'username_minio': os.environ['username_minio'],
+                'password_minio': os.environ['password_minio'],
+                'bucket': os.environ['bucket'],
+                'cache_path': os.environ.get('cache_path', 'cache'),
+                'item_per_page': os.environ.get('item_per_page', 15),
+            }
+            return config
+        except:
+            print('Configuration not found, run config.py first')
+            print('python config.py')
+            exit()
 
 
 def init_minio(host, username, password, bucket):

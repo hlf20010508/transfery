@@ -1,0 +1,7 @@
+version: '3'
+services:
+  transfery:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    image: hlf01/transfery

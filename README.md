@@ -83,7 +83,60 @@ To run Transfery, you need:
 
 <span id="running"></span>
 
-## Running
+## Running Through Docker
+Create configuration file
+```sh
+vim .env
+```
+
+Write your configuration(eg.)
+```sh
+# local port
+LOCAL_PORT=5020
+# path to restore cache (default: cache)
+cache_path=cache
+# item per page (default: 15)
+item_per_page=15
+# ip address and port of minio server
+host_minio=123.123.123.123:9000
+# whether to use http(false) or https(true)
+secure_minio=false
+# whether minio is on the same machine with transfery, if true, the ip address of minio server will be 127.0.0.1
+local_minio=false
+# user name of minio
+username_minio=user
+# user password of minio
+password_minio=12345678
+# bucker on minio for transfery
+bucket=transfer
+# ip address and port of mysql server
+host_mysql=123.123.123.123:3306
+# same as minio
+local_mysql=false
+# user name of mysql
+username_mysql=root
+# user password of mysql
+password_mysql=12345678
+# database on mysql for transfery
+database=transfery
+# table name in database for transfery
+table=main
+```
+
+Installation
+```sh
+# install docker-compose
+pip install docker-compose
+# launch
+docker-compose up -d
+```
+
+## Docker Build
+```sh
+docker-compose -f docker-compose-build.yml up
+```
+
+## Running Directly
 ``` bash
 # install pipenv
 pip install pipenv

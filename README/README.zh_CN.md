@@ -83,7 +83,60 @@ Transfery的意义，就是传送小型的临时文件，共享剪贴板，而�
 
 <span id="running"></span>
 
-## 项目运行
+## 通过Docker部署
+创建配置文件
+```sh
+vim .env
+```
+
+输入配置（例子）
+```sh
+# 本地映射端口
+LOCAL_PORT=5020
+# 缓存存储路径 (默认值: cache)
+cache_path=cache
+# 每页项目个数 (默认值: 15)
+item_per_page=15
+# minio服务器地址和端口号
+host_minio=123.123.123.123:9000
+# 是否使用 http（false）或 https（true）
+secure_minio=false
+# minio 是否在本地运行（若在本地运行，将使用127.0.0.1作为服务器地址）
+local_minio=false
+# minio用户名
+username_minio=user
+# minio用户密码
+password_minio=12345678
+# minio bucket名
+bucket=transfer
+# mysql服务器地址和端口号
+host_mysql=123.123.123.123:3306
+# 与minio类似
+local_mysql=false
+# mysql用户名
+username_mysql=root
+# mysql用户密码
+password_mysql=12345678
+# mysql 数据库名
+database=transfery
+# mysql 表名
+table=main
+```
+
+安装
+```sh
+# 安装docker-compose
+pip install docker-compose
+# 部署
+docker-compose up -d
+```
+
+## Docker构建
+```sh
+docker-compose -f docker-compose-build.yml up
+```
+
+## 直接运行
 ``` bash
 # 安装pipenv
 pip install pipenv
