@@ -148,11 +148,11 @@ pipenv sync
 pipenv run python config.py
 
 # run service
-pipenv run python sanic run.app
+pipenv run sanic run.app
 
 # provide host and port
 # if you run it on online server, make sure the host is 0.0.0.0
-pipenv run python sanic run.app -H 0.0.0.0 -p 8080
+pipenv run sanic run.app -H 0.0.0.0 -p 8080
 ```
 
 <span id="background&boot"></span>
