@@ -1,5 +1,4 @@
 FROM python:3.8.16-alpine3.17
-EXPOSE 8080
 WORKDIR /transfery
 COPY ./ ./
 RUN apk update &&\

@@ -3,9 +3,9 @@ services:
   transfery:
     container_name: transfery
     image: hlf01/transfery
-    ports:
-      - ${LOCAL_PORT}:8080
-    restart: on-failure
+    restart: always
+    # 不使用端口映射，因为minio服务器和mysql服务器在本地时会使用127.0.0.1作为地址，所以需要直接使用宿主机的网卡
+    network_mode: host
     env_file:
       - .env
-    command: pipenv run sanic run.app -H 0.0.0.0 -p 8080
+    command: pipenv run sanic run.app -H 0.0.0.0 -p 5020

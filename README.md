@@ -91,8 +91,6 @@ vim .env
 
 Write your configuration(eg.)
 ```sh
-# local port
-LOCAL_PORT=5020
 # path to restore cache (default: cache)
 cache_path=cache
 # item per page (default: 15)
