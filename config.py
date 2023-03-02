@@ -85,7 +85,7 @@ def load():
                 'password_minio': os.environ['password_minio'],
                 'bucket': os.environ['bucket'],
                 'cache_path': os.environ.get('cache_path', 'cache'),
-                'item_per_page': os.environ.get('item_per_page', 15),
+                'item_per_page': int(os.environ.get('item_per_page', 15)),
             }
             return config
         except:
