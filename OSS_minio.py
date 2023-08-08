@@ -65,7 +65,7 @@ class Client:
                 self.bucket, remote_path, upload_id, parts,
             )
             print(
-                "file is successfully uploaded as \n object %s to bucket %s." % (
+                "file is successfully uploaded as object %s to bucket %s." % (
                     remote_path, self.bucket)
             )
             address = 'http://'+self.host+'/'+self.bucket+'/'+remote_path
