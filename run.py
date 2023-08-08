@@ -24,7 +24,7 @@ app.static('/static', './static/')
 # the max size of file can be uploaded, 10GB
 app.config.REQUEST_MAX_SIZE = 10*1024*1024*1024
 
-socketio = socketio.AsyncServer(async_mode='sanic')
+socketio = socketio.AsyncServer(async_mode='sanic', cors_allowed_origins="*")
 socketio.attach(app)
 
 client = OSS_minio.Client()
