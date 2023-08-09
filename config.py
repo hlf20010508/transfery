@@ -10,18 +10,12 @@ import asyncio
 from miniopy_async import Minio
 
 def init():
-    host_minio = input('Host name or ip address of minio server (eg: example.com:9000): ')
-    secure_minio = True if input(
-        'Protocol of server: 0 http 1 https ')=='1' else False
-    local_minio = True if input(
-        'Is minio in the same server with transfery? 0 No 1 Yes ') == '1' else False
+    host_minio = input('Host name or ip address of minio server (eg: https://example.com:9000): ')
     username_minio = input('Username: ')
     password_minio = input('Password: ')
     bucket = input('Bucket name: ')
     host_mysql = input(
         'Host name or ip address of mysql server (eg: example.com:3306) : ')
-    local_mysql = True if input(
-        'Is mysql in the same server with transfery? 0 No 1 Yes ') == '1' else False
     username_mysql = input('Username: ')
     password_mysql = input('Password: ')
     database = input('Database name: ')
@@ -31,13 +25,10 @@ def init():
         'cache_path': 'cache',
         'item_per_page': 15,
         'host_minio': host_minio,
-        'secure_minio': secure_minio,
-        'local_minio': local_minio,
         'username_minio': username_minio,
         'password_minio': password_minio,
         'bucket': bucket,
         'host_mysql': host_mysql,
-        'local_mysql': local_mysql,
         'username_mysql': username_mysql,
         'password_mysql': password_mysql,
         'database': database,
@@ -55,7 +46,7 @@ def init():
 
     print('Initializing mysql...')
     port = int(host_mysql.split(':')[1])
-    host = '127.0.0.1' if local_mysql else host_mysql.split(':')[0]
+    host = host_mysql.split(':')[0]
     init_mysql(host, username_mysql,
                password_mysql, port, database, table)
     print('Mysql initialized')
@@ -73,14 +64,11 @@ def load():
         try:
             config = {
                 'host_mysql': os.environ['host_mysql'],
-                'local_mysql': True if os.environ['local_mysql']=='true' else False,
                 'username_mysql': os.environ['username_mysql'],
                 'password_mysql': os.environ['password_mysql'],
                 'database': os.environ['database'],
                 'table': os.environ['table'],
                 'host_minio': os.environ['host_minio'],
-                'secure_minio': True if os.environ['secure_minio']=='true' else False,
-                'local_minio': True if os.environ['local_minio']=='true' else False,
                 'username_minio': os.environ['username_minio'],
                 'password_minio': os.environ['password_minio'],
                 'bucket': os.environ['bucket'],

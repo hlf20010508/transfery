@@ -10,13 +10,11 @@ from miniopy_async.datatypes import Part
 import config as myconfig
 
 config = myconfig.load()
-port = config['host_minio'].split(':')[1]
-host = '127.0.0.1:%s' % port if config['local_minio'] else config['host_minio']
+host = config['host_minio'].split('://')[1]
 username = config['username_minio']
 password = config['password_minio']
 bucket = config['bucket']
-secure = config['secure_minio']
-
+secure = True if config['host_minio'].split('://')[0] == 'https' else False
 
 class Client:
     # Create a client with the MinIO server playground, its access key

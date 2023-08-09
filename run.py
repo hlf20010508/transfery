@@ -150,14 +150,7 @@ async def download(request):
     print('received download request')
     file_name = request.args['fileName'][0]
 
-    if config['local_minio']:
-        # if minio is local, change the host to create url properly,
-        # or it will use 127.0.0.1 to create url
-        protocal = 'https://' if config['secure_minio'] else 'http://'
-        host = protocal + config['host_minio']
-        url = await client.get_download_url(file_name, change_host=host)
-    else:
-        url = await client.get_download_url(file_name)
+    url = await client.get_download_url(file_name)
         
     print('url pushed')
     return json({"success": True, "url": url})

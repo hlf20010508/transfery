@@ -1,185 +1,157 @@
 # transfery
 
-> A Convenient Temporary Message and File transfer Project
+> 便捷的临时消息文件传输项目
 
-## Languages
-- <a href="https://github.com/hlf20010508/transfery/blob/master/README.md">English</a>
-- <a href="https://github.com/hlf20010508/transfery/blob/master/README/README.zh_CN.md">简体中文</a>
-
-## Catalogue
-- [Interface](#interface)
-- [Functionality](#functionality)
-- [Significance](#significance)
-- [Environment](#environment)
-- [Note](#note)
-- [Running](#running)
+## 目录
+- [项目部分界面展示](#interface)
+- [项目功能](#functionality)
+- [项目所需环境](#environment)
+- [注意](#note)
+- [项目运行](#running)
 
 <span id="interface"></span>
 
-## Interface
-Web Browser  
+## 项目部分界面展示
+浏览器样式  
 <img width="1082" alt="image" src="https://user-images.githubusercontent.com/76218469/176151027-c40cc300-7c22-42c5-9da8-2984066a8b99.png">  
 <img width="1082" alt="image" src="https://user-images.githubusercontent.com/76218469/176161205-42b4f732-569d-4cd4-876e-6d0ae31c5f84.png">  
 <img width="1082" alt="image" src="https://user-images.githubusercontent.com/76218469/176152167-abc40d1f-26d6-4b19-8438-519ff1c774a1.png">
 
-ios WebApp (Add to Home Screen)  
+ios WebApp（增加到主屏幕）  
 <div align=center>
 <img width="300" alt="image" src="https://user-images.githubusercontent.com/76218469/176231809-af30a998-f494-479e-8355-2a4c5b5f18dd.PNG"> <img width="300" alt="image" src="https://user-images.githubusercontent.com/76218469/176233010-944534ff-9db5-4935-9e71-44a28af17b28.PNG"> <img width="300" alt="image" src="https://user-images.githubusercontent.com/76218469/176233015-457633fd-bb43-4a7f-b021-4a3e85ef02b2.PNG"> <img width="300" alt="image" src="https://user-images.githubusercontent.com/76218469/176664354-69f6b382-44ef-4592-aa34-57333a22240f.PNG">
 </div>
 
 <span id="functionality"></span>
 
-## Functionality
-- Send messages
-- Send files, multiple files uploads and multipart uploads supported
-- Full-duplex instant messaging
-- Asynchronous framework, messaging while uploading supported
-- Scales page elastically when using soft keyboard on phone
-- Delete history messages
-
-<span id="significance"></span>
-
-## Significance
-Consider a scenario:  
-You're in class, and this class requires you to report on stage.  
-However, although you have brought a computer, but forget to bring a USB flash drive, there is no way to copy the PPT to the classroom computer.  
-The computer in the classroom is relatively new, and there is no communication software installed, and it's not inconvenient for you to install it directly.  
-At this time, the reliable way maybe is to send the PPT to yourself by e-mail and then log in to your mailbox to download it.  
-Or send the PPT to your network disk, and then log in to the website of the network disk to download it.  
-However, these require login, which may let people observe your operations for a long time.
-
-Let's take another scenario:  
-You have three computers, one is a Windows, one is a Mac, and one is a Linux.  
-You'll have to send a lot of small files and text messages between these three computers.  
-If it's between a phone and a computer, using communication software is a good solution.  
-However, now there are three computers with three different operating systems. Maybe one of the system can't install the communication software you want, or it's impossible to log in to three computers at the same time.
-
-It's inevitable that you need to operate other people's or public computers. Or maybe you have many different computer platforms. It's very troublesome to transfer small files and send text in this situation.
-
-Transfery's significance, is to transfer small temperary files and share text messages, without login, and no limit on the number of devices.
+## 项目功能
+- 发送文字消息
+- 传输文件，支持多文件，支持分片上传
+- 全双工即时通信
+- 异步框架，支持边上传边发送消息
+- 手机使用屏幕键盘时页面弹性缩放
+- 删除历史记录
 
 <span id="environment"></span>
 
-## Environment
-To run Transfery, you need:
-- <a href="https://github.com/minio/minio.git">Minio</a>, as an object storage server
-- MySQL, as a database server
-- Sanic, as a back end 
-- A server, to enjoy it anytime
+## 项目所需环境
+运行Transfery，你需要
+- <a href="https://github.com/minio/minio.git">Minio</a>，作为对象存储服务
+- MySQL，作为数据库
+- Sanic，作为后端服务
+- 一台服务器，以便随时随地使用
 
 <span id="dependencies"></span>
 
-### Dependencies
+### 依赖
 - [Pipfile](https://github.com/hlf20010508/transfery/blob/master/Pipfile)
 - [Pipfile.lock](https://github.com/hlf20010508/transfery/blob/master/Pipfile.lock)
 
 <span id="note"></span>
 
-## Note
-- Because no password setting, please do not share you address of your Transfery server on the Internet.
-- What you should do is just install Minio and MySQL, and make sure they can run well. Bucket, database and table will be automatically initialized by running config.py.
-- This project is just a backend, if you want to modify frontend, please go to <a href="https://github.com/hlf20010508/transfery-vue.git">transfery-vue</a>.
-- If you put transfery and transfery-vue under the same directory, running "npm run build" in transfery-vue will use webpack to generate html and js files and automatically import them to transfery.
+## 注意
+- 由于没有设置密码，因此请不要将Transfery的服务网址分享到网络上，以免被恶意上传。
+- 仅需安装好Minio和Mysql并能正常连接即可,config.py会自动在Minio中创建bucket以及在MySQL中创建数据库和表。
+- 本项目仅为后端，如需自定义前端界面，请前往<a href="https://github.com/hlf20010508/transfery-vue.git">transfery-vue</a>。
+- 若将transfery与transfery-vue放在同级目录下，在transfery-vue中使用“npm run build”会自动将webpack打包好的html和js文件导入transfery。
 
 <span id="running"></span>
 
-## Running Through Docker
-Create configuration file
+## 通过Docker部署
+### 若未初始化过Mysql和MinIO，需要先初始化
+先前往 [直接运行](#direct_launch) 参考初始化命令来进行初始化
+
+### 若已初始化过MySql和MinIO，调试时可以直接使用.env文件导入环境
+创建配置文件
 ```sh
 vim .env
 ```
 
-Write your configuration(eg.)
+输入配置（例子）
 ```sh
-# path to restore cache (default: cache)
+# 缓存存储路径 (默认值: cache)
 cache_path=cache
-# item per page (default: 15)
+# 每页项目个数 (默认值: 15)
 item_per_page=15
-# ip address and port of minio server
-host_minio=123.123.123.123:9000
-# whether to use http(false) or https(true)
-secure_minio=false
-# whether minio is on the same machine with transfery, if true, the ip address of minio server will be 127.0.0.1
-local_minio=false
-# user name of minio
+# minio服务器地址和端口号
+host_minio=https://123.123.123.123:9000
+# minio用户名
 username_minio=user
-# user password of minio
+# minio用户密码
 password_minio=12345678
-# bucker on minio for transfery
+# minio bucket名
 bucket=transfer
-# ip address and port of mysql server
+# mysql服务器地址和端口号
 host_mysql=123.123.123.123:3306
-# same as minio
-local_mysql=false
-# user name of mysql
+# mysql用户名
 username_mysql=root
-# user password of mysql
+# mysql用户密码
 password_mysql=12345678
-# database on mysql for transfery
+# mysql 数据库名
 database=transfery
-# table name in database for transfery
+# mysql 表名
 table=main
 ```
 
-Installation
+安装
 ```sh
-# install docker-compose
+# 安装docker-compose
 pip install docker-compose
-# launch
+# 部署
 docker-compose up -d
 ```
 
-## Docker Build
+## Docker构建
 ```sh
 docker-compose -f docker-compose-build.yml up
 ```
 
-## Running Directly
+<span id="direct_launch"></span>
+## 直接运行
 ``` bash
-# install pipenv
+# 安装pipenv
 pip install pipenv
 
-# use pipenv to install dependencies
+# 使用pipenv安装依赖
 pipenv sync
 
-# run configuration setting
+# 初始化配置
 pipenv run python config.py
 
-# run service
-pipenv run sanic run.app
+# 运行服务
+pipenv run python sanic run.app
 
-# provide host and port
-# if you run it on online server, make sure the host is 0.0.0.0
-pipenv run sanic run.app -H 0.0.0.0 -p 8080
+# 自定义host和port，运行在服务器上必须使用0.0.0.0，否则无法访问
+pipenv run python sanic run.app -H 0.0.0.0 -p 5020
 ```
 
 <span id="background&boot"></span>
 
-### Background Running and Boots up
+### 后台运行与开机自启
 ```bash
-# edit transfery@.service
+# 编辑transfery@.service
 vim transfery@.service
 
-# edit ExecStart in line 6 and WorkingDirectory in line 11, refering the given example.
+# 参照已有命令更改第6行ExecStart和第11行WorkingDirectory
 
-# copy transfery@.service to /etc/systemd/system
+# 将transfery@.service复制到/etc/systemd/system
 sudo cp transfery@.service /etc/systemd/system
 
-# launch service, USERNAME is the name of current user of os
+# 启动服务 USERNAME是本机用户名，下同
 sudo systemctl start transfery@USERNAME
 
-# check status
+# 查看状态
 sudo systemctl status transfery@USERNAME
 
-# boots up
+# 开机自启
 sudo systemctl enable transfery@USERNAME
 
-# restart service
+# 重启服务
 sudo systemctl restart transfery@USERNAME
 
-# close service
+# 关闭服务
 sudo systemctl stop transfery@USERNAME
 
-# cancel boots up
+# 取消开机自启
 sudo systemctl disable transfery@USERNAME
 ```
