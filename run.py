@@ -4,6 +4,7 @@
 # :license: MIT, see LICENSE for more details.
 
 import os
+from time import time as std_time
 from sanic import Sanic
 from sanic.response import json
 from sanic_jinja2 import SanicJinja2
@@ -35,6 +36,26 @@ async def query_items(start, amount):
     result = await _db.query('select * from %s order by time desc, showTime asc, id desc LIMIT %d, %d' % (table, start, amount))
     _db.close()
     return result
+
+
+async def query_latest_text():
+    _db = db()
+    result = await _db.query('select * from %s where type="text" order by time desc, showTime asc, id desc LIMIT 1' % table)
+    _db.close()
+    if result:
+        return result[0]
+    else:
+        return None
+
+
+async def query_next_item(id):
+    _db = db()
+    result = await _db.query('select * from %s where id > %s order by time asc, showTime desc, id asc LIMIT 1' % (table, id))
+    _db.close()
+    if result:
+        return result[0]
+    else:
+        return None
 
 
 async def sync_items(id):
@@ -79,6 +100,11 @@ def rename(old_filename, time):
     temp = temp.split()
     temp = '_'.join(temp)
     return temp
+
+def should_show_time(time1, time2):
+    if abs(time1 - time2) > 1000 * 60:
+        return True
+    return False
 
 
 @app.route('/')
@@ -154,6 +180,72 @@ async def download(request):
         
     print('url pushed')
     return json({"success": True, "url": url})
+
+
+@app.route('/method/push_text', methods=['GET', 'POST'])
+async def push_text(request):
+    print('received push text request')
+    if request.method == 'GET':
+        content = request.args['content'][0]
+    else:
+        content = request.json['content']
+    if content:
+        time_now = int(std_time()) * 1000
+        show_time = True
+        item = await query_latest_text()
+        if item:
+            time_last = item['time']
+            show_time = should_show_time(time_now, time_last)
+        newItem = {
+            "content": content,
+            "type": "text",
+            "showTime": show_time,
+            "time": time_now,
+        }
+        
+        await pushItem(None, newItem)
+        print('text pushed')
+        return json({"success": True})
+    else:
+        print('no content')
+        return json({"success": False})
+
+
+@app.route('/method/latest_text', methods=['GET'])
+async def latest_text(request):
+    print('received get latest text request')
+    item = await query_latest_text()
+    if item:
+        result = item['content'].strip()
+        return json({
+            "success": True,
+            "content": result
+        })
+    else:
+        return json({"success": False})
+
+
+@app.route('/method/remove_latest_text', methods=['GET'])
+async def remove_latest_text(request):
+    print('received remove latest text request')
+    item = await query_latest_text()
+    if item:
+        item['change'] = None
+        next_item = await query_next_item(item['id'])
+        if next_item:
+            if item['showTime']:
+                item['change'] = {"id": next_item['id']}
+        await remove(None, item)
+        return json({"success": True})
+    else:
+        return json({"success": False})
+
+
+@app.route('/method/remove_all', methods=['GET'])
+async def remove_all(request):
+    print('received get remove all request')
+    await removeAll(None)
+    return json({"success": True})
 
 
 @socketio.event

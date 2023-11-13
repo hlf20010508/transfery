@@ -31,6 +31,12 @@ ios WebApp（增加到主屏幕）
 - 异步框架，支持边上传边发送消息
 - 手机使用屏幕键盘时页面弹性缩放
 - 删除历史记录
+- 支持通过GET或POST进行文本发送与接收等请求
+
+使用`/method/push_text`发送文本，支持GET和POST，参数为content  
+使用`/method/latest_text`接收最新文本，支持GET  
+使用`/method/remove_latest_text`删除最新文本，支持GET  
+使用`/method/remove_all`删除所有记录，支持GET
 
 <span id="environment"></span>
 
