@@ -33,24 +33,14 @@ client = OSS_minio.Client()
 
 async def query_items(start, amount):
     _db = db()
-    result = await _db.query('select * from %s order by time desc, showTime asc, id desc LIMIT %d, %d' % (table, start, amount))
+    result = await _db.query('select * from %s order by time desc, id desc LIMIT %d, %d' % (table, start, amount))
     _db.close()
     return result
 
 
 async def query_latest_text():
     _db = db()
-    result = await _db.query('select * from %s where type="text" order by time desc, showTime asc, id desc LIMIT 1' % table)
-    _db.close()
-    if result:
-        return result[0]
-    else:
-        return None
-
-
-async def query_next_item(id):
-    _db = db()
-    result = await _db.query('select * from %s where id > %s order by time asc, showTime desc, id asc LIMIT 1' % (table, id))
+    result = await _db.query('select * from %s where type="text" order by time desc, id desc LIMIT 1' % table)
     _db.close()
     if result:
         return result[0]
@@ -71,13 +61,6 @@ async def push_item(item):
     id = await _db.table_insert(table, item)
     _db.close()
     return id
-
-
-async def update_item(id):
-    _db = db()
-    await _db.query('update %s set showTime=1 where id="%d"' %
-                    (table, id))
-    _db.close()
 
 
 async def remove_item(id):
@@ -199,7 +182,6 @@ async def push_text(request):
         newItem = {
             "content": content,
             "type": "text",
-            "showTime": show_time,
             "time": time_now,
         }
         
@@ -230,11 +212,6 @@ async def remove_latest_text(request):
     print('received remove latest text request')
     item = await query_latest_text()
     if item:
-        item['change'] = None
-        next_item = await query_next_item(item['id'])
-        if next_item:
-            if item['showTime']:
-                item['change'] = {"id": next_item['id']}
         await remove(None, item)
         return json({"success": True})
     else:
@@ -262,11 +239,6 @@ async def pushItem(sid, item):
 @socketio.event
 async def remove(sid, item):
     print('received item to be removed: ', item)
-    if item['change']:
-        # if the item to be removed is showing time, it's next item
-        # should show time
-        update_item(item['change']['id'])
-        print('changed next item')
 
     await remove_item(item["id"])
     print('removed item in db')
