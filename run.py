@@ -84,11 +84,6 @@ def rename(old_filename, time):
     temp = '_'.join(temp)
     return temp
 
-def should_show_time(time1, time2):
-    if abs(time1 - time2) > 1000 * 60:
-        return True
-    return False
-
 
 @app.route('/')
 async def index(request):
@@ -173,16 +168,12 @@ async def push_text(request):
     else:
         content = request.json['content']
     if content:
-        time_now = int(std_time()) * 1000
-        show_time = True
-        item = await query_latest_text()
-        if item:
-            time_last = item['time']
-            show_time = should_show_time(time_now, time_last)
+        time = int(std_time()) * 1000
+
         newItem = {
             "content": content,
             "type": "text",
-            "time": time_now,
+            "time": time,
         }
         
         await pushItem(None, newItem)
