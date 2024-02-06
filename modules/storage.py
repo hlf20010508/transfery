@@ -7,21 +7,14 @@ from miniopy_async import Minio
 from miniopy_async.error import S3Error, InvalidResponseError
 from miniopy_async.helpers import genheaders
 from miniopy_async.datatypes import Part
-import config as myconfig
 
-config = myconfig.load()
-host = config['host_minio'].split('://')[1]
-username = config['username_minio']
-password = config['password_minio']
-bucket = config['bucket']
-secure = True if config['host_minio'].split('://')[0] == 'https' else False
 
-class Client:
+class Storage:
     # Create a client with the MinIO server playground, its access key
     # and secret key.
-    def __init__(self, host=host, username=username, password=password, bucket=bucket, secure=secure):
+    def __init__(self, host, username, password, bucket, secure):
         self.client = Minio(
-            host,
+            endpoint=host,
             access_key=username,
             secret_key=password,
             secure=secure
@@ -39,8 +32,13 @@ class Client:
 
     async def create_multipart_upload_id(self, remote_path):
         try:
-            headers = genheaders(headers=None, sse=None,
-                                 tags=None, retention=None, legal_hold=False)
+            headers = genheaders(
+                headers=None,
+                sse=None,
+                tags=None,
+                retention=None,
+                legal_hold=False
+            )
             headers["Content-Type"] = "application/octet-stream"
             upload_id = await self.client._create_multipart_upload(self.bucket, remote_path, headers)
             return upload_id
@@ -49,9 +47,14 @@ class Client:
 
     async def multipart_upload(self, remote_path, upload_id, part_data, part_number):
         try:
-            args = (self.bucket, remote_path, part_data,
-                    None, upload_id, part_number)
-            etag = await self.client._upload_part(*args)
+            etag = await self.client._upload_part(
+                bucket_name=self.bucket,
+                object_name=remote_path,
+                data=part_data,
+                headers=None,
+                upload_id=upload_id,
+                part_number=part_number
+            )
             return etag
         except S3Error as exc:
             print("error occurred.", exc)
@@ -60,11 +63,16 @@ class Client:
         try:
             parts = [Part(part['partNumber'], part['etag']) for part in parts]
             await self.client._complete_multipart_upload(
-                self.bucket, remote_path, upload_id, parts,
+                bucket_name=self.bucket,
+                remote_path=remote_path,
+                upload_id=upload_id,
+                parts=parts
             )
             print(
                 "file is successfully uploaded as object %s to bucket %s." % (
-                    remote_path, self.bucket)
+                    remote_path,
+                    self.bucket
+                )
             )
             address = 'http://'+self.host+'/'+self.bucket+'/'+remote_path
             print(address)
@@ -74,8 +82,12 @@ class Client:
     async def remove(self, remote_path):
         try:
             await self.client.remove_object(self.bucket, remote_path)
-            print("%s is successfully removed from bucket %s" %
-                  (remote_path, self.bucket))
+            print(
+                "%s is successfully removed from bucket %s" % (
+                    remote_path,
+                    self.bucket
+                )
+            )
         except S3Error as exc:
             print("error occurred.", exc)
 
@@ -84,16 +96,21 @@ class Client:
             items = await self.list()
             for item in items:
                 await self.remove(item['name'])
-            print("all objects are removed from bucket %s successfully" %
-                  self.bucket)
+            print("all objects are removed from bucket %s successfully" % self.bucket)
         except S3Error as exc:
             print("error occurred.", exc)
 
     async def list(self):
         try:
             obj_list = await self.client.list_objects(self.bucket, recursive=True)
-            obj_list = [{'name': obj.object_name, 'size': obj.size,
-                         'last_modified': obj.last_modified} for obj in obj_list]
+            obj_list = [
+                {
+                    'name': obj.object_name,
+                    'size': obj.size,
+                    'last_modified': obj.last_modified
+                }
+                for obj in obj_list
+            ]
             print('objects list:', obj_list)
             return obj_list
         except S3Error as exc:
@@ -106,8 +123,13 @@ class Client:
                 remote_path,
                 change_host=change_host
             )
-            print("successfully created download url %s for %s from bucket %s" %
-                  (url, remote_path, self.bucket))
+            print(
+                "successfully created download url %s for %s from bucket %s" % (
+                    url,
+                    remote_path,
+                    self.bucket
+                )
+            )
             return url
         except S3Error as exc:
             print("error occurred.", exc)

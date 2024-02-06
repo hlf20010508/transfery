@@ -2,6 +2,7 @@
 config.json
 .vscode
 cache/
+dev*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
