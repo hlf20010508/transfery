@@ -64,7 +64,7 @@ class Storage:
             parts = [Part(part['partNumber'], part['etag']) for part in parts]
             await self.client._complete_multipart_upload(
                 bucket_name=self.bucket,
-                remote_path=remote_path,
+                object_name=remote_path,
                 upload_id=upload_id,
                 parts=parts
             )

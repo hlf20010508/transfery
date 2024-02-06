@@ -3,9 +3,9 @@
 # :copyright: (C) 2024 L-ING <hlf01@icloud.com>
 # :license: MIT, see LICENSE for more details.
 
-def rename(old_filename, time):
+def rename(old_filename, timestamp):
     temp = old_filename.split('.')
-    temp[0] += '_'+str(time)[:-3]
+    temp[0] += '_'+str(timestamp)[:-3]
     temp = '.'.join(temp)
     temp = temp.split()
     temp = '_'.join(temp)

@@ -27,8 +27,8 @@ async def page(request):
 async def sync(request):
     print('received sync request')
 
-    last_id = int(request.args['lastId'][0])
-    result = await sql.query_items_after(last_id)
+    latest_id = int(request.args['latestId'][0])
+    result = await sql.query_items_after(latest_id)
     print('synced:', result)
 
     return json({'newItems': result})
@@ -38,16 +38,17 @@ async def sync(request):
 async def new_item(request):
     item = {
         "content": request.json['content'],
+        "timestamp": request.json['timestamp'],
         "type": request.json['type'],
-        "time": request.json['time'],
         "fileName": getFromPostJson(request, 'fileName'),
+        "isComplete": getFromPostJson(request, 'isComplete'),
     }
 
     sid = request.json['sid']
 
     print('received item: ', item)
 
-    id = await sql.insert_item(item)
+    id = await sql.insert(item)
     print('pushed to db')
     item['id'] = id
 

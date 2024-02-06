@@ -22,9 +22,9 @@ async def push_text(request):
 
     if content:
         newItem = {
-            "content": content,
+            "content": content.strip(),
             "type": "text",
-            "time": int(time()) * 1000,
+            "timestamp": int(time()) * 1000,
         }
         
         await socket.push_item(None, newItem)
@@ -44,11 +44,9 @@ async def latest_text(request):
     item = await sql.query_latest_text()
 
     if item:
-        result = item['content'].strip()
-
         return json({
             "success": True,
-            "content": result
+            "content": item['content']
         })
     else:
         return json({"success": False})

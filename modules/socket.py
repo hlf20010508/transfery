@@ -3,7 +3,6 @@
 # :copyright: (C) 2024 L-ING <hlf01@icloud.com>
 # :license: MIT, see LICENSE for more details.
 
-import socketio
 from modules.client import socketio
 
 

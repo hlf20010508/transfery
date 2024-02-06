@@ -4,4 +4,6 @@
 !templates
 !Pipfile
 !Pipfile.lock
+!entrypoint.sh
+!init.py
 !run.py

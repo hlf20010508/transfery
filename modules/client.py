@@ -8,38 +8,31 @@ import socketio
 from modules.storage import Storage
 from modules.env import (
     MINIO_HOST,
+    MINIO_SECURE,
     MINIO_USERNAME,
     MINIO_PASSWORD,
     MINIO_BUCKET,
     MYSQL_HOST,
+    MYSQL_PORT,
     MYSQL_USERNAME,
     MYSQL_PASSWORD,
     MYSQL_DATABASE
 )
 
-minio_protocol, minio_host = MINIO_HOST.split('://')
-minio_username = MINIO_USERNAME
-minio_password = MINIO_PASSWORD
-minio_bucket = MINIO_BUCKET
-minio_secure = True if minio_protocol == 'https' else False
-
-mysql_host, mysql_port = MYSQL_HOST.split(':')
-mysql_port = int(mysql_port)
-
 storage = Storage(
-    host=minio_host,
-    username=minio_username,
-    password=minio_password,
-    bucket=minio_bucket,
-    secure=minio_secure
+    host=MINIO_HOST,
+    username=MINIO_USERNAME,
+    password=MINIO_PASSWORD,
+    bucket=MINIO_BUCKET,
+    secure=MINIO_SECURE
 )
 
 database = ConnectionAsync(
-    host=mysql_host,
+    host=MYSQL_HOST,
     database=MYSQL_DATABASE,
     user=MYSQL_USERNAME,
     password=MYSQL_PASSWORD,
-    port=mysql_port
+    port=MYSQL_PORT
 )
 
 socketio = socketio.AsyncServer(async_mode='sanic', cors_allowed_origins="*")
