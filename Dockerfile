@@ -7,4 +7,4 @@ RUN apk update &&\
     pipenv sync &&\
     pipenv --clear &&\
     apk del build-base
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["sh", "./entrypoint.sh"]
