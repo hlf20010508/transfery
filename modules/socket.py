@@ -14,3 +14,7 @@ def connect(sid, environ, auth):
 @socketio.on("disconnect")
 def disconnect(sid):
     print('client %s disconnected' % sid)
+
+@socketio.on("progress")
+async def progress(sid, data):
+    await socketio.emit('progress', data, skip_sid=sid)
