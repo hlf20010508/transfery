@@ -5,15 +5,24 @@
 
 from modules.client import socketio
 
+connection_number = 0
 
 @socketio.on("connect")
-def connect(sid, environ, auth):
-    print('client %s connected' % sid)
+async def connect(sid, environ, auth):
+    global connection_number
+    connection_number += 1
+    print('client %s connected, connection number %d' % (sid, connection_number))
+
+    await socketio.emit("connectionNumber", connection_number)
 
 
 @socketio.on("disconnect")
-def disconnect(sid):
-    print('client %s disconnected' % sid)
+async def disconnect(sid):
+    global connection_number
+    connection_number -= 1
+    print('client %s disconnected, connection number %d' % (sid, connection_number))
+
+    await socketio.emit("connectionNumber", connection_number)
 
 @socketio.on("progress")
 async def progress(sid, data):
