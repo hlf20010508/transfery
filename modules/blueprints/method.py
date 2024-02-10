@@ -7,7 +7,7 @@ from time import time
 from sanic import Blueprint
 from sanic.response import json
 import modules.sql as sql
-import modules.socket as socket
+from modules.client import socketio
 
 method_bp = Blueprint("method")
 
@@ -21,13 +21,15 @@ async def push_text(request):
         content = request.json['content']
 
     if content:
-        newItem = {
+        item = {
             "content": content.strip(),
             "type": "text",
             "timestamp": int(time()) * 1000,
         }
         
-        await socket.push_item(None, newItem)
+        item["id"] = await sql.insert(item)
+
+        await socketio.emit('newItem', item)
         print('text pushed')
 
         return json({"success": True})
@@ -41,7 +43,7 @@ async def push_text(request):
 async def latest_text(request):
     print('received get latest text request')
 
-    item = await sql.query_latest_text()
+    item = (await sql.query_items(start=0, amount=1))[0]
 
     if item:
         return json({
