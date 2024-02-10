@@ -13,6 +13,7 @@ from modules.blueprints import (
 )
 from modules.client import socketio
 from modules.env import PORT
+import modules.socket
 
 app = Sanic(__name__)
 template = SanicJinja2(app, pkg_name='run')
