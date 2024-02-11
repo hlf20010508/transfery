@@ -7,3 +7,4 @@ from modules.blueprints.message import message_bp
 from modules.blueprints.upload import upload_bp
 from modules.blueprints.download import download_bp
 from modules.blueprints.method import method_bp
+from modules.blueprints.login import login_bp

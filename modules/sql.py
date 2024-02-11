@@ -4,7 +4,11 @@
 # :license: MIT, see LICENSE for more details.
 
 from modules.client import database
-from modules.env import MYSQL_TABLE_MESSAGE
+from modules.env import MYSQL_TABLE_MESSAGE, MYSQL_TABLE_AUTH
+
+async def query_auth_key():
+    return (await database.query('select privateKey, publicKey from %s' % MYSQL_TABLE_AUTH))[0]
+
 
 async def query_items(start, amount):
     return await database.query(

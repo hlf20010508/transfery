@@ -9,10 +9,11 @@ from modules.blueprints import (
     message_bp,
     upload_bp,
     download_bp,
-    method_bp
+    method_bp,
+    login_bp
 )
 from modules.client import socketio
-from modules.env import PORT
+from modules.env import PORT, AUTO_RELOAD
 import modules.socket
 
 app = Sanic(__name__)
@@ -25,6 +26,7 @@ app.blueprint(message_bp)
 app.blueprint(upload_bp)
 app.blueprint(download_bp)
 app.blueprint(method_bp)
+app.blueprint(login_bp)
 
 socketio.attach(app)
 
@@ -35,5 +37,6 @@ async def index(request):
 if __name__ == "__main__":
     app.run(
         host='0.0.0.0',
-        port=PORT
+        port=PORT,
+        auto_reload=AUTO_RELOAD
     )
