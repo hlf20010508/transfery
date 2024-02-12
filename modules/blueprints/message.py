@@ -7,7 +7,7 @@ from sanic import Blueprint
 from sanic.response import json
 from modules.env import ITEM_PER_PAGE
 from modules.client import socketio, storage
-from modules.utils import getFromPostJson
+from modules.utils import getFromPostJson, check_login
 import modules.sql as sql
 
 message_bp = Blueprint("message")
@@ -17,7 +17,12 @@ async def page(request):
     print('received new page request')
 
     start = int(request.args['size'][0])
-    result = await sql.query_items(start, ITEM_PER_PAGE)
+
+    result = await sql.query_items(
+        start=start,
+        amount=ITEM_PER_PAGE,
+        access_private=check_login(request)
+    )
     print('new page pushed')
 
     return json({'messages': result})
@@ -39,6 +44,7 @@ async def new_item(request):
     item = {
         "content": request.json['content'],
         "timestamp": request.json['timestamp'],
+        "isPrivate": request.json['isPrivate'],
         "type": request.json['type'],
         "fileName": getFromPostJson(request, 'fileName'),
         "isComplete": getFromPostJson(request, 'isComplete'),
@@ -48,16 +54,15 @@ async def new_item(request):
 
     print('received item: ', item)
 
-    id = await sql.insert(item)
+    item['id'] = await sql.insert(item)
     print('pushed to db')
-    item['id'] = id
 
     await socketio.emit('newItem', item, skip_sid=sid)
     print('broadcasted')
 
     return json({
         "success": True,
-        "id": id
+        "id": item['id']
     })
 
 

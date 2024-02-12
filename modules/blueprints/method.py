@@ -11,39 +11,53 @@ from modules.client import socketio
 
 method_bp = Blueprint("method")
 
+
+def verify_token(token):
+    return True
+
+
 @method_bp.route('/method/push_text', methods=['GET', 'POST'])
 async def push_text(request):
     print('received push text request')
 
     if request.method == 'GET':
         content = request.args['content'][0]
+        is_private = request.args['isPrivate'][0]
+        token = request.args['token'][0]
     else:
         content = request.json['content']
+        is_private = request.json['isPrivate']
+        token = request.json['token']
 
-    if content:
-        item = {
-            "content": content.strip(),
-            "type": "text",
-            "timestamp": int(time()) * 1000,
-        }
-        
-        item["id"] = await sql.insert(item)
+    if verify_token(token) or not is_private:
+        if content:
+            item = {
+                "content": content.strip(),
+                "timestamp": int(time()) * 1000,
+                "isPrivate": is_private,
+                "type": "text",
+            }
+            
+            item["id"] = await sql.insert(item)
 
-        await socketio.emit('newItem', item)
-        print('text pushed')
+            await socketio.emit('newItem', item)
+            print('text pushed')
 
-        return json({"success": True})
-    else:
-        print('no content')
+            return json({"success": True})
+        else:
+            print('no content')
 
-        return json({"success": False})
+            return json({"success": False})
+
 
 
 @method_bp.route('/method/latest_text', methods=['GET'])
 async def latest_text(request):
     print('received get latest text request')
 
-    item = (await sql.query_items(start=0, amount=1))[0]
+    token = request.args['token'][0]
+
+    item = (await sql.query_items(start=0, amount=1, access_private=verify_token(token)))[0]
 
     if item:
         return json({

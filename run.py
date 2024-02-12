@@ -13,7 +13,9 @@ from modules.blueprints import (
     login_bp
 )
 from modules.client import socketio
-from modules.env import PORT, AUTO_RELOAD
+from modules.env import PORT, AUTO_RELOAD, Secret
+from modules.utils import load_pem_key
+from modules.sql import query_auth_key
 import modules.socket
 
 app = Sanic(__name__)
@@ -33,6 +35,14 @@ socketio.attach(app)
 @app.route('/')
 async def index(request):
     return template.render('index.html', request)
+
+
+@app.before_server_start
+async def setup(app, loop):
+    key = await query_auth_key()
+    
+    Secret.private_key, Secret.public_key = load_pem_key(key['privateKey'], key['publicKey'])
+
 
 if __name__ == "__main__":
     app.run(

@@ -22,3 +22,7 @@ MYSQL_PASSWORD = os.environ['MYSQL_PASSWORD']
 MYSQL_DATABASE = os.environ['MYSQL_DATABASE']
 MYSQL_TABLE_MESSAGE = "message"
 MYSQL_TABLE_AUTH = "auth"
+
+class Secret:
+    public_key = None
+    private_key = None

@@ -10,14 +10,18 @@ async def query_auth_key():
     return (await database.query('select privateKey, publicKey from %s' % MYSQL_TABLE_AUTH))[0]
 
 
-async def query_items(start, amount):
-    return await database.query(
-        'select * from %s order by timestamp desc, id desc LIMIT %d, %d' % (
-            MYSQL_TABLE_MESSAGE,
-            start,
-            amount
-        )
+async def query_items(start, amount, access_private=False):
+    sql = 'select * from %s ' % MYSQL_TABLE_MESSAGE
+
+    if not access_private:
+        sql += 'where isPrivate = false '
+
+    sql += 'order by timestamp desc, id desc limit %d, %d' % (
+        start,
+        amount,
     )
+
+    return await database.query(sql)
 
 
 async def query_items_after(id):

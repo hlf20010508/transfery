@@ -72,6 +72,7 @@ def init_mysql():
             id int primary key auto_increment,
             content text not null,
             timestamp bigint not null,
+            isPrivate tinyint not null,
             type varchar(5) not null,
             fileName text,
             isComplete tinyint
