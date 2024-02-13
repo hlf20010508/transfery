@@ -24,5 +24,4 @@ MYSQL_TABLE_MESSAGE = "message"
 MYSQL_TABLE_AUTH = "auth"
 
 class Secret:
-    public_key = None
-    private_key = None
+    key = None

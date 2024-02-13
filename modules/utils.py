@@ -4,10 +4,7 @@
 # :license: MIT, see LICENSE for more details.
 
 import base64
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
-from cryptography.hazmat.backends import default_backend
+from time import time
 from modules.env import Secret
 
 
@@ -24,37 +21,23 @@ def getFromPostJson(request, key):
     return None if not key in request.json else request.json[key]
 
 
-def load_pem_key(private_key_str, public_key_str):
-    pem_private_key = private_key_str.encode('utf-8')
-    pem_public_key = public_key_str.encode('utf-8')
-
-    private_key = load_pem_private_key(
-        pem_private_key,
-        password=None,
-        backend=default_backend()
-    )
-
-    public_key = load_pem_public_key(
-        pem_public_key,
-        backend=default_backend()
-    )
-
-    return private_key, public_key
+def get_current_timestamp():
+    return int(time())
 
 
-def verify_signature(signature_str, fingerprint):
-    signature = base64.b64decode(signature_str)
-    fingerprint = fingerprint.encode()
+def verify_certification(certification_str, fingerprint):
+    certification = base64.b64decode(certification_str)
 
     try:
-        Secret.public_key.verify(
-            signature,
-            fingerprint,
-            ec.ECDSA(hashes.SHA256())
-        )
-        return True
+        certification_raw = Secret.key.decrypt(certification).decode()
+        cert_fingerprint, cert_timestamp = certification_raw.split(', ')
+
+        if cert_fingerprint == fingerprint and int(cert_timestamp) > get_current_timestamp():
+            return True
+        else:
+            return False
     except Exception as e:
-        print('signature error:', e)
+        print('certification error:', e)
         return False
 
 
@@ -84,7 +67,7 @@ def check_login(request):
         fingerprint = get_fingerprint(authorization)
 
     is_login = False
-    if (signature := request.cookies.get('signature')) and fingerprint:
-        is_login = verify_signature(signature, fingerprint)
-    
+    if (certification := request.cookies.get('certification')) and fingerprint:
+        is_login = verify_certification(certification, fingerprint)
+
     return is_login

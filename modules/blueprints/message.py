@@ -33,7 +33,10 @@ async def sync(request):
     print('received sync request')
 
     latest_id = int(request.args['latestId'][0])
-    result = await sql.query_items_after(latest_id)
+    result = await sql.query_items_after(
+        id=latest_id,
+        access_private=check_login(request)
+    )
     print('synced:', result)
 
     return json({'newItems': result})

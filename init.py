@@ -5,8 +5,8 @@
 
 import pymysql
 import asyncio
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import serialization
+from cryptography.fernet import Fernet
+import base64
 from miniopy_async import Minio
 from modules.env import (
     MINIO_HOST,
@@ -83,19 +83,18 @@ def init_mysql():
     sql = '''
         create table if not exists %s(
             id int primary key auto_increment,
-            privateKey text not null,
-            publicKey text not null
+            secretKey text not null
         )
     ''' % MYSQL_TABLE_AUTH
     cursor.execute(sql)
 
     if not is_key_exist(cursor):
-        private_key, public_key = gen_key()
+        secret_key = gen_key()
         sql = '''
-            insert into %s (privateKey, publicKey)
-            select "%s", "%s"
+            insert into %s (secretKey)
+            select "%s"
             where not exists (select 1 from auth)
-        ''' % (MYSQL_TABLE_AUTH, private_key, public_key)
+        ''' % (MYSQL_TABLE_AUTH, secret_key)
         cursor.execute(sql)
         conn.commit()
 
@@ -115,25 +114,10 @@ def is_key_exist(cursor):
 
 
 def gen_key():
-    private_key = ec.generate_private_key(ec.SECP256R1()) 
-    public_key = private_key.public_key()
+    secret_key = Fernet.generate_key()
+    secret_key_str = base64.b64encode(secret_key).decode('utf-8')
 
-    # 序列化ECC私钥为PEM格式
-    pem_private_key = private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()  # 无密码保护
-    )
-    private_key_str = pem_private_key.decode('utf-8')
-
-    # 序列化ECC公钥为PEM格式
-    pem_public_key = public_key.public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
-    )
-    public_key_str = pem_public_key.decode('utf-8')
-
-    return private_key_str, public_key_str
+    return secret_key_str
 
 if __name__ == '__main__':
     init()

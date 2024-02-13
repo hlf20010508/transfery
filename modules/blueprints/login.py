@@ -5,11 +5,9 @@
 
 from sanic import Blueprint
 from sanic.response import json
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec
 from base64 import b64encode
 from modules.env import USERNAME, PASSWORD, Secret
-from modules.utils import check_login
+from modules.utils import check_login, get_current_timestamp
 
 login_bp = Blueprint("login")
 
@@ -21,27 +19,25 @@ async def auth(request):
     username = request.json['username']
     password = request.json['password']
     remember_me = request.json['rememberMe']
-    fingerprint = request.json['fingerprint'].encode()
+    fingerprint = request.json['fingerprint']
 
     if username == USERNAME and password == PASSWORD:
+        max_age = 300 # 5分钟
         if remember_me:
-            signature_bytes = Secret.private_key.sign(
-                fingerprint,
-                ec.ECDSA(hashes.SHA256())
-            )
-            signature = b64encode(signature_bytes).decode('utf-8')
+            max_age = 3600 * 24 * 365 # 1年
 
-            response = json({"success": True})
-            response.add_cookie(
-                key="signature",
-                value=signature,
-                # 设置cookie有效期为1年
-                max_age=3600 * 24 * 365,
-            )
+        certification_raw = fingerprint + ', ' + str(get_current_timestamp() + max_age)
+        certification_bytes = Secret.key.encrypt(certification_raw.encode())
+        certification = b64encode(certification_bytes).decode('utf-8')
 
-            return response
-        else:
-            return json({"success": True})
+        response = json({"success": True})
+        response.add_cookie(
+            key="certification",
+            value=certification,
+            max_age=max_age,
+        )
+
+        return response
     else:
         return json({"success": False})
 

@@ -5,6 +5,8 @@
 
 from sanic import Sanic
 from sanic_jinja2 import SanicJinja2
+from cryptography.fernet import Fernet
+import base64
 from modules.blueprints import (
     message_bp,
     upload_bp,
@@ -14,7 +16,6 @@ from modules.blueprints import (
 )
 from modules.client import socketio
 from modules.env import PORT, AUTO_RELOAD, Secret
-from modules.utils import load_pem_key
 from modules.sql import query_auth_key
 import modules.socket
 
@@ -39,9 +40,9 @@ async def index(request):
 
 @app.before_server_start
 async def setup(app, loop):
-    key = await query_auth_key()
-    
-    Secret.private_key, Secret.public_key = load_pem_key(key['privateKey'], key['publicKey'])
+    key_str = await query_auth_key()
+    key_bytes = base64.b64decode(key_str)
+    Secret.key = Fernet(key_bytes)
 
 
 if __name__ == "__main__":

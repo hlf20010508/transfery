@@ -7,7 +7,7 @@ from modules.client import database
 from modules.env import MYSQL_TABLE_MESSAGE, MYSQL_TABLE_AUTH
 
 async def query_auth_key():
-    return (await database.query('select privateKey, publicKey from %s' % MYSQL_TABLE_AUTH))[0]
+    return (await database.query('select secretKey from %s' % MYSQL_TABLE_AUTH))[0]['secretKey']
 
 
 async def query_items(start, amount, access_private=False):
@@ -24,13 +24,16 @@ async def query_items(start, amount, access_private=False):
     return await database.query(sql)
 
 
-async def query_items_after(id):
-    return await database.query(
-        'select * from %s where id > %s' % (
-            MYSQL_TABLE_MESSAGE,
-            id
-        )
+async def query_items_after(id, access_private=False):
+    sql = 'select * from %s where id > %s' % (
+        MYSQL_TABLE_MESSAGE,
+        id
     )
+
+    if not access_private:
+        sql += ' and isPrivate = false'
+
+    return await database.query(sql)
 
 
 async def insert(item):
