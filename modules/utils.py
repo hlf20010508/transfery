@@ -26,9 +26,8 @@ def get_current_timestamp():
 
 
 def verify_certification(certification_str, fingerprint):
-    certification = base64.b64decode(certification_str)
-
     try:
+        certification = base64.b64decode(certification_str)
         certification_raw = Secret.key.decrypt(certification).decode()
         cert_fingerprint, cert_timestamp = certification_raw.split(', ')
 
@@ -60,14 +59,20 @@ def get_fingerprint(authorization):
         return ''
 
 
+def get_certification(authorization):
+    authorization = authorization_to_dict(authorization)
+    if 'certification' in authorization:
+        return authorization['certification']
+    else:
+        return ''
+
+
 def check_login(request):
     authorization = request.headers.get("Authorization")
     fingerprint = ''
+    certification = ''
     if authorization:
         fingerprint = get_fingerprint(authorization)
+        certification = get_certification(authorization)
 
-    is_login = False
-    if (certification := request.cookies.get('certification')) and fingerprint:
-        is_login = verify_certification(certification, fingerprint)
-
-    return is_login
+    return verify_certification(certification, fingerprint)

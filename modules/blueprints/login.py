@@ -30,14 +30,10 @@ async def auth(request):
         certification_bytes = Secret.key.encrypt(certification_raw.encode())
         certification = b64encode(certification_bytes).decode('utf-8')
 
-        response = json({"success": True})
-        response.add_cookie(
-            key="certification",
-            value=certification,
-            max_age=max_age,
-        )
-
-        return response
+        return json({
+            "success": True,
+            "certification": certification
+        })
     else:
         return json({"success": False})
 
