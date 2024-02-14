@@ -24,6 +24,19 @@ async def disconnect(sid):
 
     await socketio.emit("connectionNumber", connection_number)
 
+
 @socketio.on("progress")
 async def progress(sid, data):
     await socketio.emit('progress', data, skip_sid=sid)
+
+
+@socketio.on("joinRoom")
+async def join_room(sid, room_name):
+    await socketio.enter_room(sid, room_name)
+    print('client %s entered room %s' % (sid, room_name))
+
+
+@socketio.on("leaveRoom")
+async def join_room(sid, room_name):
+    await socketio.leave_room(sid, room_name)
+    print('client %s left room %s' % (sid, room_name))

@@ -60,7 +60,12 @@ async def new_item(request):
     item['id'] = await sql.insert(item)
     print('pushed to db')
 
-    await socketio.emit('newItem', item, skip_sid=sid)
+    await socketio.emit(
+        'newItem',
+        item,
+        room=None if not item['isPrivate'] else "private",
+        skip_sid=sid
+    )
     print('broadcasted')
 
     return json({
