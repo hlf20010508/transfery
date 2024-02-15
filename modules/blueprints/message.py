@@ -75,6 +75,9 @@ async def new_item(request):
 
 @message_bp.route("/removeItem", methods=["POST"])
 async def remove_item(request):
+    if not check_login(request):
+        return response.json({"success": False})
+
     item = {
         'id': request.json['id'],
         'type': request.json['type'],
@@ -100,6 +103,9 @@ async def remove_item(request):
 
 @message_bp.route("/removeAll", methods=["GET"])
 async def remove_all(request):
+    if not check_login(request):
+        return response.json({"success": False})
+
     print('received remove all item request')
     
     sid = request.args['sid'][0]

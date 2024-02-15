@@ -4,7 +4,7 @@
 # :license: MIT, see LICENSE for more details.
 
 from sanic import Blueprint, response
-from modules.utils import rename
+from modules.utils import rename, check_login
 from modules.client import storage
 from modules.sql import update_complete
 
@@ -12,6 +12,9 @@ upload_bp = Blueprint("upload")
 
 @upload_bp.route('/fetchUploadId', methods=['POST'])
 async def fetch_upload_id(request):
+    if not check_login(request):
+        return response.json({"success": False})
+
     print('received get upload id request')
 
     content = request.json['content']
@@ -30,6 +33,9 @@ async def fetch_upload_id(request):
 
 @upload_bp.route('/uploadPart', methods=['POST'])
 async def upload_part(request):
+    if not check_login(request):
+        return response.json({"success": False})
+
     file_part = request.files.get('filePart').body
     file_name = request.form.get('fileName')
     upload_id = request.form.get('uploadId')
@@ -45,6 +51,9 @@ async def upload_part(request):
 
 @upload_bp.route('/completeUpload', methods=['POST'])
 async def complete_upload(request):
+    if not check_login(request):
+        return response.json({"success": False})
+
     print('received complete upload request')
 
     id = request.json['id']
