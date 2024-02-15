@@ -3,8 +3,7 @@
 # :copyright: (C) 2024 L-ING <hlf01@icloud.com>
 # :license: MIT, see LICENSE for more details.
 
-from sanic import Blueprint
-from sanic.response import json
+from sanic import Blueprint, response
 from modules.env import ITEM_PER_PAGE
 from modules.client import socketio, storage
 from modules.utils import getFromPostJson, check_login
@@ -25,7 +24,7 @@ async def page(request):
     )
     print('new page pushed')
 
-    return json({'messages': result})
+    return response.json({'messages': result})
 
 
 @message_bp.route('/sync', methods=['GET'])
@@ -39,7 +38,7 @@ async def sync(request):
     )
     print('synced:', result)
 
-    return json({'newItems': result})
+    return response.json({'newItems': result})
 
 
 @message_bp.route("/newItem", methods=["POST"])
@@ -68,7 +67,7 @@ async def new_item(request):
     )
     print('broadcasted')
 
-    return json({
+    return response.json({
         "success": True,
         "id": item['id']
     })
@@ -96,7 +95,7 @@ async def remove_item(request):
     await socketio.emit('removeItem', item['id'], skip_sid=sid)
     print('broadcasted')
 
-    return json({"success": True})
+    return response.json({"success": True})
 
 
 @message_bp.route("/removeAll", methods=["GET"])
@@ -114,4 +113,4 @@ async def remove_all(request):
     await socketio.emit('removeAll', skip_sid=sid)
     print('broadcasted')
 
-    return json({"success": True})
+    return response.json({"success": True})

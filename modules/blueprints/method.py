@@ -4,8 +4,7 @@
 # :license: MIT, see LICENSE for more details.
 
 from time import time
-from sanic import Blueprint
-from sanic.response import json
+from sanic import Blueprint, response
 import modules.sql as sql
 from modules.client import socketio
 
@@ -43,11 +42,11 @@ async def push_text(request):
             await socketio.emit('newItem', item)
             print('text pushed')
 
-            return json({"success": True})
+            return response.json({"success": True})
         else:
             print('no content')
 
-            return json({"success": False})
+            return response.json({"success": False})
 
 
 
@@ -60,9 +59,9 @@ async def latest_text(request):
     item = (await sql.query_items(start=0, amount=1, access_private=verify_token(token)))[0]
 
     if item:
-        return json({
+        return response.json({
             "success": True,
             "content": item['content']
         })
     else:
-        return json({"success": False})
+        return response.json({"success": False})

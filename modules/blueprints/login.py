@@ -3,8 +3,8 @@
 # :copyright: (C) 2024 L-ING <hlf01@icloud.com>
 # :license: MIT, see LICENSE for more details.
 
-from sanic import Blueprint
-from sanic.response import json
+import json
+from sanic import Blueprint, response
 from base64 import b64encode
 from modules.env import USERNAME, PASSWORD, Secret
 from modules.utils import check_login, get_current_timestamp
@@ -26,20 +26,23 @@ async def auth(request):
         if remember_me:
             max_age = 3600 * 24 * 365 # 1年
 
-        certification_raw = fingerprint + ', ' + str(get_current_timestamp() + max_age)
-        certification_bytes = Secret.key.encrypt(certification_raw.encode())
-        certification = b64encode(certification_bytes).decode('utf-8')
+        certificate_raw = json.dumps({
+            "fingerprint": fingerprint,
+            "timestamp": get_current_timestamp() + max_age
+        })
+        certificate_bytes = Secret.key.encrypt(certificate_raw.encode())
+        certificate = b64encode(certificate_bytes).decode('utf-8')
 
-        return json({
+        return response.json({
             "success": True,
-            "certification": certification
+            "certificate": certificate
         })
     else:
-        return json({"success": False})
+        return response.json({"success": False})
 
 
 @login_bp.route('/login', methods=['GET'])
 async def login(request):
     print('received login request')
 
-    return json({"success": check_login(request)})
+    return response.json({"success": check_login(request)})

@@ -3,8 +3,7 @@
 # :copyright: (C) 2024 L-ING <hlf01@icloud.com>
 # :license: MIT, see LICENSE for more details.
 
-from sanic import Blueprint
-from sanic.response import json
+from sanic import Blueprint, response
 from modules.client import storage
 
 download_bp = Blueprint("download")
@@ -17,4 +16,4 @@ async def download_url(request):
     url = await storage.get_download_url(file_name)
     print('url pushed')
     
-    return json({"success": True, "url": url})
+    return response.json({"success": True, "url": url})

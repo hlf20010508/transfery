@@ -5,6 +5,7 @@
 
 import base64
 from time import time
+import json
 from modules.env import Secret
 
 
@@ -25,54 +26,46 @@ def get_current_timestamp():
     return int(time())
 
 
-def verify_certification(certification_str, fingerprint):
+def verify_certificate(certificate_str, fingerprint):
     try:
-        certification = base64.b64decode(certification_str)
-        certification_raw = Secret.key.decrypt(certification).decode()
-        cert_fingerprint, cert_timestamp = certification_raw.split(', ')
+        if not certificate_str:
+            return False
 
-        if cert_fingerprint == fingerprint and int(cert_timestamp) > get_current_timestamp():
+        certificate_bytes = base64.b64decode(certificate_str)
+        certificate_raw = Secret.key.decrypt(certificate_bytes).decode()
+        certificate = json.loads(certificate_raw)
+
+        if certificate['fingerprint'] == fingerprint and certificate['timestamp'] > get_current_timestamp():
             return True
         else:
             return False
     except Exception as e:
-        print('certification error:', e)
+        print('certificate error:', e)
         return False
 
 
-def authorization_to_dict(authorization):
-    result = {}
-    if authorization:
-        auth_str_list = authorization.split(', ')
-        for auth_str in auth_str_list:
-            auth = auth_str.split(': ')
-            if len(auth) == 2:
-                result[auth[0]] = auth[1]
-    return result
+def get_auth_value(authorization_str, key):
+    try:
+        authorization = json.loads(authorization_str)
 
-
-def get_fingerprint(authorization):
-    authorization = authorization_to_dict(authorization)
-    if 'fingerprint' in authorization:
-        return authorization['fingerprint']
-    else:
+        if key in authorization:
+            return authorization[key]
+        else:
+            return ''
+    except:
         return ''
 
 
-def get_certification(authorization):
-    authorization = authorization_to_dict(authorization)
-    if 'certification' in authorization:
-        return authorization['certification']
-    else:
-        return ''
+def check_login(request=None, data={}):
+    if request:
+        authorization = request.headers.get("Authorization")
+    elif data:
+        authorization = data['authorization']
 
-
-def check_login(request):
-    authorization = request.headers.get("Authorization")
-    fingerprint = ''
-    certification = ''
     if authorization:
-        fingerprint = get_fingerprint(authorization)
-        certification = get_certification(authorization)
+        fingerprint = get_auth_value(authorization, 'fingerprint')
+        certificate = get_auth_value(authorization, 'certificate')
 
-    return verify_certification(certification, fingerprint)
+        return verify_certificate(certificate, fingerprint)
+    else:
+        return False

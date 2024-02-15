@@ -4,6 +4,7 @@
 # :license: MIT, see LICENSE for more details.
 
 from modules.client import socketio
+from modules.utils import check_login
 
 connection_number = 0
 
@@ -31,9 +32,14 @@ async def progress(sid, data):
 
 
 @socketio.on("joinRoom")
-async def join_room(sid, room_name):
-    await socketio.enter_room(sid, room_name)
-    print('client %s entered room %s' % (sid, room_name))
+async def join_room(sid, data):
+    if data['roomName'] == 'private':
+        if check_login(data=data):
+            await socketio.enter_room(sid, 'private')
+            print('client %s entered room private' % sid)
+    else:
+        await socketio.enter_room(sid, 'public')
+        print('client %s entered room public' % sid)
 
 
 @socketio.on("leaveRoom")

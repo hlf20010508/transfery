@@ -3,8 +3,7 @@
 # :copyright: (C) 2024 L-ING <hlf01@icloud.com>
 # :license: MIT, see LICENSE for more details.
 
-from sanic import Blueprint
-from sanic.response import json
+from sanic import Blueprint, response
 from modules.utils import rename
 from modules.client import storage
 from modules.sql import update_complete
@@ -22,7 +21,7 @@ async def fetch_upload_id(request):
     upload_id = await storage.create_multipart_upload_id(file_name)
     print('upload id pushed')
 
-    return json({
+    return response.json({
         "success": True,
         "uploadId": upload_id,
         "fileName": file_name
@@ -38,7 +37,7 @@ async def upload_part(request):
 
     etag = await storage.multipart_upload(file_name, upload_id, file_part, part_number)
 
-    return json({
+    return response.json({
         "success": True,
         "etag": etag
     })
@@ -58,4 +57,4 @@ async def complete_upload(request):
 
     await update_complete(id)
     
-    return json({"success": True})
+    return response.json({"success": True})
