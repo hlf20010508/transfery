@@ -43,6 +43,6 @@ async def join_room(sid, data):
 
 
 @socketio.on("leaveRoom")
-async def join_room(sid, room_name):
+async def leave_room(sid, room_name):
     await socketio.leave_room(sid, room_name)
     print('client %s left room %s' % (sid, room_name))
