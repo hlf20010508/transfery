@@ -56,7 +56,7 @@ async def new_item(request):
 
     print('received item: ', item)
 
-    item['id'] = await sql.insert(item)
+    item['id'] = await sql.insert_message(item)
     print('pushed to db')
 
     await socketio.emit(

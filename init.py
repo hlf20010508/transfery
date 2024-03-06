@@ -20,7 +20,8 @@ from modules.env import (
     MYSQL_PASSWORD,
     MYSQL_DATABASE,
     MYSQL_TABLE_MESSAGE,
-    MYSQL_TABLE_AUTH
+    MYSQL_TABLE_AUTH,
+    MYSQL_TABLE_DEVICE
 )
 
 
@@ -86,6 +87,17 @@ def init_mysql():
             secretKey text not null
         )
     ''' % MYSQL_TABLE_AUTH
+    cursor.execute(sql)
+
+    sql = '''
+        create table if not exists %s(
+            id int primary key auto_increment,
+            fingerprint text not null unique,
+            browser text not null,
+            lastUseTimestamp bigint not null,
+            expirationTimestamp bigint not null
+        )
+    ''' % MYSQL_TABLE_DEVICE
     cursor.execute(sql)
 
     if not is_key_exist(cursor):

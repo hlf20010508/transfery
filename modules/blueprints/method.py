@@ -37,7 +37,7 @@ async def push_text(request):
                 "type": "text",
             }
             
-            item["id"] = await sql.insert(item)
+            item["id"] = await sql.insert_message(item)
 
             await socketio.emit('newItem', item)
             print('text pushed')

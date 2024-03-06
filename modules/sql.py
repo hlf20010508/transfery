@@ -4,7 +4,8 @@
 # :license: MIT, see LICENSE for more details.
 
 from modules.client import database
-from modules.env import MYSQL_TABLE_MESSAGE, MYSQL_TABLE_AUTH
+from modules.env import MYSQL_TABLE_MESSAGE, MYSQL_TABLE_AUTH, MYSQL_TABLE_DEVICE
+from modules.utils import get_current_timestamp
 
 async def query_auth_key():
     return (await database.query('select secretKey from %s' % MYSQL_TABLE_AUTH))[0]['secretKey']
@@ -36,13 +37,27 @@ async def query_items_after(id, access_private=False):
     return await database.query(sql)
 
 
-async def insert(item):
+async def query_device():
+    sql = 'select * from %s' % MYSQL_TABLE_DEVICE
+
+    return await database.query(sql)
+
+
+async def insert_message(item):
     # id
     return await database.table_insert(MYSQL_TABLE_MESSAGE, item)
 
 
+async def insert_device(item):
+    await database.table_insert(MYSQL_TABLE_DEVICE, item)
+
+
 async def update_complete(id):
     await database.table_update(MYSQL_TABLE_MESSAGE, {"isComplete": True}, "id", id)
+
+
+async def update_last_use_timestamp(fingerprint):
+    await database.table_update(MYSQL_TABLE_DEVICE, {"lastUseTimestamp": get_current_timestamp()}, "fingerprint", fingerprint)
 
 
 async def remove_item(id):
