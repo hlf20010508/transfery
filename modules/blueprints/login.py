@@ -7,7 +7,7 @@ import json
 from sanic import Blueprint, response
 from base64 import b64encode
 from modules.env import USERNAME, PASSWORD, Secret
-from modules.utils import check_login, get_current_timestamp
+from modules.utils import check_login, get_current_timestamp, get_auth_value
 import modules.sql as sql
 
 login_bp = Blueprint("login")
@@ -24,9 +24,9 @@ async def auth(request):
     browser = request.json['browser']
 
     if username == USERNAME and password == PASSWORD:
-        max_age = 300 # 5分钟
+        max_age = 1000 * 60 * 5 # 5分钟
         if remember_me:
-            max_age = 3600 * 24 * 365 # 1年
+            max_age = 1000 * 3600 * 24 * 365 # 1年
 
         current_timestamp = get_current_timestamp()
         expiration_timestamp = current_timestamp + max_age
@@ -57,7 +57,17 @@ async def auth(request):
 async def login(request):
     print('received login request')
 
-    return response.json({"success": check_login(request)})
+    if check_login(request):
+        authorization = request.headers.get("Authorization")
+        fingerprint = get_auth_value(authorization, 'fingerprint')
+        await sql.update_device({
+            'fingerprint': fingerprint,
+            'lastUseTimestamp': get_current_timestamp()
+        })
+
+        return response.json({"success": True})
+    else:
+        return response.json({"success": False})
 
 
 @login_bp.route('/device', methods=['GET'])
@@ -68,7 +78,21 @@ async def device(request):
     print('received device request')
 
     device = await sql.query_device()
+
     return response.json({
         "success": True,
         "device": device
     })
+
+
+@login_bp.route('/deviceSignOut', methods=['GET'])
+async def device_sign_out(request):
+    if not check_login(request):
+        return response.json({"success": False})
+
+    print('received device sign out request')
+
+    fingerprint = request.args['fingerprint'][0]
+    await sql.remove_device(fingerprint)
+
+    return response.json({"success": True})

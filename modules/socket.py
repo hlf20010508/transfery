@@ -4,8 +4,7 @@
 # :license: MIT, see LICENSE for more details.
 
 from modules.client import socketio
-from modules.utils import check_login, get_auth_value
-import modules.sql as sql
+from modules.utils import check_login
 
 connection_number = 0
 
@@ -35,10 +34,7 @@ async def progress(sid, data):
 @socketio.on("joinRoom")
 async def join_room(sid, data):
     if data['roomName'] == 'private':
-        if check_login(data=data):
-            fingerprint = get_auth_value(data['authorization'], 'fingerprint')
-            await sql.update_last_use_timestamp(fingerprint)
-            
+        if check_login(data):
             await socketio.enter_room(sid, 'private')
             print('client %s entered room private' % sid)
     else:

@@ -6,6 +6,7 @@
 import base64
 from time import time
 import json
+from sanic.request.types import Request
 from modules.env import Secret
 
 
@@ -23,7 +24,7 @@ def getFromPostJson(request, key):
 
 
 def get_current_timestamp():
-    return int(time())
+    return int(time()) * 1000
 
 
 def verify_certificate(certificate_str, fingerprint):
@@ -56,11 +57,11 @@ def get_auth_value(authorization_str, key):
         return ''
 
 
-def check_login(request=None, data={}):
-    if request:
-        authorization = request.headers.get("Authorization")
-    elif data:
-        authorization = data['authorization']
+def check_login(auth):
+    if isinstance(auth, Request):
+        authorization = auth.headers.get("Authorization")
+    elif isinstance(auth, dict):
+        authorization = auth['authorization']
 
     if authorization:
         fingerprint = get_auth_value(authorization, 'fingerprint')
