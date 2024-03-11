@@ -8,6 +8,7 @@ from sanic import Blueprint, response
 from base64 import b64encode
 from modules.env import USERNAME, PASSWORD, Secret
 from modules.utils import check_login, get_current_timestamp, get_auth_value
+from modules.client import socketio
 import modules.sql as sql
 
 login_bp = Blueprint("login")
@@ -22,6 +23,7 @@ async def auth(request):
     remember_me = request.json['rememberMe']
     fingerprint = request.json['fingerprint']
     browser = request.json['browser']
+    sid = request.json['sid']
 
     if username == USERNAME and password == PASSWORD:
         max_age = 1000 * 60 * 5 # 5分钟
@@ -44,6 +46,13 @@ async def auth(request):
             "lastUseTimestamp": current_timestamp,
             "expirationTimestamp": expiration_timestamp
         })
+
+        await socketio.emit(
+            'signIn',
+            room="private",
+            skip_sid=sid
+        )
+        print('broadcasted')
 
         return response.json({
             "success": True,
@@ -85,14 +94,23 @@ async def device(request):
     })
 
 
-@login_bp.route('/deviceSignOut', methods=['GET'])
+@login_bp.route('/deviceSignOut', methods=['POST'])
 async def device_sign_out(request):
     if not check_login(request):
         return response.json({"success": False})
 
     print('received device sign out request')
 
-    fingerprint = request.args['fingerprint'][0]
+    fingerprint = request.json['fingerprint']
+    sid = request.json['sid']
     await sql.remove_device(fingerprint)
+
+    await socketio.emit(
+        'signOut',
+        fingerprint,
+        room="private",
+        skip_sid=sid
+    )
+    print('broadcasted')
 
     return response.json({"success": True})
