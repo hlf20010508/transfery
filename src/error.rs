@@ -8,5 +8,9 @@
 #[derive(Debug)]
 pub enum Error {
     UrlParseError(String),
-    MinioClientError(String),
+    StorageClientError(String),
+    DatabaseClientError(String),
+    SqlExecuteError(String),
+    SqlQueryError(String),
+    PortParseError(String),
 }

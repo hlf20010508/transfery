@@ -31,7 +31,7 @@ impl Storage {
         let static_provider = StaticProvider::new(username, password, None);
 
         let client = Client::new(base_url, Some(Box::new(static_provider)), None, None)
-            .map_err(|e| error::Error::MinioClientError(e.to_string()))?;
+            .map_err(|e| error::Error::StorageClientError(e.to_string()))?;
 
         Ok(Self {
             client,

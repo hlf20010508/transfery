@@ -5,8 +5,7 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use crate::env::{MINIO_BUCKET, MINIO_ENDPOINT, MINIO_PASSWORD, MINIO_USERNAME};
-use crate::storage::Storage;
+use crate::client;
 
 pub async fn init() {
     println!("Initializing minio...");
@@ -21,13 +20,7 @@ pub async fn init() {
 }
 
 async fn init_minio() {
-    let storage = Storage::new(
-        MINIO_ENDPOINT.as_ref().unwrap(),
-        MINIO_USERNAME.as_ref().unwrap(),
-        MINIO_PASSWORD.as_ref().unwrap(),
-        MINIO_BUCKET.as_ref().unwrap(),
-    )
-    .unwrap();
+    let storage = client::get_storage();
 
     storage.init().await;
 }

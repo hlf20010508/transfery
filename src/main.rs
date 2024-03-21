@@ -7,10 +7,10 @@
 
 use pico_args::Arguments;
 
+mod client;
 mod env;
 mod error;
 mod init;
-mod storage;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
