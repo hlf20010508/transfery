@@ -14,7 +14,7 @@ pub async fn init() {
 
     println!("Initializing mysql...");
     init_mysql().await;
-    println!("Mysql initialized.");
+    println!("MySql initialized.");
 
     println!("All initialization completed.");
 }
@@ -22,7 +22,11 @@ pub async fn init() {
 async fn init_minio() {
     let storage = client::get_storage();
 
-    storage.init().await;
+    storage.init().await.unwrap();
 }
 
-async fn init_mysql() {}
+async fn init_mysql() {
+    let mut database = client::get_database().await;
+
+    database.init().await.unwrap();
+}

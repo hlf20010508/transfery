@@ -25,8 +25,13 @@ lazy_static! {
     pub static ref MINIO_USERNAME: Result<String, Error> = get_arg_value("--minio-username");
     pub static ref MINIO_PASSWORD: Result<String, Error> = get_arg_value("--minio-password");
     pub static ref MINIO_BUCKET: Result<String, Error> = get_arg_value("--minio-bucket");
+    
     pub static ref MYSQL_ENDPOINT: Result<String, Error> = get_arg_value("--mysql-endpoint");
     pub static ref MYSQL_USERNAME: Result<String, Error> = get_arg_value("--mysql-username");
     pub static ref MYSQL_PASSWORD: Result<String, Error> = get_arg_value("--mysql-password");
     pub static ref MYSQL_DATABASE: Result<String, Error> = get_arg_value("--mysql-database");
 }
+
+pub static MYSQL_TABLE_MESSAGE: &str = "message";
+pub static MYSQL_TABLE_AUTH: &str = "auth";
+pub static MYSQL_TABLE_DEVICE: &str = "device";
