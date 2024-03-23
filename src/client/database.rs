@@ -5,7 +5,7 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use base64::engine::general_purpose::STANDARD as base64;
+use base64::engine::general_purpose::URL_SAFE as base64;
 use base64::Engine;
 use ring::rand::{SecureRandom, SystemRandom};
 use sqlx::mysql::{MySql, MySqlConnectOptions, MySqlConnection};
@@ -82,25 +82,7 @@ impl Database {
         self.create_table_message_if_not_exists().await?;
         self.create_table_auth_if_not_exists().await?;
         self.create_table_device_if_not_exists().await?;
-
-        if !self.is_secret_key_exist().await? {
-            let secret_key = gen_secret_key()?;
-
-            let sql = format!(
-                "insert into `{}` (secretKey)
-                select ?
-                where not exists (select 1 from auth)
-                ",
-                MYSQL_TABLE_AUTH,
-            );
-            let query = sqlx::query::<MySql>(&sql)
-                .bind(MYSQL_TABLE_AUTH)
-                .bind(secret_key);
-
-            self.conn.execute(query).await.map_err(|e| {
-                SqlExecuteError(format!("MySql insert secret key failed: {}", e.to_string()))
-            })?;
-        }
+        self.create_secret_key_if_not_exists().await?;
 
         Ok(())
     }
@@ -166,6 +148,27 @@ impl Database {
                 e.to_string()
             ))
         })?;
+
+        Ok(())
+    }
+
+    async fn create_secret_key_if_not_exists(&mut self) -> Result<()> {
+        if !self.is_secret_key_exist().await? {
+            let secret_key = gen_secret_key()?;
+
+            let sql = format!(
+                "insert into `{}` (secretKey)
+                select ?
+                where not exists (select 1 from auth)
+                ",
+                MYSQL_TABLE_AUTH,
+            );
+            let query = sqlx::query::<MySql>(&sql).bind(secret_key);
+
+            self.conn.execute(query).await.map_err(|e| {
+                SqlExecuteError(format!("MySql insert secret key failed: {}", e.to_string()))
+            })?;
+        }
 
         Ok(())
     }
