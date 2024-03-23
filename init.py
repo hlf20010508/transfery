@@ -6,7 +6,6 @@
 import pymysql
 import asyncio
 from cryptography.fernet import Fernet
-import base64
 from miniopy_async import Minio
 from modules.env import (
     MINIO_HOST,
@@ -126,10 +125,8 @@ def is_key_exist(cursor):
 
 
 def gen_key():
-    secret_key = Fernet.generate_key()
-    secret_key_str = base64.b64encode(secret_key).decode('utf-8')
-
-    return secret_key_str
+    secret_key = Fernet.generate_key().decode('utf-8')
+    return secret_key
 
 if __name__ == '__main__':
     init()

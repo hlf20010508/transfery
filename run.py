@@ -6,7 +6,6 @@
 from sanic import Sanic
 from sanic_jinja2 import SanicJinja2
 from cryptography.fernet import Fernet
-import base64
 from modules.blueprints import (
     message_bp,
     upload_bp,
@@ -41,8 +40,7 @@ async def index(request):
 @app.before_server_start
 async def setup(app, loop):
     key_str = await query_auth_key()
-    key_bytes = base64.b64decode(key_str)
-    Secret.key = Fernet(key_bytes)
+    Secret.key = Fernet(key_str)
 
 
 if __name__ == "__main__":
