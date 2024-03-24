@@ -16,7 +16,7 @@ from modules.env import (
     MYSQL_PORT,
     MYSQL_USERNAME,
     MYSQL_PASSWORD,
-    MYSQL_DATABASE
+    MYSQL_DATABASE,
 )
 
 storage = Storage(
@@ -24,7 +24,7 @@ storage = Storage(
     username=MINIO_USERNAME,
     password=MINIO_PASSWORD,
     bucket=MINIO_BUCKET,
-    secure=MINIO_SECURE
+    secure=MINIO_SECURE,
 )
 
 database = ConnectionAsync(
@@ -32,7 +32,7 @@ database = ConnectionAsync(
     database=MYSQL_DATABASE,
     user=MYSQL_USERNAME,
     password=MYSQL_PASSWORD,
-    port=MYSQL_PORT
+    port=MYSQL_PORT,
 )
 
-socketio = socketio.AsyncServer(async_mode='sanic', cors_allowed_origins="*")
+socketio = socketio.AsyncServer(async_mode="sanic", cors_allowed_origins="*")

@@ -20,20 +20,20 @@ from modules.env import (
     MYSQL_DATABASE,
     MYSQL_TABLE_MESSAGE,
     MYSQL_TABLE_AUTH,
-    MYSQL_TABLE_DEVICE
+    MYSQL_TABLE_DEVICE,
 )
 
 
 def init():
-    print('Initializing minio...')
+    print("Initializing minio...")
     init_minio()
-    print('Minio initialized.')
+    print("Minio initialized.")
 
-    print('Initializing mysql...')
+    print("Initializing mysql...")
     init_mysql()
-    print('Mysql initialized.')
-    
-    print('All initialization completed.')
+    print("Mysql initialized.")
+
+    print("All initialization completed.")
 
 
 def init_minio():
@@ -42,11 +42,13 @@ def init_minio():
         endpoint=MINIO_HOST,
         access_key=MINIO_USERNAME,
         secret_key=MINIO_PASSWORD,
-        secure=MINIO_SECURE
+        secure=MINIO_SECURE,
     )
+
     async def main():
         if not await client.bucket_exists(MINIO_BUCKET):
             await client.make_bucket(MINIO_BUCKET)
+
     asyncio.run(main())
 
 
@@ -57,7 +59,7 @@ def init_mysql():
         user=MYSQL_USERNAME,
         password=MYSQL_PASSWORD,
         port=MYSQL_PORT,
-        charset='utf8mb4'
+        charset="utf8mb4",
     )
 
     cursor = conn.cursor()
@@ -67,7 +69,8 @@ def init_mysql():
     sql = "use %s" % MYSQL_DATABASE
     cursor.execute(sql)
 
-    sql = '''
+    sql = (
+        """
         create table if not exists %s(
             id int primary key auto_increment,
             content text not null,
@@ -77,18 +80,24 @@ def init_mysql():
             fileName text,
             isComplete tinyint
         )
-    ''' % MYSQL_TABLE_MESSAGE
+    """
+        % MYSQL_TABLE_MESSAGE
+    )
     cursor.execute(sql)
 
-    sql = '''
+    sql = (
+        """
         create table if not exists %s(
             id int primary key auto_increment,
             secretKey text not null
         )
-    ''' % MYSQL_TABLE_AUTH
+    """
+        % MYSQL_TABLE_AUTH
+    )
     cursor.execute(sql)
 
-    sql = '''
+    sql = (
+        """
         create table if not exists %s(
             id int primary key auto_increment,
             fingerprint text not null unique,
@@ -96,16 +105,21 @@ def init_mysql():
             lastUseTimestamp bigint not null,
             expirationTimestamp bigint not null
         )
-    ''' % MYSQL_TABLE_DEVICE
+    """
+        % MYSQL_TABLE_DEVICE
+    )
     cursor.execute(sql)
 
     if not is_key_exist(cursor):
         secret_key = gen_key()
-        sql = '''
+        sql = """
             insert into %s (secretKey)
             select "%s"
             where not exists (select 1 from auth)
-        ''' % (MYSQL_TABLE_AUTH, secret_key)
+        """ % (
+            MYSQL_TABLE_AUTH,
+            secret_key,
+        )
         cursor.execute(sql)
         conn.commit()
 
@@ -117,7 +131,7 @@ def is_key_exist(cursor):
     cursor.execute(sql)
 
     result = cursor.fetchone()[0]
-    
+
     if result > 0:
         return True
     else:
@@ -125,8 +139,9 @@ def is_key_exist(cursor):
 
 
 def gen_key():
-    secret_key = Fernet.generate_key().decode('utf-8')
+    secret_key = Fernet.generate_key().decode("utf-8")
     return secret_key
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     init()

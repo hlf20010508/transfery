@@ -8,12 +8,13 @@ from modules.client import storage
 
 download_bp = Blueprint("download")
 
-@download_bp.route('/downloadUrl', methods=['GET'])
-async def download_url(request):
-    print('received download request')
 
-    file_name = request.args['fileName'][0]
+@download_bp.route("/downloadUrl", methods=["GET"])
+async def download_url(request):
+    print("received download request")
+
+    file_name = request.args["fileName"][0]
     url = await storage.get_download_url(file_name)
-    print('url pushed')
-    
+    print("url pushed")
+
     return response.json({"success": True, "url": url})

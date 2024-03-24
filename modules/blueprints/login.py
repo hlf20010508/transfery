@@ -14,103 +14,88 @@ import modules.sql as sql
 login_bp = Blueprint("login")
 
 
-@login_bp.route('/auth', methods=['POST'])
+@login_bp.route("/auth", methods=["POST"])
 async def auth(request):
-    print('received auth request')
+    print("received auth request")
 
-    username = request.json['username']
-    password = request.json['password']
-    remember_me = request.json['rememberMe']
-    fingerprint = request.json['fingerprint']
-    browser = request.json['browser']
-    sid = request.json['sid']
+    username = request.json["username"]
+    password = request.json["password"]
+    remember_me = request.json["rememberMe"]
+    fingerprint = request.json["fingerprint"]
+    browser = request.json["browser"]
+    sid = request.json["sid"]
 
     if username == USERNAME and password == PASSWORD:
-        max_age = 1000 * 60 * 5 # 5分钟
+        max_age = 1000 * 60 * 5  # 5分钟
         if remember_me:
-            max_age = 1000 * 3600 * 24 * 365 # 1年
+            max_age = 1000 * 3600 * 24 * 365  # 1年
 
         current_timestamp = get_current_timestamp()
         expiration_timestamp = current_timestamp + max_age
-        
-        certificate_raw = json.dumps({
-            "fingerprint": fingerprint,
-            "timestamp": expiration_timestamp
-        })
-        certificate_bytes = Secret.key.encrypt(certificate_raw.encode())
-        certificate = b64encode(certificate_bytes).decode('utf-8')
 
-        await sql.insert_device({
-            "fingerprint": fingerprint,
-            "browser": browser,
-            "lastUseTimestamp": current_timestamp,
-            "expirationTimestamp": expiration_timestamp
-        })
-
-        await socketio.emit(
-            'signIn',
-            room="private",
-            skip_sid=sid
+        certificate_raw = json.dumps(
+            {"fingerprint": fingerprint, "timestamp": expiration_timestamp}
         )
-        print('broadcasted')
+        certificate_bytes = Secret.key.encrypt(certificate_raw.encode())
+        certificate = b64encode(certificate_bytes).decode("utf-8")
 
-        return response.json({
-            "success": True,
-            "certificate": certificate
-        })
+        await sql.insert_device(
+            {
+                "fingerprint": fingerprint,
+                "browser": browser,
+                "lastUseTimestamp": current_timestamp,
+                "expirationTimestamp": expiration_timestamp,
+            }
+        )
+
+        await socketio.emit("signIn", room="private", skip_sid=sid)
+        print("broadcasted")
+
+        return response.json({"success": True, "certificate": certificate})
     else:
         return response.json({"success": False})
 
 
-@login_bp.route('/login', methods=['GET'])
+@login_bp.route("/login", methods=["GET"])
 async def login(request):
-    print('received login request')
+    print("received login request")
 
     if check_login(request):
         authorization = request.headers.get("Authorization")
-        fingerprint = get_auth_value(authorization, 'fingerprint')
-        await sql.update_device({
-            'fingerprint': fingerprint,
-            'lastUseTimestamp': get_current_timestamp()
-        })
+        fingerprint = get_auth_value(authorization, "fingerprint")
+        await sql.update_device(
+            {"fingerprint": fingerprint, "lastUseTimestamp": get_current_timestamp()}
+        )
 
         return response.json({"success": True})
     else:
         return response.json({"success": False})
 
 
-@login_bp.route('/device', methods=['GET'])
+@login_bp.route("/device", methods=["GET"])
 async def device(request):
     if not check_login(request):
         return response.json({"success": False})
 
-    print('received device request')
+    print("received device request")
 
     device = await sql.query_device()
 
-    return response.json({
-        "success": True,
-        "device": device
-    })
+    return response.json({"success": True, "device": device})
 
 
-@login_bp.route('/deviceSignOut', methods=['POST'])
+@login_bp.route("/deviceSignOut", methods=["POST"])
 async def device_sign_out(request):
     if not check_login(request):
         return response.json({"success": False})
 
-    print('received device sign out request')
+    print("received device sign out request")
 
-    fingerprint = request.json['fingerprint']
-    sid = request.json['sid']
+    fingerprint = request.json["fingerprint"]
+    sid = request.json["sid"]
     await sql.remove_device(fingerprint)
 
-    await socketio.emit(
-        'signOut',
-        fingerprint,
-        room="private",
-        skip_sid=sid
-    )
-    print('broadcasted')
+    await socketio.emit("signOut", fingerprint, room="private", skip_sid=sid)
+    print("broadcasted")
 
     return response.json({"success": True})

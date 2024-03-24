@@ -14,10 +14,7 @@ class Storage:
     # and secret key.
     def __init__(self, host, username, password, bucket, secure):
         self.client = Minio(
-            endpoint=host,
-            access_key=username,
-            secret_key=password,
-            secure=secure
+            endpoint=host, access_key=username, secret_key=password, secure=secure
         )
         # for printing
         self.host = host
@@ -33,14 +30,12 @@ class Storage:
     async def create_multipart_upload_id(self, remote_path):
         try:
             headers = genheaders(
-                headers=None,
-                sse=None,
-                tags=None,
-                retention=None,
-                legal_hold=False
+                headers=None, sse=None, tags=None, retention=None, legal_hold=False
             )
             headers["Content-Type"] = "application/octet-stream"
-            upload_id = await self.client._create_multipart_upload(self.bucket, remote_path, headers)
+            upload_id = await self.client._create_multipart_upload(
+                self.bucket, remote_path, headers
+            )
             return upload_id
         except S3Error as exc:
             print("error occurred.", exc)
@@ -53,7 +48,7 @@ class Storage:
                 data=part_data,
                 headers=None,
                 upload_id=upload_id,
-                part_number=part_number
+                part_number=part_number,
             )
             return etag
         except S3Error as exc:
@@ -61,20 +56,18 @@ class Storage:
 
     async def complete_multipart_upload(self, remote_path, upload_id, parts):
         try:
-            parts = [Part(part['partNumber'], part['etag']) for part in parts]
+            parts = [Part(part["partNumber"], part["etag"]) for part in parts]
             await self.client._complete_multipart_upload(
                 bucket_name=self.bucket,
                 object_name=remote_path,
                 upload_id=upload_id,
-                parts=parts
+                parts=parts,
             )
             print(
-                "file is successfully uploaded as object %s to bucket %s." % (
-                    remote_path,
-                    self.bucket
-                )
+                "file is successfully uploaded as object %s to bucket %s."
+                % (remote_path, self.bucket)
             )
-            address = 'http://'+self.host+'/'+self.bucket+'/'+remote_path
+            address = "http://" + self.host + "/" + self.bucket + "/" + remote_path
             print(address)
         except S3Error as exc:
             print("error occurred.", exc)
@@ -83,10 +76,7 @@ class Storage:
         try:
             await self.client.remove_object(self.bucket, remote_path)
             print(
-                "%s is successfully removed from bucket %s" % (
-                    remote_path,
-                    self.bucket
-                )
+                "%s is successfully removed from bucket %s" % (remote_path, self.bucket)
             )
         except S3Error as exc:
             print("error occurred.", exc)
@@ -95,7 +85,7 @@ class Storage:
         try:
             items = await self.list()
             for item in items:
-                await self.remove(item['name'])
+                await self.remove(item["name"])
             print("all objects are removed from bucket %s successfully" % self.bucket)
         except S3Error as exc:
             print("error occurred.", exc)
@@ -105,13 +95,13 @@ class Storage:
             obj_list = await self.client.list_objects(self.bucket, recursive=True)
             obj_list = [
                 {
-                    'name': obj.object_name,
-                    'size': obj.size,
-                    'last_modified': obj.last_modified
+                    "name": obj.object_name,
+                    "size": obj.size,
+                    "last_modified": obj.last_modified,
                 }
                 for obj in obj_list
             ]
-            print('objects list:', obj_list)
+            print("objects list:", obj_list)
             return obj_list
         except S3Error as exc:
             print("error occurred.", exc)
@@ -119,16 +109,11 @@ class Storage:
     async def get_download_url(self, remote_path, change_host=None):
         try:
             url = await self.client.presigned_get_object(
-                self.bucket,
-                remote_path,
-                change_host=change_host
+                self.bucket, remote_path, change_host=change_host
             )
             print(
-                "successfully created download url %s for %s from bucket %s" % (
-                    url,
-                    remote_path,
-                    self.bucket
-                )
+                "successfully created download url %s for %s from bucket %s"
+                % (url, remote_path, self.bucket)
             )
             return url
         except S3Error as exc:
