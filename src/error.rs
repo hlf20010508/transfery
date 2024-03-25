@@ -10,6 +10,7 @@ pub enum Error {
     UrlParseError(String),
     StorageClientError(String),
     StorageInitError(String),
+    StorageObjectError(String),
     DatabaseClientError(String),
     SqlExecuteError(String),
     SqlQueryError(String),
