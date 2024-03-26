@@ -20,6 +20,7 @@ use crate::error::Result;
 
 pub struct Database {
     conn: MySqlConnection,
+    name: String,
 }
 
 impl Database {
@@ -27,7 +28,7 @@ impl Database {
         endpoint: &str,
         username: &str,
         password: &str,
-        database: &str,
+        name: &str,
     ) -> Result<Self> {
         let endpoint_collection = endpoint.split(':').collect::<Vec<&str>>();
         let host = endpoint_collection[0];
@@ -46,18 +47,14 @@ impl Database {
                 DatabaseClientError(format!("MySql connection failed: {}", e.to_string()))
             })?;
 
-        let mut database_instance = Self { conn };
-
-        database_instance
-            .create_database_if_not_exists(database)
-            .await?;
-        database_instance.set_database(database).await?;
-
-        Ok(database_instance)
+        Ok(Self {
+            conn,
+            name: name.to_string(),
+        })
     }
 
-    async fn create_database_if_not_exists(&mut self, database: &str) -> Result<()> {
-        let sql = format!("create database if not exists `{}`", database);
+    async fn create_database_if_not_exists(&mut self) -> Result<()> {
+        let sql = format!("create database if not exists `{}`", self.name);
         let query = sqlx::query::<MySql>(&sql);
 
         self.conn.execute(query).await.map_err(|e| {
@@ -67,8 +64,8 @@ impl Database {
         Ok(())
     }
 
-    async fn set_database(&mut self, database: &str) -> Result<()> {
-        let sql = format!("use `{}`", database);
+    async fn set_database(&mut self) -> Result<()> {
+        let sql = format!("use `{}`", self.name);
         let query = sqlx::query::<MySql>(&sql);
 
         self.conn.execute(query).await.map_err(|e| {
@@ -79,6 +76,8 @@ impl Database {
     }
 
     pub async fn init(&mut self) -> Result<()> {
+        self.create_database_if_not_exists().await?;
+        self.set_database().await?;
         self.create_table_message_if_not_exists().await?;
         self.create_table_auth_if_not_exists().await?;
         self.create_table_device_if_not_exists().await?;
@@ -204,4 +203,18 @@ fn gen_secret_key() -> Result<String> {
     let secret_key_str = base64.encode(secret_key);
 
     Ok(secret_key_str)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    async fn get_database() -> Database {
+        todo!();
+    }
+
+    #[actix_web::test]
+    async fn test_new() {
+        todo!();
+    }
 }
