@@ -5,9 +5,11 @@
 :license: MIT, see LICENSE for more details.
 */
 
+use actix_web::http::Method;
 use minio::s3::args::{
     BucketArgs, BucketExistsArgs, CompleteMultipartUploadArgs, CreateMultipartUploadArgs,
-    ListObjectsV2Args, MakeBucketArgs, RemoveObjectsArgs, UploadPartArgs,
+    GetPresignedObjectUrlArgs, ListObjectsV2Args, MakeBucketArgs, ObjectVersionArgs,
+    RemoveObjectsArgs, UploadPartArgs,
 };
 use minio::s3::client::Client;
 use minio::s3::creds::StaticProvider;
@@ -54,45 +56,44 @@ impl Storage {
     }
 
     async fn create_buffer_if_not_exists(&self) -> Result<()> {
-        let exists = self
-            .client
-            .bucket_exists(&BucketExistsArgs::new(&self.bucket).map_err(|e| {
+        let args = MakeBucketArgs::new(&self.bucket).map_err(|e| {
+            StorageInitError(format!(
+                "Minio bucket name invalid when making: {}",
+                e.to_string()
+            ))
+        })?;
+
+        if !self.is_bucket_exists().await? {
+            self.client.make_bucket(&args).await.map_err(|e| {
                 StorageInitError(format!(
-                    "Minio bucket name invalid when checking existence: {}",
-                    e.to_string()
-                ))
-            })?)
-            .await
-            .map_err(|e| {
-                StorageInitError(format!(
-                    "Minio checking bucket existence await failed: {}",
+                    "Minio making bucket await failed: {}",
                     e.to_string()
                 ))
             })?;
-
-        if !exists {
-            self.client
-                .make_bucket(&MakeBucketArgs::new(&self.bucket).map_err(|e| {
-                    StorageInitError(format!(
-                        "Minio bucket name invalid when making: {}",
-                        e.to_string()
-                    ))
-                })?)
-                .await
-                .map_err(|e| {
-                    StorageInitError(format!(
-                        "Minio making bucket await failed: {}",
-                        e.to_string()
-                    ))
-                })?;
         }
 
         Ok(())
     }
 
+    async fn is_bucket_exists(&self) -> Result<bool> {
+        let args = BucketExistsArgs::new(&self.bucket).map_err(|e| {
+            StorageInitError(format!(
+                "Minio bucket name invalid when checking existence: {}",
+                e.to_string()
+            ))
+        })?;
+
+        let exists = self.client.bucket_exists(&args).await.map_err(|e| {
+            StorageInitError(format!(
+                "Minio checking bucket existence await failed: {}",
+                e.to_string()
+            ))
+        })?;
+
+        Ok(exists)
+    }
+
     pub async fn create_multipart_upload_id(&self, remote_path: &str) -> Result<String> {
-        // let headers_map = Multimap::new()
-        //     .insert(k, v)
         let args = CreateMultipartUploadArgs::new(&self.bucket, remote_path).map_err(|e| {
             StorageObjectError(format!(
                 "Storage create multipart upload args failed: {}",
@@ -188,6 +189,21 @@ impl Storage {
         Ok(objects)
     }
 
+    pub async fn remove_object(&self, remote_path: &str) -> Result<()> {
+        let args = ObjectVersionArgs::new(&self.bucket, remote_path).map_err(|e| {
+            StorageObjectError(format!(
+                "Storage create object version args failed: {}",
+                e.to_string()
+            ))
+        })?;
+
+        self.client.remove_object(&args).await.map_err(|e| {
+            StorageObjectError(format!("Storage remove object failed: {}", e.to_string()))
+        })?;
+
+        Ok(())
+    }
+
     pub async fn remove_objects_all(&self) -> Result<()> {
         let objects: Vec<Item> = self.list_objects().await?;
         let mut objects_delete: Vec<DeleteObject> = Vec::new();
@@ -241,10 +257,37 @@ impl Storage {
 
         Ok(())
     }
+
+    pub async fn get_download_url(&self, remote_path: &str) -> Result<String> {
+        let args = GetPresignedObjectUrlArgs::new(&self.bucket, remote_path, Method::GET).map_err(
+            |e| {
+                StorageObjectError(format!(
+                    "Storage create get presigned object url args failed: {}",
+                    e.to_string()
+                ))
+            },
+        )?;
+
+        let response = self
+            .client
+            .get_presigned_object_url(&args)
+            .await
+            .map_err(|e| {
+                StorageObjectError(format!(
+                    "Storage get presigned object url failed: {}",
+                    e.to_string()
+                ))
+            })?;
+
+        Ok(response.url)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use minio::s3::args::PutObjectArgs;
+    use std::io::Cursor;
+
     use super::*;
 
     fn get_storage() -> Storage {
@@ -282,6 +325,16 @@ mod tests {
         data
     }
 
+    async fn upload_data(storage: &Storage, remote_path: &str) {
+        let mut data = Cursor::new(fake_data());
+        let size = data.clone().into_inner().len();
+
+        let mut args =
+            PutObjectArgs::new(&storage.bucket, remote_path, &mut data, Some(size), None).unwrap();
+
+        storage.client.put_object(&mut args).await.unwrap();
+    }
+
     #[test]
     fn test_new() {
         let storage = Storage::new(
@@ -310,6 +363,23 @@ mod tests {
         let storage = get_storage();
 
         let result = storage.create_buffer_if_not_exists().await;
+
+        reset(&storage).await;
+
+        assert!(result.is_ok(), "{}", result.unwrap_err());
+    }
+
+    #[actix_web::test]
+    async fn test_is_bucket_exists() {
+        let storage = get_storage();
+
+        let result = storage.is_bucket_exists().await;
+
+        assert!(result.is_ok(), "{}", result.unwrap_err());
+
+        init(&storage).await;
+
+        let result = storage.is_bucket_exists().await;
 
         reset(&storage).await;
 
@@ -408,10 +478,29 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn test_remove_object() {
+        let storage = get_storage();
+
+        init(&storage).await;
+
+        let remote_path = "test_remove_object.txt";
+        upload_data(&storage, remote_path).await;
+
+        let result = storage.remove_object(remote_path).await;
+
+        reset(&storage).await;
+
+        assert!(result.is_ok(), "{}", result.unwrap_err());
+    }
+
+    #[actix_web::test]
     async fn test_remove_objects_all() {
         let storage = get_storage();
 
         init(&storage).await;
+
+        let remote_path = "test_remove_objects_all.txt";
+        upload_data(&storage, remote_path).await;
 
         let result = storage.remove_objects_all().await;
 
@@ -427,6 +516,22 @@ mod tests {
         init(&storage).await;
 
         let result = storage.remove_bucket().await;
+
+        assert!(result.is_ok(), "{}", result.unwrap_err());
+    }
+
+    #[actix_web::test]
+    async fn test_get_download_url() {
+        let storage = get_storage();
+
+        init(&storage).await;
+
+        let remote_path = "get_download_url.txt";
+        upload_data(&storage, remote_path).await;
+
+        let result = storage.get_download_url(remote_path).await;
+
+        reset(&storage).await;
 
         assert!(result.is_ok(), "{}", result.unwrap_err());
     }
