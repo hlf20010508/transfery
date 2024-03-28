@@ -285,25 +285,28 @@ impl Storage {
 
 #[cfg(test)]
 mod tests {
+    use dotenv::dotenv;
     use minio::s3::args::PutObjectArgs;
+    use std::env;
     use std::io::Cursor;
 
     use super::*;
 
     fn get_storage() -> Storage {
-        let storage = Storage::new(
-            "play.min.io",
-            "Q3AM3UQ867SPQQA43P2F",
-            "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
-            "transfery",
-        )
-        .unwrap();
+        dotenv().ok();
+
+        let endpoint = env::var("MINIO_ENDPOINT").unwrap();
+        let username = env::var("MINIO_USERNAME").unwrap();
+        let password = env::var("MINIO_PASSWORD").unwrap();
+        let bucket = env::var("MINIO_BUCKET").unwrap();
+
+        let storage = Storage::new(&endpoint, &username, &password, &bucket).unwrap();
 
         storage
     }
 
-    async fn init(storage: &Storage) {
-        storage.init().await.unwrap();
+    async fn init(storage: &Storage) -> Result<()> {
+        storage.init().await
     }
 
     async fn reset(storage: &Storage) {
@@ -325,214 +328,244 @@ mod tests {
         data
     }
 
-    async fn upload_data(storage: &Storage, remote_path: &str) {
+    async fn upload_data(storage: &Storage, remote_path: &str) -> Result<()> {
         let mut data = Cursor::new(fake_data());
         let size = data.clone().into_inner().len();
 
         let mut args =
-            PutObjectArgs::new(&storage.bucket, remote_path, &mut data, Some(size), None).unwrap();
+            PutObjectArgs::new(&storage.bucket, remote_path, &mut data, Some(size), None).map_err(
+                |e| {
+                    StorageObjectError(format!(
+                        "Storage create put object args failed: {}",
+                        e.to_string()
+                    ))
+                },
+            )?;
 
-        storage.client.put_object(&mut args).await.unwrap();
+        storage.client.put_object(&mut args).await.map_err(|e| {
+            StorageObjectError(format!("Storage put object failed: {}", e.to_string()))
+        })?;
+
+        Ok(())
     }
 
     #[test]
-    fn test_new() {
-        let storage = Storage::new(
-            "play.min.io",
-            "Q3AM3UQ867SPQQA43P2F",
-            "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
-            "transfery",
-        );
+    fn test_storage_new() {
+        dotenv().ok();
 
-        assert!(storage.is_ok(), "{}", storage.unwrap_err());
+        let endpoint = env::var("MINIO_ENDPOINT").unwrap();
+        let username = env::var("MINIO_USERNAME").unwrap();
+        let password = env::var("MINIO_PASSWORD").unwrap();
+        let bucket = env::var("MINIO_BUCKET").unwrap();
+
+        Storage::new(&endpoint, &username, &password, &bucket).unwrap();
     }
 
     #[actix_web::test]
-    async fn test_init() {
+    async fn test_storage_init() {
         let storage = get_storage();
 
         let result = storage.init().await;
-
         reset(&storage).await;
-
-        assert!(result.is_ok(), "{}", result.unwrap_err());
+        result.unwrap();
     }
 
     #[actix_web::test]
-    async fn test_create_buffer_if_not_exists() {
+    async fn test_storage_create_buffer_if_not_exists() {
         let storage = get_storage();
 
         let result = storage.create_buffer_if_not_exists().await;
-
         reset(&storage).await;
-
-        assert!(result.is_ok(), "{}", result.unwrap_err());
+        result.unwrap();
     }
 
     #[actix_web::test]
-    async fn test_is_bucket_exists() {
-        let storage = get_storage();
+    async fn test_storage_is_bucket_exists() {
+        async fn inner_true(storage: &Storage) -> Result<bool> {
+            init(storage).await?;
+            let result = storage.is_bucket_exists().await?;
 
-        let result = storage.is_bucket_exists().await;
-
-        assert!(result.is_ok(), "{}", result.unwrap_err());
-
-        init(&storage).await;
-
-        let result = storage.is_bucket_exists().await;
-
-        reset(&storage).await;
-
-        assert!(result.is_ok(), "{}", result.unwrap_err());
-    }
-
-    #[actix_web::test]
-    async fn test_create_multipart_upload_id() {
-        let storage = get_storage();
-
-        init(&storage).await;
-
-        let remote_path = "test-create-multipart-upload-id.txt";
-
-        let upload_id = storage.create_multipart_upload_id(remote_path).await;
-
-        reset(&storage).await;
-
-        assert!(upload_id.is_ok(), "{}", upload_id.unwrap_err());
-    }
-
-    #[actix_web::test]
-    async fn test_multipart_upload() {
-        let storage = get_storage();
-
-        init(&storage).await;
-
-        let remote_path = "test-multipart-upload.txt";
-
-        let upload_id = storage
-            .create_multipart_upload_id(remote_path)
-            .await
-            .unwrap();
-
-        let data = fake_data();
-
-        let part_number: u16 = 1;
-
-        let part = storage
-            .multipart_upload(remote_path, &upload_id, &data, part_number)
-            .await;
-
-        reset(&storage).await;
-
-        assert!(part.is_ok(), "{}", part.unwrap_err());
-    }
-
-    #[actix_web::test]
-    async fn test_complete_multipart_upload() {
-        let storage = get_storage();
-
-        init(&storage).await;
-
-        let remote_path = "test-complete-multipart-upload.txt";
-
-        let upload_id = storage
-            .create_multipart_upload_id(remote_path)
-            .await
-            .unwrap();
-
-        let data = fake_data();
-
-        let mut parts: Vec<Part> = Vec::new();
-
-        for (part_number, part_data) in data.chunks(PART_SIZE as usize).enumerate() {
-            let part_number = part_number as u16 + 1;
-
-            let part = storage
-                .multipart_upload(remote_path, &upload_id, part_data, part_number)
-                .await
-                .unwrap();
-
-            parts.push(part);
+            Ok(result)
         }
 
-        let result = storage
-            .complete_multipart_upload(remote_path, &upload_id, &parts)
-            .await;
+        async fn inner_false(storage: &Storage) -> Result<bool> {
+            let result = storage.is_bucket_exists().await?;
 
+            Ok(result)
+        }
+
+        let storage = get_storage();
+
+        let result_false = inner_false(&storage).await;
+
+        let result_true = inner_true(&storage).await;
         reset(&storage).await;
 
-        assert!(result.is_ok(), "{}", result.unwrap_err());
+        assert_eq!(result_false.unwrap(), false);
+        assert_eq!(result_true.unwrap(), true);
     }
 
     #[actix_web::test]
-    async fn test_list_objects() {
+    async fn test_storage_create_multipart_upload_id() {
+        async fn inner(storage: &Storage) -> Result<()> {
+            let remote_path = "test-create-multipart-upload-id.txt";
+
+            init(storage).await?;
+            storage.create_multipart_upload_id(remote_path).await?;
+
+            Ok(())
+        }
+
         let storage = get_storage();
 
-        init(&storage).await;
-
-        let result = storage.list_objects().await;
-
+        let result = inner(&storage).await;
         reset(&storage).await;
-
-        assert!(result.is_ok(), "{}", result.unwrap_err());
+        result.unwrap();
     }
 
     #[actix_web::test]
-    async fn test_remove_object() {
+    async fn test_storage_multipart_upload() {
+        async fn inner(storage: &Storage) -> Result<()> {
+            let remote_path = "test-multipart-upload.txt";
+
+            init(storage).await?;
+
+            let upload_id = storage.create_multipart_upload_id(remote_path).await?;
+            let data = fake_data();
+            let part_number: u16 = 1;
+
+            storage
+                .multipart_upload(remote_path, &upload_id, &data, part_number)
+                .await?;
+
+            Ok(())
+        }
+
         let storage = get_storage();
 
-        init(&storage).await;
-
-        let remote_path = "test_remove_object.txt";
-        upload_data(&storage, remote_path).await;
-
-        let result = storage.remove_object(remote_path).await;
-
+        let result = inner(&storage).await;
         reset(&storage).await;
-
-        assert!(result.is_ok(), "{}", result.unwrap_err());
+        result.unwrap();
     }
 
     #[actix_web::test]
-    async fn test_remove_objects_all() {
+    async fn test_storage_complete_multipart_upload() {
+        async fn inner(storage: &Storage) -> Result<()> {
+            let remote_path = "test-complete-multipart-upload.txt";
+
+            init(storage).await?;
+
+            let upload_id = storage.create_multipart_upload_id(remote_path).await?;
+            let data = fake_data();
+            let mut parts: Vec<Part> = Vec::new();
+
+            for (part_number, part_data) in data.chunks(PART_SIZE as usize).enumerate() {
+                let part_number = part_number as u16 + 1;
+
+                let part = storage
+                    .multipart_upload(remote_path, &upload_id, part_data, part_number)
+                    .await?;
+
+                parts.push(part);
+            }
+
+            storage
+                .complete_multipart_upload(remote_path, &upload_id, &parts)
+                .await?;
+
+            Ok(())
+        }
+
         let storage = get_storage();
 
-        init(&storage).await;
-
-        let remote_path = "test_remove_objects_all.txt";
-        upload_data(&storage, remote_path).await;
-
-        let result = storage.remove_objects_all().await;
-
+        let result = inner(&storage).await;
         reset(&storage).await;
-
-        assert!(result.is_ok(), "{}", result.unwrap_err());
+        result.unwrap();
     }
 
     #[actix_web::test]
-    async fn test_remove_bucket() {
+    async fn test_storage_list_objects() {
+        async fn inner(storage: &Storage) -> Result<()> {
+            init(storage).await?;
+
+            storage.list_objects().await?;
+
+            Ok(())
+        }
+
         let storage = get_storage();
 
-        init(&storage).await;
-
-        let result = storage.remove_bucket().await;
-
-        assert!(result.is_ok(), "{}", result.unwrap_err());
+        let result = inner(&storage).await;
+        reset(&storage).await;
+        result.unwrap();
     }
 
     #[actix_web::test]
-    async fn test_get_download_url() {
+    async fn test_storage_remove_object() {
+        async fn inner(storage: &Storage) -> Result<()> {
+            let remote_path = "test_remove_object.txt";
+
+            init(storage).await?;
+
+            upload_data(storage, remote_path).await?;
+            storage.remove_object(remote_path).await?;
+
+            Ok(())
+        }
+
         let storage = get_storage();
 
-        init(&storage).await;
-
-        let remote_path = "get_download_url.txt";
-        upload_data(&storage, remote_path).await;
-
-        let result = storage.get_download_url(remote_path).await;
-
+        let result = inner(&storage).await;
         reset(&storage).await;
+        result.unwrap();
+    }
 
-        assert!(result.is_ok(), "{}", result.unwrap_err());
+    #[actix_web::test]
+    async fn test_storage_remove_objects_all() {
+        async fn inner(storage: &Storage) -> Result<()> {
+            let remote_path = "test_remove_objects_all.txt";
+
+            init(storage).await?;
+
+            upload_data(storage, remote_path).await?;
+            storage.remove_objects_all().await?;
+
+            Ok(())
+        }
+
+        let storage = get_storage();
+
+        let result = inner(&storage).await;
+        reset(&storage).await;
+        result.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_storage_remove_bucket() {
+        let storage = get_storage();
+
+        init(&storage).await.unwrap();
+
+        storage.remove_bucket().await.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_storage_get_download_url() {
+        async fn inner(storage: &Storage) -> Result<()> {
+            let remote_path = "get_download_url.txt";
+
+            init(storage).await?;
+
+            upload_data(storage, remote_path).await?;
+            storage.get_download_url(remote_path).await?;
+
+            Ok(())
+        }
+
+        let storage = get_storage();
+
+        let result = inner(&storage).await;
+        reset(&storage).await;
+        result.unwrap();
     }
 }

@@ -18,18 +18,14 @@ use crate::error::Error::{
 };
 use crate::error::Result;
 
+#[derive(Debug)]
 pub struct Database {
     conn: MySqlConnection,
     name: String,
 }
 
 impl Database {
-    pub async fn new(
-        endpoint: &str,
-        username: &str,
-        password: &str,
-        name: &str,
-    ) -> Result<Self> {
+    pub async fn new(endpoint: &str, username: &str, password: &str, name: &str) -> Result<Self> {
         let endpoint_collection = endpoint.split(':').collect::<Vec<&str>>();
         let host = endpoint_collection[0];
         let port = endpoint_collection[1]
@@ -190,6 +186,17 @@ impl Database {
 
         Ok(has_secret_key)
     }
+
+    async fn drop_database_if_exists(&mut self) -> Result<()> {
+        let sql = format!("drop database if exists `{}`", self.name);
+        let query = sqlx::query::<MySql>(&sql);
+
+        self.conn.execute(query).await.map_err(|e| {
+            SqlExecuteError(format!("MySql drop database failed: {}", e.to_string()))
+        })?;
+
+        Ok(())
+    }
 }
 
 fn gen_secret_key() -> Result<String> {
@@ -207,14 +214,204 @@ fn gen_secret_key() -> Result<String> {
 
 #[cfg(test)]
 mod tests {
+    use dotenv::dotenv;
+    use std::env;
+
     use super::*;
 
     async fn get_database() -> Database {
-        todo!();
+        dotenv().ok();
+
+        let endpoint = env::var("MYSQL_ENDPOINT").unwrap();
+        let username = env::var("MYSQL_USERNAME").unwrap();
+        let password = env::var("MYSQL_PASSWORD").unwrap();
+        let name = env::var("MYSQL_DATABASE").unwrap();
+
+        let database = Database::new(&endpoint, &username, &password, &name)
+            .await
+            .unwrap();
+
+        database
+    }
+
+    async fn init(database: &mut Database) {
+        database.create_database_if_not_exists().await.unwrap();
+    }
+
+    async fn reset(database: &mut Database) {
+        database.drop_database_if_exists().await.unwrap();
     }
 
     #[actix_web::test]
-    async fn test_new() {
-        todo!();
+    async fn test_database_new() {
+        dotenv().ok();
+
+        let endpoint = env::var("MYSQL_ENDPOINT").unwrap();
+        let username = env::var("MYSQL_USERNAME").unwrap();
+        let password = env::var("MYSQL_PASSWORD").unwrap();
+        let name = env::var("MYSQL_DATABASE").unwrap();
+
+        Database::new(&endpoint, &username, &password, &name)
+            .await
+            .unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_database_create_database_if_not_exists() {
+        let mut database = get_database().await;
+
+        let result = database.drop_database_if_exists().await;
+        reset(&mut database).await;
+        result.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_database_set_database() {
+        let mut database = get_database().await;
+
+        init(&mut database).await;
+        let result = database.set_database().await;
+        reset(&mut database).await;
+        result.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_database_init() {
+        let mut database = get_database().await;
+
+        let result = database.init().await;
+        reset(&mut database).await;
+        result.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_database_create_table_message_if_not_exists() {
+        async fn inner(database: &mut Database) -> Result<()> {
+            init(database).await;
+            database.set_database().await?;
+            database.create_table_message_if_not_exists().await?;
+
+            Ok(())
+        }
+
+        let mut database = get_database().await;
+
+        let result = inner(&mut database).await;
+        reset(&mut database).await;
+        result.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_database_create_table_auth_if_not_exists() {
+        async fn inner(database: &mut Database) -> Result<()> {
+            init(database).await;
+            database.set_database().await?;
+            database.create_table_auth_if_not_exists().await?;
+
+            Ok(())
+        }
+
+        let mut database = get_database().await;
+
+        let result = inner(&mut database).await;
+        reset(&mut database).await;
+        result.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_database_create_table_device_if_not_exists() {
+        async fn inner(database: &mut Database) -> Result<()> {
+            init(database).await;
+            database.set_database().await?;
+            database.create_table_device_if_not_exists().await?;
+
+            Ok(())
+        }
+
+        let mut database = get_database().await;
+
+        let result = inner(&mut database).await;
+        reset(&mut database).await;
+        result.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_database_create_secret_key_if_not_exists() {
+        async fn inner(database: &mut Database) -> Result<()> {
+            init(database).await;
+            database.set_database().await?;
+            database.create_table_auth_if_not_exists().await?;
+            database.create_secret_key_if_not_exists().await?;
+
+            Ok(())
+        }
+
+        let mut database = get_database().await;
+
+        let result = inner(&mut database).await;
+        reset(&mut database).await;
+        result.unwrap();
+    }
+
+    #[actix_web::test]
+    async fn test_database_is_secret_key_exist() {
+        async fn inner(database: &mut Database) -> Result<()> {
+            init(database).await;
+            database.set_database().await?;
+            database.create_table_auth_if_not_exists().await?;
+
+            Ok(())
+        }
+
+        async fn inner_true(database: &mut Database) -> Result<bool> {
+            inner(database).await?;
+
+            database.create_secret_key_if_not_exists().await?;
+
+            let result = database.is_secret_key_exist().await?;
+
+            Ok(result)
+        }
+
+        async fn inner_false(database: &mut Database) -> Result<bool> {
+            inner(database).await?;
+
+            let result = database.is_secret_key_exist().await?;
+
+            Ok(result)
+        }
+
+        let mut database = get_database().await;
+
+        let result_false = inner_false(&mut database).await;
+        reset(&mut database).await;
+
+        let result_true = inner_true(&mut database).await;
+        reset(&mut database).await;
+
+        assert_eq!(result_true.unwrap(), true);
+        assert_eq!(result_false.unwrap(), false);
+    }
+
+    #[actix_web::test]
+    async fn test_database_drop_database_if_exists() {
+        async fn inner(database: &mut Database) -> Result<()> {
+            init(database).await;
+            database.set_database().await?;
+            database.drop_database_if_exists().await?;
+
+            Ok(())
+        }
+
+        let mut database = get_database().await;
+
+        let result = inner(&mut database).await;
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_gen_secret_key() {
+        let result = gen_secret_key();
+        assert_eq!(result.unwrap().len(), 44);
     }
 }

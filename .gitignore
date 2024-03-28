@@ -1,6 +1,4 @@
 /target
 .DS_Store
-devrc.sh
-dev.sh
-devrc.bat
-dev.bat
+dev*
+.env
