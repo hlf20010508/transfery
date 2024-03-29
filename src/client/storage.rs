@@ -24,7 +24,7 @@ use crate::error::Result;
 // s3 minimum allowed size is 5MB
 pub static PART_SIZE: u32 = 5 * 1024 * 1024; // 5MB
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Storage {
     client: Client,
     bucket: String,

@@ -20,12 +20,24 @@ where
     Ok(value)
 }
 
+fn get_arg_value_option<T>(arg_name: &'static str, default: T) -> T
+where
+    T: FromStr,
+    T::Err: Display,
+{
+    let mut args = Arguments::from_env();
+    match args.value_from_str(arg_name) {
+        Ok(value) => return value,
+        Err(_) => return default,
+    };
+}
+
 lazy_static! {
+    pub static ref PORT: u16 = get_arg_value_option("--port", 8080);
     pub static ref MINIO_ENDPOINT: Result<String, Error> = get_arg_value("--minio-endpoint");
     pub static ref MINIO_USERNAME: Result<String, Error> = get_arg_value("--minio-username");
     pub static ref MINIO_PASSWORD: Result<String, Error> = get_arg_value("--minio-password");
     pub static ref MINIO_BUCKET: Result<String, Error> = get_arg_value("--minio-bucket");
-    
     pub static ref MYSQL_ENDPOINT: Result<String, Error> = get_arg_value("--mysql-endpoint");
     pub static ref MYSQL_USERNAME: Result<String, Error> = get_arg_value("--mysql-username");
     pub static ref MYSQL_PASSWORD: Result<String, Error> = get_arg_value("--mysql-password");

@@ -26,7 +26,7 @@ async fn init_minio() {
 }
 
 async fn init_mysql() {
-    let mut database = client::get_database().await;
+    let database = client::get_database().await;
 
     database.init().await.unwrap();
 }

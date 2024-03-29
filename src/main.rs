@@ -5,12 +5,16 @@
 :license: MIT, see LICENSE for more details.
 */
 
+use actix_web::{App, HttpServer, web};
 use pico_args::Arguments;
 
 mod client;
 mod env;
 mod error;
 mod init;
+
+use env::PORT;
+use client::{get_storage, get_database};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -19,10 +23,22 @@ async fn main() -> std::io::Result<()> {
     if args.contains("--init") {
         init::init().await;
     } else {
-        server().await;
+        server().await?;
     }
 
     Ok(())
 }
 
-async fn server() {}
+async fn server() -> std::io::Result<()> {
+    let storage = get_storage();
+    let database = get_database().await;
+
+    HttpServer::new(move || {
+        App::new()
+        .app_data(web::Data::new(storage.clone()))
+        .app_data(web::Data::new(database.clone()))
+    })
+    .bind(("127.0.0.1", PORT.clone()))?
+    .run()
+    .await
+}
