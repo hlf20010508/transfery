@@ -6,6 +6,7 @@
 */
 
 use std::fmt::Display;
+use actix_web::ResponseError;
 
 #[derive(Debug)]
 pub enum Error {
@@ -19,6 +20,23 @@ pub enum Error {
     SqlGetValueError(String),
     PortParseError(String),
     SecretKeyGenError(String),
+}
+
+impl Error {
+    pub fn context(&self, message: &str) -> Self {
+        match self {
+            Error::UrlParseError(e) => Error::UrlParseError(format!("Error in {}: {}", message, e)),
+            Error::StorageClientError(e) => Error::StorageClientError(format!("Error in {}: {}", message, e)),
+            Error::StorageInitError(e) => Error::StorageInitError(format!("Error in {}: {}", message, e)),
+            Error::StorageObjectError(e) => Error::StorageObjectError(format!("Error in {}: {}", message, e)),
+            Error::DatabaseClientError(e) => Error::DatabaseClientError(format!("Error in {}: {}", message, e)),
+            Error::SqlExecuteError(e) => Error::SqlExecuteError(format!("Error in {}: {}", message, e)),
+            Error::SqlQueryError(e) => Error::SqlQueryError(format!("Error in {}: {}", message, e)),
+            Error::SqlGetValueError(e) => Error::SqlGetValueError(format!("Error in {}: {}", message, e)),
+            Error::PortParseError(e) => Error::PortParseError(format!("Error in {}: {}", message, e)),
+            Error::SecretKeyGenError(e) => Error::SecretKeyGenError(format!("Error in {}: {}", message, e)),
+        }
+    }
 }
 
 impl Display for Error {
@@ -37,5 +55,7 @@ impl Display for Error {
         }
     }
 }
+
+impl ResponseError for Error {}
 
 pub type Result<T> = std::result::Result<T, Error>;

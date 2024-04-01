@@ -12,9 +12,11 @@ mod client;
 mod env;
 mod error;
 mod init;
+mod handler;
 
 use env::PORT;
 use client::{get_storage, get_database};
+use handler::download;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -37,6 +39,7 @@ async fn server() -> std::io::Result<()> {
         App::new()
         .app_data(web::Data::new(storage.clone()))
         .app_data(web::Data::new(database.clone()))
+        .service(download::download_url)
     })
     .bind(("127.0.0.1", PORT.clone()))?
     .run()

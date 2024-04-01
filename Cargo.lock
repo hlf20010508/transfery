@@ -2584,6 +2584,7 @@ dependencies = [
  "minio",
  "pico-args",
  "ring",
+ "serde",
  "sqlx",
 ]
 
