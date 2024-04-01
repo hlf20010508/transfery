@@ -25,10 +25,6 @@ pub struct Database {
     name: String,
 }
 
-// impl Copy for Database {
-
-// }
-
 impl Database {
     pub async fn new(endpoint: &str, username: &str, password: &str, name: &str) -> Result<Self> {
         let endpoint_collection = endpoint.split(':').collect::<Vec<&str>>();
@@ -43,12 +39,18 @@ impl Database {
             .username(username)
             .password(password);
 
-        let pool = MySqlPoolOptions::new()
-            .connect_with(options)
-            .await
-            .map_err(|e| {
-                DatabaseClientError(format!("MySql pool creation failed: {}", e.to_string()))
-            })?;
+        let pool = Database::get_pool(options).await?;
+
+        Self::create_database_if_not_exists(&pool, name).await?;
+
+        let options = MySqlConnectOptions::new()
+            .host(host)
+            .port(port)
+            .username(username)
+            .password(password)
+            .database(name);
+
+        let pool = Database::get_pool(options).await?;
 
         Ok(Self {
             pool,
@@ -56,31 +58,29 @@ impl Database {
         })
     }
 
-    async fn create_database_if_not_exists(&self) -> Result<()> {
-        let sql = format!("create database if not exists `{}`", self.name);
+    async fn get_pool(options: MySqlConnectOptions) -> Result<Pool<MySql>> {
+        let pool = MySqlPoolOptions::new()
+            .connect_with(options)
+            .await
+            .map_err(|e| {
+                DatabaseClientError(format!("MySql pool creation failed: {}", e.to_string()))
+            })?;
+
+        Ok(pool)
+    }
+
+    async fn create_database_if_not_exists(pool: &Pool<MySql>, name: &str) -> Result<()> {
+        let sql = format!("create database if not exists `{}`", name);
         let query = sqlx::query::<MySql>(&sql);
 
-        self.pool.execute(query).await.map_err(|e| {
+        pool.execute(query).await.map_err(|e| {
             SqlExecuteError(format!("MySql create database failed: {}", e.to_string()))
         })?;
 
         Ok(())
     }
 
-    async fn set_database(&self) -> Result<()> {
-        let sql = format!("use `{}`", self.name);
-        let query = sqlx::query::<MySql>(&sql);
-
-        self.pool.execute(query).await.map_err(|e| {
-            SqlExecuteError(format!("MySql set database failed: {}", e.to_string()))
-        })?;
-
-        Ok(())
-    }
-
     pub async fn init(&self) -> Result<()> {
-        self.create_database_if_not_exists().await?;
-        self.set_database().await?;
         self.create_table_message_if_not_exists().await?;
         self.create_table_auth_if_not_exists().await?;
         self.create_table_device_if_not_exists().await?;
@@ -226,23 +226,35 @@ mod tests {
 
     use super::*;
 
+    fn get_endpoint() -> String {
+        env::var("MYSQL_ENDPOINT").unwrap()
+    }
+
+    fn get_username() -> String {
+        env::var("MYSQL_USERNAME").unwrap()
+    }
+
+    fn get_password() -> String {
+        env::var("MYSQL_PASSWORD").unwrap()
+    }
+
+    fn get_name() -> String {
+        env::var("MYSQL_DATABASE").unwrap()
+    }
+
     async fn get_database() -> Database {
         dotenv().ok();
 
-        let endpoint = env::var("MYSQL_ENDPOINT").unwrap();
-        let username = env::var("MYSQL_USERNAME").unwrap();
-        let password = env::var("MYSQL_PASSWORD").unwrap();
-        let name = env::var("MYSQL_DATABASE").unwrap();
+        let endpoint = get_endpoint();
+        let username = get_username();
+        let password = get_password();
+        let name = get_name();
 
         let database = Database::new(&endpoint, &username, &password, &name)
             .await
             .unwrap();
 
         database
-    }
-
-    async fn init(database: &mut Database) {
-        database.create_database_if_not_exists().await.unwrap();
     }
 
     async fn reset(database: &mut Database) {
@@ -253,10 +265,10 @@ mod tests {
     async fn test_database_new() {
         dotenv().ok();
 
-        let endpoint = env::var("MYSQL_ENDPOINT").unwrap();
-        let username = env::var("MYSQL_USERNAME").unwrap();
-        let password = env::var("MYSQL_PASSWORD").unwrap();
-        let name = env::var("MYSQL_DATABASE").unwrap();
+        let endpoint = get_endpoint();
+        let username = get_username();
+        let password = get_password();
+        let name = get_name();
 
         Database::new(&endpoint, &username, &password, &name)
             .await
@@ -267,17 +279,8 @@ mod tests {
     async fn test_database_create_database_if_not_exists() {
         let mut database = get_database().await;
 
-        let result = database.drop_database_if_exists().await;
-        reset(&mut database).await;
-        result.unwrap();
-    }
-
-    #[actix_web::test]
-    async fn test_database_set_database() {
-        let mut database = get_database().await;
-
-        init(&mut database).await;
-        let result = database.set_database().await;
+        let result =
+            Database::create_database_if_not_exists(&database.pool, database.name.as_str()).await;
         reset(&mut database).await;
         result.unwrap();
     }
@@ -294,8 +297,6 @@ mod tests {
     #[actix_web::test]
     async fn test_database_create_table_message_if_not_exists() {
         async fn inner(database: &mut Database) -> Result<()> {
-            init(database).await;
-            database.set_database().await?;
             database.create_table_message_if_not_exists().await?;
 
             Ok(())
@@ -311,8 +312,6 @@ mod tests {
     #[actix_web::test]
     async fn test_database_create_table_auth_if_not_exists() {
         async fn inner(database: &mut Database) -> Result<()> {
-            init(database).await;
-            database.set_database().await?;
             database.create_table_auth_if_not_exists().await?;
 
             Ok(())
@@ -328,8 +327,6 @@ mod tests {
     #[actix_web::test]
     async fn test_database_create_table_device_if_not_exists() {
         async fn inner(database: &mut Database) -> Result<()> {
-            init(database).await;
-            database.set_database().await?;
             database.create_table_device_if_not_exists().await?;
 
             Ok(())
@@ -345,8 +342,6 @@ mod tests {
     #[actix_web::test]
     async fn test_database_create_secret_key_if_not_exists() {
         async fn inner(database: &mut Database) -> Result<()> {
-            init(database).await;
-            database.set_database().await?;
             database.create_table_auth_if_not_exists().await?;
             database.create_secret_key_if_not_exists().await?;
 
@@ -363,8 +358,6 @@ mod tests {
     #[actix_web::test]
     async fn test_database_is_secret_key_exist() {
         async fn inner(database: &mut Database) -> Result<()> {
-            init(database).await;
-            database.set_database().await?;
             database.create_table_auth_if_not_exists().await?;
 
             Ok(())
@@ -391,8 +384,6 @@ mod tests {
         let mut database = get_database().await;
 
         let result_false = inner_false(&mut database).await;
-        reset(&mut database).await;
-
         let result_true = inner_true(&mut database).await;
         reset(&mut database).await;
 
@@ -403,8 +394,6 @@ mod tests {
     #[actix_web::test]
     async fn test_database_drop_database_if_exists() {
         async fn inner(database: &mut Database) -> Result<()> {
-            init(database).await;
-            database.set_database().await?;
             database.drop_database_if_exists().await?;
 
             Ok(())

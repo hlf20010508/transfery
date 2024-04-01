@@ -12,8 +12,9 @@ use crate::env::{
     MINIO_BUCKET, MINIO_ENDPOINT, MINIO_PASSWORD, MINIO_USERNAME, MYSQL_DATABASE, MYSQL_ENDPOINT,
     MYSQL_PASSWORD, MYSQL_USERNAME,
 };
-use database::Database;
-use storage::Storage;
+
+pub use database::Database;
+pub use storage::Storage;
 
 pub fn get_storage() -> Storage {
     Storage::new(
