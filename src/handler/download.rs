@@ -5,8 +5,7 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use actix_web::Error;
-use actix_web::{get, web, HttpResponse, Result};
+use actix_web::{get, web, Error, HttpResponse, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::client::Storage;

@@ -5,17 +5,14 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use base64::engine::general_purpose::URL_SAFE as base64;
-use base64::Engine;
-use ring::rand::{SecureRandom, SystemRandom};
-use sqlx::mysql::{MySql, MySqlConnectOptions, MySqlConnection, MySqlPoolOptions};
+use sqlx::mysql::{MySql, MySqlConnectOptions, MySqlPoolOptions};
 use sqlx::pool::Pool;
-use sqlx::{ConnectOptions, Executor, Row};
+use sqlx::{Executor, Row};
 
+use crate::crypto::Crypto;
 use crate::env::{MYSQL_TABLE_AUTH, MYSQL_TABLE_DEVICE, MYSQL_TABLE_MESSAGE};
 use crate::error::Error::{
-    DatabaseClientError, PortParseError, SecretKeyGenError, SqlExecuteError, SqlGetValueError,
-    SqlQueryError,
+    DatabaseClientError, PortParseError, SqlExecuteError, SqlGetValueError, SqlQueryError,
 };
 use crate::error::Result;
 
@@ -25,13 +22,14 @@ pub struct Database {
     name: String,
 }
 
+// init
 impl Database {
     pub async fn new(endpoint: &str, username: &str, password: &str, name: &str) -> Result<Self> {
         let endpoint_collection = endpoint.split(':').collect::<Vec<&str>>();
         let host = endpoint_collection[0];
         let port = endpoint_collection[1]
             .parse::<u16>()
-            .map_err(|e| PortParseError(format!("MySql port parsing failed: {}", e.to_string())))?;
+            .map_err(|e| PortParseError(format!("MySql port parsing failed: {}", e)))?;
 
         let options = MySqlConnectOptions::new()
             .host(host)
@@ -62,9 +60,7 @@ impl Database {
         let pool = MySqlPoolOptions::new()
             .connect_with(options)
             .await
-            .map_err(|e| {
-                DatabaseClientError(format!("MySql pool creation failed: {}", e.to_string()))
-            })?;
+            .map_err(|e| DatabaseClientError(format!("MySql pool creation failed: {}", e)))?;
 
         Ok(pool)
     }
@@ -73,9 +69,9 @@ impl Database {
         let sql = format!("create database if not exists `{}`", name);
         let query = sqlx::query::<MySql>(&sql);
 
-        pool.execute(query).await.map_err(|e| {
-            SqlExecuteError(format!("MySql create database failed: {}", e.to_string()))
-        })?;
+        pool.execute(query)
+            .await
+            .map_err(|e| SqlExecuteError(format!("MySql create database failed: {}", e)))?;
 
         Ok(())
     }
@@ -104,12 +100,10 @@ impl Database {
         );
         let query = sqlx::query::<MySql>(&sql);
 
-        self.pool.execute(query).await.map_err(|e| {
-            SqlExecuteError(format!(
-                "MySql create table message failed: {}",
-                e.to_string()
-            ))
-        })?;
+        self.pool
+            .execute(query)
+            .await
+            .map_err(|e| SqlExecuteError(format!("MySql create table message failed: {}", e)))?;
 
         Ok(())
     }
@@ -124,9 +118,10 @@ impl Database {
         );
         let query = sqlx::query::<MySql>(&sql);
 
-        self.pool.execute(query).await.map_err(|e| {
-            SqlExecuteError(format!("MySql create table auth failed: {}", e.to_string()))
-        })?;
+        self.pool
+            .execute(query)
+            .await
+            .map_err(|e| SqlExecuteError(format!("MySql create table auth failed: {}", e)))?;
 
         Ok(())
     }
@@ -144,19 +139,17 @@ impl Database {
         );
         let query = sqlx::query::<MySql>(&sql);
 
-        self.pool.execute(query).await.map_err(|e| {
-            SqlExecuteError(format!(
-                "MySql create table device failed: {}",
-                e.to_string()
-            ))
-        })?;
+        self.pool
+            .execute(query)
+            .await
+            .map_err(|e| SqlExecuteError(format!("MySql create table device failed: {}", e)))?;
 
         Ok(())
     }
 
     async fn create_secret_key_if_not_exists(&self) -> Result<()> {
         if !self.is_secret_key_exist().await? {
-            let secret_key = gen_secret_key()?;
+            let secret_key = Crypto::gen_secret_key()?;
 
             let sql = format!(
                 "insert into `{}` (secretKey)
@@ -167,9 +160,10 @@ impl Database {
             );
             let query = sqlx::query::<MySql>(&sql).bind(secret_key);
 
-            self.pool.execute(query).await.map_err(|e| {
-                SqlExecuteError(format!("MySql insert secret key failed: {}", e.to_string()))
-            })?;
+            self.pool
+                .execute(query)
+                .await
+                .map_err(|e| SqlExecuteError(format!("MySql insert secret key failed: {}", e)))?;
         }
 
         Ok(())
@@ -180,43 +174,66 @@ impl Database {
         let query = sqlx::query::<MySql>(&sql)
             .fetch_one(&self.pool)
             .await
-            .map_err(|e| {
-                SqlQueryError(format!("MySql query secret key failed: {}", e.to_string()))
-            })?;
+            .map_err(|e| SqlQueryError(format!("MySql query secret key failed: {}", e)))?;
 
         let has_secret_key = query.try_get::<bool, &str>("count(*)").map_err(|e| {
-            SqlGetValueError(format!(
-                "MySql get number of secret key failed: {}",
-                e.to_string()
-            ))
+            SqlGetValueError(format!("MySql get number of secret key failed: {}", e))
         })?;
 
         Ok(has_secret_key)
+    }
+
+    pub async fn get_secret_key(&self) -> Result<String> {
+        let sql = format!("select secretKey from {} limit 1", MYSQL_TABLE_AUTH);
+        let query = sqlx::query::<MySql>(&sql)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| SqlQueryError(format!("MySql query secret key failed: {}", e)))?;
+
+        let secret_key = query
+            .try_get::<String, &str>("secretKey")
+            .map_err(|e| SqlGetValueError(format!("MySql get secret key failed: {}", e)))?;
+
+        Ok(secret_key)
     }
 
     async fn drop_database_if_exists(&self) -> Result<()> {
         let sql = format!("drop database if exists `{}`", self.name);
         let query = sqlx::query::<MySql>(&sql);
 
-        self.pool.execute(query).await.map_err(|e| {
-            SqlExecuteError(format!("MySql drop database failed: {}", e.to_string()))
-        })?;
+        self.pool
+            .execute(query)
+            .await
+            .map_err(|e| SqlExecuteError(format!("MySql drop database failed: {}", e)))?;
 
         Ok(())
     }
 }
 
-fn gen_secret_key() -> Result<String> {
-    let rng = SystemRandom::new();
-    // Fernet keys are typically 32 bytes long
-    let mut secret_key = vec![0u8; 32];
-    // ring::error::Unspecified contains no info
-    rng.fill(&mut secret_key)
-        .map_err(|_| SecretKeyGenError("Secret key filling failed".to_string()))?;
+// main
+impl Database {
+    pub async fn query_message_items(
+        &self,
+        start: u32,
+        number: u8,
+        access_private: bool,
+    ) -> Result<()> {
+        let mut sql = format!("select * from {} ", MYSQL_TABLE_MESSAGE);
+        if !access_private {
+            sql.push_str("where isPrivate = false ");
+        }
+        sql.push_str("order by timestamp desc, id desc limit ?, ?");
 
-    let secret_key_str = base64.encode(secret_key);
+        let query = sqlx::query::<MySql>(&sql)
+            .bind(start)
+            .bind(number)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| SqlQueryError(format!("MySql query message items failed: {}", e)))?;
 
-    Ok(secret_key_str)
+        println!("{:#?}", query);
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -257,7 +274,7 @@ mod tests {
         database
     }
 
-    async fn reset(database: &mut Database) {
+    async fn reset(database: &Database) {
         database.drop_database_if_exists().await.unwrap();
     }
 
@@ -277,93 +294,75 @@ mod tests {
 
     #[actix_web::test]
     async fn test_database_create_database_if_not_exists() {
-        let mut database = get_database().await;
+        let database = get_database().await;
 
         let result =
             Database::create_database_if_not_exists(&database.pool, database.name.as_str()).await;
-        reset(&mut database).await;
+        reset(&database).await;
         result.unwrap();
     }
 
     #[actix_web::test]
     async fn test_database_init() {
-        let mut database = get_database().await;
+        let database = get_database().await;
 
         let result = database.init().await;
-        reset(&mut database).await;
+        reset(&database).await;
         result.unwrap();
     }
 
     #[actix_web::test]
     async fn test_database_create_table_message_if_not_exists() {
-        async fn inner(database: &mut Database) -> Result<()> {
-            database.create_table_message_if_not_exists().await?;
+        let database = get_database().await;
 
-            Ok(())
-        }
-
-        let mut database = get_database().await;
-
-        let result = inner(&mut database).await;
-        reset(&mut database).await;
+        let result = database.create_table_message_if_not_exists().await;
+        reset(&database).await;
         result.unwrap();
     }
 
     #[actix_web::test]
     async fn test_database_create_table_auth_if_not_exists() {
-        async fn inner(database: &mut Database) -> Result<()> {
-            database.create_table_auth_if_not_exists().await?;
+        let database = get_database().await;
 
-            Ok(())
-        }
-
-        let mut database = get_database().await;
-
-        let result = inner(&mut database).await;
-        reset(&mut database).await;
+        let result = database.create_table_auth_if_not_exists().await;
+        reset(&database).await;
         result.unwrap();
     }
 
     #[actix_web::test]
     async fn test_database_create_table_device_if_not_exists() {
-        async fn inner(database: &mut Database) -> Result<()> {
-            database.create_table_device_if_not_exists().await?;
+        let database = get_database().await;
 
-            Ok(())
-        }
-
-        let mut database = get_database().await;
-
-        let result = inner(&mut database).await;
-        reset(&mut database).await;
+        let result = database.create_table_device_if_not_exists().await;
+        reset(&database).await;
         result.unwrap();
     }
 
     #[actix_web::test]
     async fn test_database_create_secret_key_if_not_exists() {
-        async fn inner(database: &mut Database) -> Result<()> {
+        async fn inner(database: &Database) -> Result<()> {
             database.create_table_auth_if_not_exists().await?;
             database.create_secret_key_if_not_exists().await?;
 
             Ok(())
         }
 
-        let mut database = get_database().await;
+        let database = get_database().await;
 
-        let result = inner(&mut database).await;
-        reset(&mut database).await;
+        let result = inner(&database).await;
+        reset(&database).await;
         result.unwrap();
     }
 
     #[actix_web::test]
     async fn test_database_is_secret_key_exist() {
-        async fn inner(database: &mut Database) -> Result<()> {
+        async fn inner(database: &Database) -> Result<()> {
             database.create_table_auth_if_not_exists().await?;
 
             Ok(())
         }
 
-        async fn inner_true(database: &mut Database) -> Result<bool> {
+        async fn inner_true(database: &Database) -> Result<bool> {
             inner(database).await?;
 
             database.create_secret_key_if_not_exists().await?;
@@ -373,7 +372,7 @@ mod tests {
             Ok(result)
         }
 
-        async fn inner_false(database: &mut Database) -> Result<bool> {
+        async fn inner_false(database: &Database) -> Result<bool> {
             inner(database).await?;
 
             let result = database.is_secret_key_exist().await?;
@@ -381,33 +380,39 @@ mod tests {
             Ok(result)
         }
 
-        let mut database = get_database().await;
+        let database = get_database().await;
 
-        let result_false = inner_false(&mut database).await;
-        let result_true = inner_true(&mut database).await;
-        reset(&mut database).await;
+        let result_false = inner_false(&database).await;
+        let result_true = inner_true(&database).await;
+        reset(&database).await;
 
         assert_eq!(result_true.unwrap(), true);
         assert_eq!(result_false.unwrap(), false);
     }
 
     #[actix_web::test]
-    async fn test_database_drop_database_if_exists() {
-        async fn inner(database: &mut Database) -> Result<()> {
-            database.drop_database_if_exists().await?;
+    async fn test_database_get_secret_key() {
+        async fn inner(database: &Database) -> Result<String> {
+            database.create_table_auth_if_not_exists().await?;
+            database.create_secret_key_if_not_exists().await?;
 
-            Ok(())
+            let secret_key = database.get_secret_key().await?;
+
+            Ok(secret_key)
         }
 
-        let mut database = get_database().await;
+        let database = get_database().await;
 
-        let result = inner(&mut database).await;
-        result.unwrap();
+        let result = inner(&database).await;
+        reset(&database).await;
+
+        assert_eq!(result.unwrap().len(), 44);
     }
 
-    #[test]
-    fn test_gen_secret_key() {
-        let result = gen_secret_key();
-        assert_eq!(result.unwrap().len(), 44);
+    #[actix_web::test]
+    async fn test_database_drop_database_if_exists() {
+        let database = get_database().await;
+
+        database.drop_database_if_exists().await.unwrap();
     }
 }

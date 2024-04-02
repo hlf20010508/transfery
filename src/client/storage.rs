@@ -32,16 +32,14 @@ pub struct Storage {
 
 impl Storage {
     pub fn new(endpoint: &str, username: &str, password: &str, bucket: &str) -> Result<Self> {
-        let base_url = endpoint.parse::<BaseUrl>().map_err(|e| {
-            UrlParseError(format!("Minio endpoint parse failed: {}", e.to_string()))
-        })?;
+        let base_url = endpoint
+            .parse::<BaseUrl>()
+            .map_err(|e| UrlParseError(format!("Minio endpoint parse failed: {}", e)))?;
 
         let static_provider = StaticProvider::new(username, password, None);
 
-        let client =
-            Client::new(base_url, Some(Box::new(static_provider)), None, None).map_err(|e| {
-                StorageClientError(format!("Minio client creation failed: {}", e.to_string()))
-            })?;
+        let client = Client::new(base_url, Some(Box::new(static_provider)), None, None)
+            .map_err(|e| StorageClientError(format!("Minio client creation failed: {}", e)))?;
 
         Ok(Self {
             client,
@@ -57,18 +55,12 @@ impl Storage {
 
     async fn create_buffer_if_not_exists(&self) -> Result<()> {
         let args = MakeBucketArgs::new(&self.bucket).map_err(|e| {
-            StorageInitError(format!(
-                "Minio bucket name invalid when making: {}",
-                e.to_string()
-            ))
+            StorageInitError(format!("Minio bucket name invalid when making: {}", e))
         })?;
 
         if !self.is_bucket_exists().await? {
             self.client.make_bucket(&args).await.map_err(|e| {
-                StorageInitError(format!(
-                    "Minio making bucket await failed: {}",
-                    e.to_string()
-                ))
+                StorageInitError(format!("Minio making bucket await failed: {}", e))
             })?;
         }
 
@@ -79,14 +71,14 @@ impl Storage {
         let args = BucketExistsArgs::new(&self.bucket).map_err(|e| {
             StorageInitError(format!(
                 "Minio bucket name invalid when checking existence: {}",
-                e.to_string()
+                e
             ))
         })?;
 
         let exists = self.client.bucket_exists(&args).await.map_err(|e| {
             StorageInitError(format!(
                 "Minio checking bucket existence await failed: {}",
-                e.to_string()
+                e
             ))
         })?;
 
@@ -97,7 +89,7 @@ impl Storage {
         let args = CreateMultipartUploadArgs::new(&self.bucket, remote_path).map_err(|e| {
             StorageObjectError(format!(
                 "Storage create multipart upload args failed: {}",
-                e.to_string()
+                e
             ))
         })?;
 
@@ -108,7 +100,7 @@ impl Storage {
                 .map_err(|e| {
                     StorageObjectError(format!(
                         "Storage get multipart upload response failed: {}",
-                        e.to_string()
+                        e
                     ))
                 })?;
 
@@ -127,15 +119,14 @@ impl Storage {
         let args =
             UploadPartArgs::new(&self.bucket, remote_path, upload_id, part_number, part_data)
                 .map_err(|e| {
-                    StorageObjectError(format!(
-                        "Storage create upload part args failed: {}",
-                        e.to_string()
-                    ))
+                    StorageObjectError(format!("Storage create upload part args failed: {}", e))
                 })?;
 
-        let response = self.client.upload_part(&args).await.map_err(|e| {
-            StorageObjectError(format!("Storage upload part failed: {}", e.to_string()))
-        })?;
+        let response = self
+            .client
+            .upload_part(&args)
+            .await
+            .map_err(|e| StorageObjectError(format!("Storage upload part failed: {}", e)))?;
 
         let etag = response.etag;
 
@@ -155,7 +146,7 @@ impl Storage {
             .map_err(|e| {
                 StorageObjectError(format!(
                     "Storage create complete multipart upload args failed: {}",
-                    e.to_string()
+                    e
                 ))
             })?;
 
@@ -163,10 +154,7 @@ impl Storage {
             .complete_multipart_upload(&args)
             .await
             .map_err(|e| {
-                StorageObjectError(format!(
-                    "Storage complete multipart upload failed: {}",
-                    e.to_string()
-                ))
+                StorageObjectError(format!("Storage complete multipart upload failed: {}", e))
             })?;
 
         Ok(())
@@ -174,15 +162,14 @@ impl Storage {
 
     async fn list_objects(&self) -> Result<Vec<Item>> {
         let args = ListObjectsV2Args::new(&self.bucket).map_err(|e| {
-            StorageObjectError(format!(
-                "Storage create list objects v2 args failed: {}",
-                e.to_string()
-            ))
+            StorageObjectError(format!("Storage create list objects v2 args failed: {}", e))
         })?;
 
-        let response = self.client.list_objects_v2(&args).await.map_err(|e| {
-            StorageObjectError(format!("Storage list objects failed: {}", e.to_string()))
-        })?;
+        let response = self
+            .client
+            .list_objects_v2(&args)
+            .await
+            .map_err(|e| StorageObjectError(format!("Storage list objects failed: {}", e)))?;
 
         let objects = response.contents;
 
@@ -191,15 +178,13 @@ impl Storage {
 
     pub async fn remove_object(&self, remote_path: &str) -> Result<()> {
         let args = ObjectVersionArgs::new(&self.bucket, remote_path).map_err(|e| {
-            StorageObjectError(format!(
-                "Storage create object version args failed: {}",
-                e.to_string()
-            ))
+            StorageObjectError(format!("Storage create object version args failed: {}", e))
         })?;
 
-        self.client.remove_object(&args).await.map_err(|e| {
-            StorageObjectError(format!("Storage remove object failed: {}", e.to_string()))
-        })?;
+        self.client
+            .remove_object(&args)
+            .await
+            .map_err(|e| StorageObjectError(format!("Storage remove object failed: {}", e)))?;
 
         Ok(())
     }
@@ -221,15 +206,14 @@ impl Storage {
 
         let mut args =
             RemoveObjectsArgs::new(&self.bucket, &mut objects_delete_iter).map_err(|e| {
-                StorageObjectError(format!(
-                    "Storage create remove objects args failed: {}",
-                    e.to_string()
-                ))
+                StorageObjectError(format!("Storage create remove objects args failed: {}", e))
             })?;
 
-        let response = self.client.remove_objects(&mut args).await.map_err(|e| {
-            StorageObjectError(format!("Storage remove objects failed: {}", e.to_string()))
-        })?;
+        let response = self
+            .client
+            .remove_objects(&mut args)
+            .await
+            .map_err(|e| StorageObjectError(format!("Storage remove objects failed: {}", e)))?;
 
         if response.errors.len() == 0 {
             return Ok(());
@@ -244,16 +228,13 @@ impl Storage {
     pub async fn remove_bucket(&self) -> Result<()> {
         self.remove_objects_all().await?;
 
-        let args = BucketArgs::new(&self.bucket).map_err(|e| {
-            StorageObjectError(format!(
-                "Storage create bucket args failed: {}",
-                e.to_string()
-            ))
-        })?;
+        let args = BucketArgs::new(&self.bucket)
+            .map_err(|e| StorageObjectError(format!("Storage create bucket args failed: {}", e)))?;
 
-        self.client.remove_bucket(&args).await.map_err(|e| {
-            StorageObjectError(format!("Storage remove bucket failed: {}", e.to_string()))
-        })?;
+        self.client
+            .remove_bucket(&args)
+            .await
+            .map_err(|e| StorageObjectError(format!("Storage remove bucket failed: {}", e)))?;
 
         Ok(())
     }
@@ -263,7 +244,7 @@ impl Storage {
             |e| {
                 StorageObjectError(format!(
                     "Storage create get presigned object url args failed: {}",
-                    e.to_string()
+                    e
                 ))
             },
         )?;
@@ -273,10 +254,7 @@ impl Storage {
             .get_presigned_object_url(&args)
             .await
             .map_err(|e| {
-                StorageObjectError(format!(
-                    "Storage get presigned object url failed: {}",
-                    e.to_string()
-                ))
+                StorageObjectError(format!("Storage get presigned object url failed: {}", e))
             })?;
 
         Ok(response.url)
@@ -334,17 +312,14 @@ mod tests {
 
         let mut args =
             PutObjectArgs::new(&storage.bucket, remote_path, &mut data, Some(size), None).map_err(
-                |e| {
-                    StorageObjectError(format!(
-                        "Storage create put object args failed: {}",
-                        e.to_string()
-                    ))
-                },
+                |e| StorageObjectError(format!("Storage create put object args failed: {}", e)),
             )?;
 
-        storage.client.put_object(&mut args).await.map_err(|e| {
-            StorageObjectError(format!("Storage put object failed: {}", e.to_string()))
-        })?;
+        storage
+            .client
+            .put_object(&mut args)
+            .await
+            .map_err(|e| StorageObjectError(format!("Storage put object failed: {}", e)))?;
 
         Ok(())
     }
