@@ -5,8 +5,8 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use std::fmt::Display;
 use actix_web::ResponseError;
+use std::fmt::Display;
 
 #[derive(Debug)]
 pub enum Error {
@@ -19,22 +19,62 @@ pub enum Error {
     SqlQueryError(String),
     SqlGetValueError(String),
     PortParseError(String),
-    SecretKeyGenError(String),
+    ToStrError(String),
+    ToJsonError(String),
+    Base64DecodeError(String),
+    CryptoLoadKeyError(String),
+    CryptoEncryptError(String),
+    CryptoDecryptError(String),
+    CryptoNonceError(String),
+    CryptoKeyGenError(String),
 }
 
 impl Error {
     pub fn context(&self, message: &str) -> Self {
         match self {
             Error::UrlParseError(e) => Error::UrlParseError(format!("Error in {}: {}", message, e)),
-            Error::StorageClientError(e) => Error::StorageClientError(format!("Error in {}: {}", message, e)),
-            Error::StorageInitError(e) => Error::StorageInitError(format!("Error in {}: {}", message, e)),
-            Error::StorageObjectError(e) => Error::StorageObjectError(format!("Error in {}: {}", message, e)),
-            Error::DatabaseClientError(e) => Error::DatabaseClientError(format!("Error in {}: {}", message, e)),
-            Error::SqlExecuteError(e) => Error::SqlExecuteError(format!("Error in {}: {}", message, e)),
+            Error::StorageClientError(e) => {
+                Error::StorageClientError(format!("Error in {}: {}", message, e))
+            }
+            Error::StorageInitError(e) => {
+                Error::StorageInitError(format!("Error in {}: {}", message, e))
+            }
+            Error::StorageObjectError(e) => {
+                Error::StorageObjectError(format!("Error in {}: {}", message, e))
+            }
+            Error::DatabaseClientError(e) => {
+                Error::DatabaseClientError(format!("Error in {}: {}", message, e))
+            }
+            Error::SqlExecuteError(e) => {
+                Error::SqlExecuteError(format!("Error in {}: {}", message, e))
+            }
             Error::SqlQueryError(e) => Error::SqlQueryError(format!("Error in {}: {}", message, e)),
-            Error::SqlGetValueError(e) => Error::SqlGetValueError(format!("Error in {}: {}", message, e)),
-            Error::PortParseError(e) => Error::PortParseError(format!("Error in {}: {}", message, e)),
-            Error::SecretKeyGenError(e) => Error::SecretKeyGenError(format!("Error in {}: {}", message, e)),
+            Error::SqlGetValueError(e) => {
+                Error::SqlGetValueError(format!("Error in {}: {}", message, e))
+            }
+            Error::PortParseError(e) => {
+                Error::PortParseError(format!("Error in {}: {}", message, e))
+            }
+            Error::ToStrError(e) => Error::ToStrError(format!("Error in {}: {}", message, e)),
+            Error::ToJsonError(e) => Error::ToJsonError(format!("Error in {}: {}", message, e)),
+            Error::Base64DecodeError(e) => {
+                Error::Base64DecodeError(format!("Error in {}: {}", message, e))
+            }
+            Error::CryptoLoadKeyError(e) => {
+                Error::CryptoLoadKeyError(format!("Error in {}: {}", message, e))
+            }
+            Error::CryptoEncryptError(e) => {
+                Error::CryptoEncryptError(format!("Error in {}: {}", message, e))
+            }
+            Error::CryptoDecryptError(e) => {
+                Error::CryptoDecryptError(format!("Error in {}: {}", message, e))
+            }
+            Error::CryptoNonceError(e) => {
+                Error::CryptoNonceError(format!("Error in {}: {}", message, e))
+            }
+            Error::CryptoKeyGenError(e) => {
+                Error::CryptoKeyGenError(format!("Error in {}: {}", message, e))
+            }
         }
     }
 }
@@ -51,7 +91,14 @@ impl Display for Error {
             Error::SqlQueryError(e) => write!(f, "SQL query error: {}", e),
             Error::SqlGetValueError(e) => write!(f, "SQL get value error: {}", e),
             Error::PortParseError(e) => write!(f, "Port parse error: {}", e),
-            Error::SecretKeyGenError(e) => write!(f, "Secret key generation error: {}", e),
+            Error::ToStrError(e) => write!(f, "To &str error: {}", e),
+            Error::ToJsonError(e) => write!(f, "To json error: {}", e),
+            Error::Base64DecodeError(e) => write!(f, "Base64 decode error: {}", e),
+            Error::CryptoLoadKeyError(e) => write!(f, "Crypto load key error: {}", e),
+            Error::CryptoEncryptError(e) => write!(f, "Crypto encode error: {}", e),
+            Error::CryptoDecryptError(e) => write!(f, "Crypto decode error: {}", e),
+            Error::CryptoNonceError(e) => write!(f, "Crypto nonce error: {}", e),
+            Error::CryptoKeyGenError(e) => write!(f, "Crypto key gen error: {}", e),
         }
     }
 }

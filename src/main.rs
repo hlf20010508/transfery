@@ -5,17 +5,20 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use actix_web::{App, HttpServer, web};
+use actix_web::{web, App, HttpServer};
 use pico_args::Arguments;
 
+mod auth;
 mod client;
+mod crypto;
 mod env;
 mod error;
-mod init;
 mod handler;
+mod init;
 
+use client::{get_database, get_storage};
+use crypto::Crypto;
 use env::PORT;
-use client::{get_storage, get_database};
 use handler::download;
 
 #[actix_web::main]
@@ -35,13 +38,17 @@ async fn server() -> std::io::Result<()> {
     let storage = get_storage();
     let database = get_database().await;
 
+    let secret_key = database.get_secret_key().await.unwrap();
+    let crypto = Crypto::new(&secret_key).unwrap();
+
     HttpServer::new(move || {
         App::new()
-        .app_data(web::Data::new(storage.clone()))
-        .app_data(web::Data::new(database.clone()))
-        .service(download::download_url)
+            .app_data(web::Data::new(storage.clone()))
+            .app_data(web::Data::new(database.clone()))
+            .app_data(web::Data::new(crypto.clone()))
+            .service(download::download_url)
     })
-    .bind(("127.0.0.1", PORT.clone()))?
+    .bind(("0.0.0.0", PORT.clone()))?
     .run()
     .await
 }
