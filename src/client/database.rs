@@ -25,7 +25,7 @@ pub struct Database {
 }
 
 #[derive(Debug, Serialize)]
-pub enum MessageItemType {
+enum MessageItemType {
     #[serde(rename = "text")]
     Text,
     #[serde(rename = "file")]
@@ -347,7 +347,7 @@ impl Database {
         Ok(secret_key)
     }
 
-    pub async fn drop_database_if_exists(&self) -> Result<()> {
+    async fn drop_database_if_exists(&self) -> Result<()> {
         let sql = format!("drop database if exists `{}`", self.name);
         let query = sqlx::query::<MySql>(&sql);
 
@@ -424,13 +424,12 @@ impl Database {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use dotenv::dotenv;
     use std::env;
 
     use super::*;
 
-    use crate::env::ITEM_PER_PAGE;
     use crate::utils::get_current_timestamp;
 
     fn get_endpoint() -> String {
@@ -449,7 +448,7 @@ mod tests {
         env::var("MYSQL_DATABASE").unwrap()
     }
 
-    async fn get_database() -> Database {
+    pub async fn get_database() -> Database {
         dotenv().ok();
 
         let endpoint = get_endpoint();
@@ -464,7 +463,7 @@ mod tests {
         database
     }
 
-    async fn reset(database: &Database) {
+    pub async fn reset(database: &Database) {
         database.drop_database_if_exists().await.unwrap();
     }
 

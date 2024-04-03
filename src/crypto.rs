@@ -128,10 +128,10 @@ impl Crypto {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
-    fn get_crypto() -> Crypto {
+    pub fn get_crypto() -> Crypto {
         let key = Crypto::gen_secret_key().unwrap();
         Crypto::new(&key).unwrap()
     }

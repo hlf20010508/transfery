@@ -13,9 +13,9 @@ use crate::crypto::Crypto;
 use crate::error::Error::{CryptoError, ToJsonError, ToStrError};
 
 #[derive(Deserialize, Serialize)]
-pub struct Authorization {
-    pub fingerprint: String,
-    pub certificate: Option<String>,
+struct Authorization {
+    fingerprint: String,
+    certificate: Option<String>,
 }
 
 pub struct AuthState(bool);
@@ -76,22 +76,15 @@ impl FromRequest for AuthState {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
     use actix_web::http::StatusCode;
     use actix_web::{get, test as atest, web, App, HttpResponse, Responder};
 
-    #[get("/")]
-    async fn index(auth_state: AuthState) -> impl Responder {
-        if auth_state.is_authorized() {
-            HttpResponse::Ok()
-        } else {
-            HttpResponse::Unauthorized()
-        }
-    }
+    use crate::crypto::tests::get_crypto;
 
-    fn gen_auth(crypto: &Crypto) -> String {
+    pub fn gen_auth(crypto: &Crypto) -> String {
         let fingerprint = "fingerprint for test";
         let certificate = crypto.encrypt(fingerprint).unwrap();
 
@@ -103,9 +96,13 @@ mod tests {
         serde_json::to_string(&auth).unwrap()
     }
 
-    fn get_crypto() -> Crypto {
-        let secret_key = Crypto::gen_secret_key().unwrap();
-        Crypto::new(&secret_key).unwrap()
+    #[get("/")]
+    async fn index(auth_state: AuthState) -> impl Responder {
+        if auth_state.is_authorized() {
+            HttpResponse::Ok()
+        } else {
+            HttpResponse::Unauthorized()
+        }
     }
 
     #[atest]

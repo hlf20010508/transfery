@@ -41,55 +41,18 @@ mod tests {
 
     use actix_web::http::StatusCode;
     use actix_web::{test as atest, web, App};
-    use dotenv::dotenv;
-    use std::env;
 
-    use crate::auth::Authorization;
+    use crate::auth::tests::gen_auth;
+    use crate::client::database::tests::{get_database, reset};
     use crate::client::Database;
-    use crate::crypto::Crypto;
+    use crate::crypto::tests::get_crypto;
     use crate::utils::get_current_timestamp;
-
-    fn gen_auth(crypto: &Crypto) -> String {
-        let fingerprint = "fingerprint for test";
-        let certificate = crypto.encrypt(fingerprint).unwrap();
-
-        let auth = Authorization {
-            fingerprint: fingerprint.to_string(),
-            certificate: Some(certificate),
-        };
-
-        serde_json::to_string(&auth).unwrap()
-    }
-
-    fn get_crypto() -> Crypto {
-        let secret_key = Crypto::gen_secret_key().unwrap();
-        Crypto::new(&secret_key).unwrap()
-    }
-
-    async fn get_database() -> Database {
-        dotenv().ok();
-
-        let endpoint = env::var("MYSQL_ENDPOINT").unwrap();
-        let username = env::var("MYSQL_USERNAME").unwrap();
-        let password = env::var("MYSQL_PASSWORD").unwrap();
-        let name = env::var("MYSQL_DATABASE").unwrap();
-
-        let database = Database::new(&endpoint, &username, &password, &name)
-            .await
-            .unwrap();
-
-        database
-    }
 
     async fn fake_message_item(database: &Database) {
         let item = MessageItem::new_text("fake item for message", get_current_timestamp(), false);
 
         database.create_table_message_if_not_exists().await.unwrap();
         database.insert_message_item(item).await.unwrap();
-    }
-
-    async fn reset(database: &Database) {
-        database.drop_database_if_exists().await.unwrap();
     }
 
     #[atest]

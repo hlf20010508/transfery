@@ -225,7 +225,7 @@ impl Storage {
         }
     }
 
-    pub async fn remove_bucket(&self) -> Result<()> {
+    async fn remove_bucket(&self) -> Result<()> {
         self.remove_objects_all().await?;
 
         let args = BucketArgs::new(&self.bucket)
@@ -262,7 +262,7 @@ impl Storage {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use dotenv::dotenv;
     use minio::s3::args::PutObjectArgs;
     use std::env;
@@ -270,24 +270,40 @@ mod tests {
 
     use super::*;
 
-    fn get_storage() -> Storage {
+    fn get_endpoint() -> String {
+        env::var("MINIO_ENDPOINT").unwrap()
+    }
+
+    fn get_username() -> String {
+        env::var("MINIO_USERNAME").unwrap()
+    }
+
+    fn get_password() -> String {
+        env::var("MINIO_PASSWORD").unwrap()
+    }
+
+    fn get_bucket() -> String {
+        env::var("MINIO_BUCKET").unwrap()
+    }
+
+    pub fn get_storage() -> Storage {
         dotenv().ok();
 
-        let endpoint = env::var("MINIO_ENDPOINT").unwrap();
-        let username = env::var("MINIO_USERNAME").unwrap();
-        let password = env::var("MINIO_PASSWORD").unwrap();
-        let bucket = env::var("MINIO_BUCKET").unwrap();
+        let endpoint = get_endpoint();
+        let username = get_username();
+        let password = get_password();
+        let bucket = get_bucket();
 
         let storage = Storage::new(&endpoint, &username, &password, &bucket).unwrap();
 
         storage
     }
 
-    async fn init(storage: &Storage) -> Result<()> {
+    pub async fn init(storage: &Storage) -> Result<()> {
         storage.init().await
     }
 
-    async fn reset(storage: &Storage) {
+    pub async fn reset(storage: &Storage) {
         storage.remove_bucket().await.unwrap();
     }
 
@@ -306,7 +322,7 @@ mod tests {
         data
     }
 
-    async fn upload_data(storage: &Storage, remote_path: &str) -> Result<()> {
+    pub async fn upload_data(storage: &Storage, remote_path: &str) -> Result<()> {
         let mut data = Cursor::new(fake_data());
         let size = data.clone().into_inner().len();
 
@@ -328,10 +344,10 @@ mod tests {
     fn test_storage_new() {
         dotenv().ok();
 
-        let endpoint = env::var("MINIO_ENDPOINT").unwrap();
-        let username = env::var("MINIO_USERNAME").unwrap();
-        let password = env::var("MINIO_PASSWORD").unwrap();
-        let bucket = env::var("MINIO_BUCKET").unwrap();
+        let endpoint = get_endpoint();
+        let username = get_username();
+        let password = get_password();
+        let bucket = get_bucket();
 
         Storage::new(&endpoint, &username, &password, &bucket).unwrap();
     }
