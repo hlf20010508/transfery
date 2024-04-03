@@ -13,9 +13,9 @@ use crate::crypto::Crypto;
 use crate::error::Error::{CryptoError, ToJsonError, ToStrError};
 
 #[derive(Deserialize, Serialize)]
-struct Authorization {
-    fingerprint: String,
-    certificate: Option<String>,
+pub struct Authorization {
+    pub fingerprint: String,
+    pub certificate: Option<String>,
 }
 
 pub struct AuthState(bool);

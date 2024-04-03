@@ -15,6 +15,7 @@ mod env;
 mod error;
 mod handler;
 mod init;
+mod utils;
 
 use client::{get_database, get_storage};
 use crypto::Crypto;

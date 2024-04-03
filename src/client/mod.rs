@@ -5,8 +5,8 @@
 :license: MIT, see LICENSE for more details.
 */
 
-mod database;
-mod storage;
+pub mod database;
+pub mod storage;
 
 use crate::env::{
     MINIO_BUCKET, MINIO_ENDPOINT, MINIO_PASSWORD, MINIO_USERNAME, MYSQL_DATABASE, MYSQL_ENDPOINT,

@@ -5,5 +5,8 @@
 :license: MIT, see LICENSE for more details.
 */
 
-pub mod download;
-pub mod message;
+use chrono::Utc;
+
+pub fn get_current_timestamp() -> i64 {
+    Utc::now().timestamp_millis()
+}

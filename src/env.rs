@@ -34,6 +34,7 @@ where
 
 lazy_static! {
     pub static ref PORT: u16 = get_arg_value_option("--port", 8080);
+    pub static ref ITEM_PER_PAGE: u8 = get_arg_value_option("--item-per-page", 15);
     pub static ref MINIO_ENDPOINT: Result<String, Error> = get_arg_value("--minio-endpoint");
     pub static ref MINIO_USERNAME: Result<String, Error> = get_arg_value("--minio-username");
     pub static ref MINIO_PASSWORD: Result<String, Error> = get_arg_value("--minio-password");
