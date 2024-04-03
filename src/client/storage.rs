@@ -26,8 +26,8 @@ pub static PART_SIZE: u32 = 5 * 1024 * 1024; // 5MB
 
 #[derive(Debug, Clone)]
 pub struct Storage {
-    client: Client,
-    bucket: String,
+    pub client: Client,
+    pub bucket: String,
 }
 
 impl Storage {
