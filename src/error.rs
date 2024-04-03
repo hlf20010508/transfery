@@ -22,6 +22,7 @@ pub enum Error {
     ToStrError(String),
     ToJsonError(String),
     Base64DecodeError(String),
+    CryptoError(String),
     CryptoLoadKeyError(String),
     CryptoEncryptError(String),
     CryptoDecryptError(String),
@@ -60,6 +61,7 @@ impl Error {
             Error::Base64DecodeError(e) => {
                 Error::Base64DecodeError(format!("Error in {}: {}", message, e))
             }
+            Error::CryptoError(e) => Error::CryptoError(format!("Error in {}: {}", message, e)),
             Error::CryptoLoadKeyError(e) => {
                 Error::CryptoLoadKeyError(format!("Error in {}: {}", message, e))
             }
@@ -94,6 +96,7 @@ impl Display for Error {
             Error::ToStrError(e) => write!(f, "To &str error: {}", e),
             Error::ToJsonError(e) => write!(f, "To json error: {}", e),
             Error::Base64DecodeError(e) => write!(f, "Base64 decode error: {}", e),
+            Error::CryptoError(e) => write!(f, "Crypto error: {}", e),
             Error::CryptoLoadKeyError(e) => write!(f, "Crypto load key error: {}", e),
             Error::CryptoEncryptError(e) => write!(f, "Crypto encode error: {}", e),
             Error::CryptoDecryptError(e) => write!(f, "Crypto decode error: {}", e),
