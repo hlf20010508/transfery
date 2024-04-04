@@ -20,7 +20,7 @@ mod utils;
 use client::{get_database, get_storage};
 use crypto::Crypto;
 use env::PORT;
-use handler::{download, message};
+use handler::{download, message, upload};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -50,6 +50,7 @@ async fn server() -> std::io::Result<()> {
             .service(download::download_url)
             .service(message::page)
             .service(message::sync)
+            .service(upload::fetch_upload_id)
     })
     .bind(("0.0.0.0", PORT.clone()))?
     .run()

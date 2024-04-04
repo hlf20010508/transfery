@@ -6,7 +6,26 @@
 */
 
 use chrono::Utc;
+use sanitize_filename::sanitize;
 
 pub fn get_current_timestamp() -> i64 {
     Utc::now().timestamp_millis()
+}
+
+pub fn rename(filename: &str, timestamp: i64) -> String {
+    let parts: Vec<&str> = filename.split(".").collect();
+
+    let timestamp_str = timestamp.to_string();
+    let timestamp_second = &timestamp_str[..timestamp_str.len() - 3];
+
+    let new_filename = if parts.len() > 1 {
+        // file has extension
+        format!("{}_{}.{}", parts[0], timestamp_second, parts[1])
+    } else {
+        // file doesn't have extension
+        format!("{}_{}", parts[0], timestamp_second)
+    };
+
+    // prevent path issues
+    sanitize(new_filename)
 }
