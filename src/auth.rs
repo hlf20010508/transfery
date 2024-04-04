@@ -80,7 +80,7 @@ pub mod tests {
     use super::*;
 
     use actix_web::http::StatusCode;
-    use actix_web::{get, test as atest, web, App, HttpResponse, Responder};
+    use actix_web::{get, test as atest, web, App, HttpResponse, Result};
 
     use crate::crypto::tests::get_crypto;
 
@@ -97,11 +97,11 @@ pub mod tests {
     }
 
     #[get("/")]
-    async fn index(auth_state: AuthState) -> impl Responder {
+    async fn index(auth_state: AuthState) -> Result<HttpResponse> {
         if auth_state.is_authorized() {
-            HttpResponse::Ok()
+            Ok(HttpResponse::Ok().finish())
         } else {
-            HttpResponse::Unauthorized()
+            Ok(HttpResponse::Unauthorized().finish())
         }
     }
 
