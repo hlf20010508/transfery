@@ -49,6 +49,7 @@ async fn server() -> std::io::Result<()> {
             .app_data(web::Data::new(crypto.clone()))
             .service(download::download_url)
             .service(message::page)
+            .service(message::sync)
     })
     .bind(("0.0.0.0", PORT.clone()))?
     .run()

@@ -389,6 +389,32 @@ impl Database {
         Ok(result)
     }
 
+    pub async fn query_message_items_after_id(
+        &self,
+        id: u32,
+        access_private: bool,
+    ) -> Result<Vec<MessageItem>> {
+        let mut sql = format!("select * from `{}` where id > ?", MYSQL_TABLE_MESSAGE);
+        if !access_private {
+            sql.push_str(" and isPrivate = false ");
+        }
+
+        let query = sqlx::query::<MySql>(&sql)
+            .bind(id)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| {
+                SqlQueryError(format!("MySql query message items after id failed: {}", e))
+            })?;
+
+        let result: Vec<MessageItem> = query
+            .into_iter()
+            .map(|row| MessageItem::from(row))
+            .collect();
+
+        Ok(result)
+    }
+
     pub async fn insert_message_item(&self, item: MessageItem) -> Result<u64> {
         let sql = format!(
             "insert into `{}` (
@@ -671,6 +697,46 @@ pub mod tests {
         assert_eq!(
             result.unwrap().get(0).unwrap().content,
             "test database query message items"
+        );
+    }
+
+    #[actix_web::test]
+    async fn test_database_query_message_items_after_id() {
+        async fn inner(database: &Database) -> Result<Vec<MessageItem>> {
+            let item1 = MessageItem::new_text(
+                "test database query message items after id 1",
+                get_current_timestamp(),
+                false,
+            );
+
+            let item2 = MessageItem::new_text(
+                "test database query message items after id 2",
+                get_current_timestamp(),
+                false,
+            );
+
+            database.create_table_message_if_not_exists().await?;
+            database.insert_message_item(item1).await?;
+            database.insert_message_item(item2).await?;
+            let items = database.query_message_items_after_id(0, false).await?;
+
+            Ok(items)
+        }
+
+        let database = get_database().await;
+
+        let result = inner(&database).await;
+        reset(&database).await;
+
+        let result = result.unwrap();
+        assert_eq!(result.len(), 2);
+        assert_eq!(
+            result.get(0).unwrap().content,
+            "test database query message items after id 1"
+        );
+        assert_eq!(
+            result.get(1).unwrap().content,
+            "test database query message items after id 2"
         );
     }
 }
