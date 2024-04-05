@@ -447,6 +447,22 @@ impl Database {
 
         Ok(id)
     }
+
+    pub async fn update_complete(&self, id: i64) -> Result<()> {
+        let sql = format!(
+            "update `{}` set isComplete = 1 where id = ?",
+            MYSQL_TABLE_MESSAGE
+        );
+
+        let query = sqlx::query(&sql).bind(id);
+
+        self.pool
+            .execute(query)
+            .await
+            .map_err(|e| SqlExecuteError(format!("MySql update complete failed: {}", e)))?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -738,5 +754,26 @@ pub mod tests {
             result.get(1).unwrap().content,
             "test database query message items after id 2"
         );
+    }
+
+    #[actix_web::test]
+    async fn test_database_update_complete() {
+        async fn inner(database: &Database) -> Result<()> {
+            let content = "test_database_update_complete.txt";
+            let item =
+                MessageItem::new_file(content, get_current_timestamp(), false, content, false);
+
+            database.create_table_message_if_not_exists().await?;
+            let id = database.insert_message_item(item).await?;
+            database.update_complete(id as i64).await?;
+
+            Ok(())
+        }
+
+        let database = get_database().await;
+
+        let result = inner(&database).await;
+        reset(&database).await;
+        result.unwrap();
     }
 }
