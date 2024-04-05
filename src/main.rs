@@ -51,6 +51,7 @@ async fn server() -> std::io::Result<()> {
             .service(message::page)
             .service(message::sync)
             .service(upload::fetch_upload_id)
+            .service(upload::upload_part)
     })
     .bind(("0.0.0.0", PORT.clone()))?
     .run()
