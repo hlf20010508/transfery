@@ -5,38 +5,43 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use actix_multipart::Multipart;
-use actix_web::{post, web, Error, FromRequest, HttpResponse, Result};
-use futures::StreamExt;
+use axum::extract::{Extension, FromRequest, Json, Multipart, Request};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::{async_trait, debug_handler};
 use serde::{Deserialize, Serialize};
-use std::pin::Pin;
+use std::sync::Arc;
 
 use crate::auth::AuthState;
 use crate::client::{Database, Storage};
+use crate::error::Error::{self, FieldParseError, FromRequestError};
+use crate::error::Result;
 use crate::utils::rename;
 
 #[derive(Deserialize, Serialize, Clone)]
-struct FetchUploadIdJsonParams {
+pub struct FetchUploadIdJsonParams {
     content: String,
     timestamp: i64,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-struct FetchUploadIdResponse {
+pub struct FetchUploadIdResponse {
     #[serde(rename = "uploadId")]
     upload_id: String,
     #[serde(rename = "fileName")]
     file_name: String,
 }
 
-#[post("/fetchUploadId")]
+pub static FETCH_UPLOAD_ID_PATH: &str = "/fetchUploadId";
+
+#[debug_handler]
 pub async fn fetch_upload_id(
-    storage: web::Data<Storage>,
-    params: web::Json<FetchUploadIdJsonParams>,
-    auth_state: AuthState,
-) -> Result<HttpResponse> {
-    if !auth_state.is_authorized() {
-        return Ok(HttpResponse::Unauthorized().finish());
+    Extension(storage): Extension<Arc<Storage>>,
+    AuthState(is_authorized): AuthState,
+    Json(params): Json<FetchUploadIdJsonParams>,
+) -> Result<Response> {
+    if !is_authorized {
+        return Ok(StatusCode::UNAUTHORIZED.into_response());
     }
 
     println!("received fetch upload id request");
@@ -56,11 +61,11 @@ pub async fn fetch_upload_id(
 
     // println!("{:#?}", result);
 
-    Ok(HttpResponse::Ok().json(result))
+    Ok(axum::Json(result).into_response())
 }
 
 #[derive(Deserialize, Debug)]
-struct UploadPartFormParams {
+pub struct UploadPartFormParams {
     #[serde(rename = "filePart")]
     file_part: Vec<u8>,
     #[serde(rename = "fileName")]
@@ -71,80 +76,83 @@ struct UploadPartFormParams {
     part_number: u16, // at least 1
 }
 
-impl FromRequest for UploadPartFormParams {
-    type Error = Error;
-    type Future = Pin<Box<dyn std::future::Future<Output = Result<Self, Error>>>>;
+#[async_trait]
+impl<S> FromRequest<S> for UploadPartFormParams
+where
+    S: Send + Sync,
+{
+    type Rejection = Error;
 
-    fn from_request(
-        req: &actix_web::HttpRequest,
-        payload: &mut actix_web::dev::Payload,
-    ) -> Self::Future {
-        let mut payload = Multipart::new(req.headers(), payload.take());
+    async fn from_request(req: Request, state: &S) -> Result<Self> {
+        let mut multipart = Multipart::from_request(req, state)
+            .await
+            .map_err(|e| FromRequestError(format!("failed to parse multipart form: {}", e)))?;
 
-        let fut = async move {
-            let mut file_name = String::new();
-            let mut upload_id = String::new();
-            let mut part_number = u16::default();
-            let mut file_part = Vec::<u8>::new();
+        let mut file_name = String::new();
+        let mut upload_id = String::new();
+        let mut part_number = u16::default();
+        let mut file_part = Vec::<u8>::new();
 
-            while let Some(Ok(mut field)) = payload.next().await {
-                let disposition = field.content_disposition();
-                let field_name = disposition.get_name().unwrap_or_default();
+        while let Some(field) = multipart
+            .next_field()
+            .await
+            .map_err(|e| FieldParseError(format!("failed to parse multipart field: {}", e)))?
+        {
+            let name = match field.name() {
+                Some(name) => name.to_string(),
+                None => continue,
+            };
 
-                match field_name {
-                    "fileName" => {
-                        let mut data = Vec::<u8>::new();
-                        while let Some(chunk) = field.next().await {
-                            data.extend_from_slice(&chunk?);
-                        }
-                        file_name = String::from_utf8(data.to_vec()).unwrap_or_default();
-                    }
-                    "uploadId" => {
-                        let mut data = Vec::<u8>::new();
-                        while let Some(chunk) = field.next().await {
-                            data.extend_from_slice(&chunk?);
-                        }
-                        upload_id = String::from_utf8(data.to_vec()).unwrap_or_default();
-                    }
-                    "partNumber" => {
-                        let mut data = Vec::<u8>::new();
-                        while let Some(chunk) = field.next().await {
-                            data.extend_from_slice(&chunk?);
-                        }
-                        let part_number_str = String::from_utf8(data.to_vec()).unwrap_or_default();
-                        part_number = part_number_str.parse::<u16>().unwrap_or(0);
-                    }
-                    "filePart" => {
-                        let mut data = Vec::<u8>::new();
-                        while let Some(chunk) = field.next().await {
-                            data.extend_from_slice(&chunk?);
-                        }
-                        file_part.extend_from_slice(&data);
-                    }
-                    _ => {}
+            let data = field
+                .bytes()
+                .await
+                .map_err(|e| FieldParseError(format!("failed to read field bytes: {}", e)))?;
+
+            match name.as_str() {
+                "fileName" => {
+                    file_name = String::from_utf8(data.to_vec()).map_err(|e| {
+                        FieldParseError(format!("failed to parse field fileName: {}", e))
+                    })?;
                 }
+                "uploadId" => {
+                    upload_id = String::from_utf8(data.to_vec()).map_err(|e| {
+                        FieldParseError(format!("failed to parse field uploadId: {}", e))
+                    })?;
+                }
+                "partNumber" => {
+                    let part_number_str = String::from_utf8(data.to_vec()).map_err(|e| {
+                        FieldParseError(format!("failed to parse field partNumber: {}", e))
+                    })?;
+                    part_number = part_number_str.parse::<u16>().map_err(|e| {
+                        FieldParseError(format!("failed to parse field partNumber to u16: {}", e))
+                    })?;
+                }
+                "filePart" => {
+                    file_part.extend_from_slice(&data);
+                }
+                _ => {}
             }
+        }
 
-            Ok(UploadPartFormParams {
-                file_name,
-                upload_id,
-                part_number,
-                file_part,
-            })
-        };
-
-        Box::pin(fut)
+        Ok(UploadPartFormParams {
+            file_name,
+            upload_id,
+            part_number,
+            file_part,
+        })
     }
 }
 
-#[post("/uploadPart")]
+pub static UPLOAD_PART_PATH: &str = "/uploadPart";
+
+#[debug_handler]
 pub async fn upload_part(
-    storage: web::Data<Storage>,
+    Extension(storage): Extension<Arc<Storage>>,
+    AuthState(is_authorized): AuthState,
     params: UploadPartFormParams,
-    auth_state: AuthState,
-) -> Result<HttpResponse> {
-    if !auth_state.is_authorized() {
-        return Ok(HttpResponse::Unauthorized().finish());
+) -> Result<Response> {
+    if !is_authorized {
+        return Ok(StatusCode::UNAUTHORIZED.into_response());
     }
 
     let etag = storage
@@ -157,11 +165,11 @@ pub async fn upload_part(
         .await?
         .etag;
 
-    Ok(HttpResponse::Ok().body(etag))
+    Ok(etag.into_response())
 }
 
 #[derive(Deserialize, Serialize, Clone)]
-struct Part {
+pub struct Part {
     number: u16,
     etag: String,
 }
@@ -176,7 +184,7 @@ impl Into<minio::s3::types::Part> for Part {
 }
 
 #[derive(Deserialize, Serialize, Clone)]
-struct CompleteUploadFormParams {
+pub struct CompleteUploadFormParams {
     id: i64,
     #[serde(rename = "fileName")]
     file_name: String,
@@ -185,15 +193,17 @@ struct CompleteUploadFormParams {
     parts: Vec<Part>,
 }
 
-#[post("/completeUpload")]
+pub static COMPLETE_UPLOAD_PATH: &str = "/completeUpload";
+
+#[debug_handler]
 pub async fn complete_upload(
-    storage: web::Data<Storage>,
-    database: web::Data<Database>,
-    params: web::Json<CompleteUploadFormParams>,
-    auth_state: AuthState,
-) -> Result<HttpResponse> {
-    if !auth_state.is_authorized() {
-        return Ok(HttpResponse::Unauthorized().finish());
+    Extension(storage): Extension<Arc<Storage>>,
+    Extension(database): Extension<Arc<Database>>,
+    AuthState(is_authorized): AuthState,
+    Json(params): Json<CompleteUploadFormParams>,
+) -> Result<Response> {
+    if !is_authorized {
+        return Ok(StatusCode::UNAUTHORIZED.into_response());
     }
 
     println!("received complete upload request");
@@ -214,16 +224,21 @@ pub async fn complete_upload(
 
     database.update_complete(id).await?;
 
-    Ok(HttpResponse::Ok().finish())
+    Ok(StatusCode::OK.into_response())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use actix_web::dev::ServiceResponse;
-    use actix_web::http::StatusCode;
-    use actix_web::{test as atest, App};
+    use axum::body::Body;
+    use axum::extract::Request;
+    use axum::http::header;
+    use axum::response::Response;
+    use axum::routing::post;
+    use axum::Router;
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
 
     use crate::auth::tests::gen_auth;
     use crate::client::database::tests::{get_database, reset as reset_database};
@@ -231,9 +246,9 @@ mod tests {
     use crate::client::storage::tests::{get_storage, init, reset as reset_storage};
     use crate::client::{Database, Storage};
     use crate::crypto::tests::get_crypto;
-    use crate::error::Error::ToStrError;
+    use crate::error::Error::{DefaultError, ToStrError};
     use crate::error::Result;
-    use crate::utils::get_current_timestamp;
+    use crate::utils::{get_current_timestamp, into_layer};
 
     const BOUNDARY: &str = "------------------------boundary";
 
@@ -275,35 +290,42 @@ mod tests {
         }
     }
 
-    #[atest]
+    #[tokio::test]
     async fn test_upload_fetch_upload_id() {
-        async fn inner(storage: &Storage) -> Result<ServiceResponse> {
+        async fn inner(storage: &Storage) -> Result<Response> {
             let content = "test_upload_fetch_upload_id.txt";
             init(&storage).await?;
 
             let crypto = get_crypto();
             let auth = gen_auth(&crypto);
 
-            let mut app = atest::init_service(
-                App::new()
-                    .service(fetch_upload_id)
-                    .app_data(web::Data::new(storage.clone()))
-                    .app_data(web::Data::new(crypto.clone())),
-            )
-            .await;
+            let router = Router::new()
+                .route(FETCH_UPLOAD_ID_PATH, post(fetch_upload_id))
+                .layer(into_layer(storage.clone()))
+                .layer(into_layer(crypto.clone()));
 
-            let req = atest::TestRequest::post()
-                .uri("/fetchUploadId")
-                .set_json(FetchUploadIdJsonParams {
-                    content: content.to_string(),
-                    timestamp: get_current_timestamp(),
-                })
-                .insert_header(("Authorization", auth))
-                .to_request();
+            let data = FetchUploadIdJsonParams {
+                content: content.to_string(),
+                timestamp: get_current_timestamp(),
+            };
 
-            let resp = atest::call_service(&mut app, req).await;
+            let body = serde_json::to_string(&data)
+                .map_err(|e| ToStrError(format!("failed to build request: {}", e)))?;
 
-            Ok(resp)
+            let req = Request::builder()
+                .method("POST")
+                .uri(FETCH_UPLOAD_ID_PATH)
+                .header("Authorization", auth)
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(body))
+                .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+
+            let res = router
+                .oneshot(req)
+                .await
+                .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+
+            Ok(res)
         }
 
         let storage = get_storage();
@@ -313,40 +335,52 @@ mod tests {
         assert_eq!(result.unwrap().status(), StatusCode::OK);
     }
 
-    #[atest]
+    #[tokio::test]
     async fn test_upload_upload_part() {
-        async fn inner(storage: &Storage) -> Result<ServiceResponse> {
+        async fn inner(storage: &Storage) -> Result<Response> {
             let content = "test_upload_upload_part.txt";
             init(&storage).await?;
 
             let crypto = get_crypto();
             let auth = gen_auth(&crypto);
 
-            let mut app = atest::init_service(
-                App::new()
-                    .service(fetch_upload_id)
-                    .service(upload_part)
-                    .app_data(web::Data::new(storage.clone()))
-                    .app_data(web::Data::new(crypto.clone())),
-            )
-            .await;
+            let router = Router::new()
+                .route(FETCH_UPLOAD_ID_PATH, post(fetch_upload_id))
+                .route(UPLOAD_PART_PATH, post(upload_part))
+                .layer(into_layer(storage.clone()))
+                .layer(into_layer(crypto.clone()));
 
-            let req = atest::TestRequest::post()
-                .uri("/fetchUploadId")
-                .set_json(FetchUploadIdJsonParams {
-                    content: content.to_string(),
-                    timestamp: get_current_timestamp(),
-                })
-                .insert_header(("Authorization", auth.clone()))
-                .to_request();
+            let data = FetchUploadIdJsonParams {
+                content: content.to_string(),
+                timestamp: get_current_timestamp(),
+            };
 
-            let resp = atest::call_service(&mut app, req).await;
-            let resp: FetchUploadIdResponse = atest::read_body_json(resp).await;
+            let body = serde_json::to_string(&data)
+                .map_err(|e| ToStrError(format!("failed to build request: {}", e)))?;
+
+            let req = Request::builder()
+                .method("POST")
+                .uri(FETCH_UPLOAD_ID_PATH)
+                .header("Authorization", auth.clone())
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(body))
+                .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+
+            let res = router
+                .clone()
+                .oneshot(req)
+                .await
+                .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+
+            let res_content =
+                String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec())
+                    .unwrap();
+            let res_data: FetchUploadIdResponse = serde_json::from_str(&res_content).unwrap();
 
             let FetchUploadIdResponse {
                 upload_id,
                 file_name,
-            } = resp;
+            } = res_data;
 
             let data = UploadPartFormParams {
                 file_name,
@@ -357,16 +391,23 @@ mod tests {
 
             let payload = data.gen_payload();
 
-            let req = atest::TestRequest::post()
-                .uri("/uploadPart")
-                .set_payload(payload)
-                .insert_header(UploadPartFormParams::gen_header())
-                .insert_header(("Authorization", auth.clone()))
-                .to_request();
+            let (upload_header_key, upload_header_value) = UploadPartFormParams::gen_header();
 
-            let resp = atest::call_service(&mut app, req).await;
+            let req = Request::builder()
+                .method("POST")
+                .uri(UPLOAD_PART_PATH)
+                .header("Authorization", auth.clone())
+                .header(upload_header_key, upload_header_value)
+                .body(Body::from(payload))
+                .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
 
-            Ok(resp)
+            let res = router
+                .clone()
+                .oneshot(req)
+                .await
+                .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+
+            Ok(res)
         }
 
         let storage = get_storage();
@@ -376,9 +417,9 @@ mod tests {
         assert_eq!(result.unwrap().status(), StatusCode::OK);
     }
 
-    #[atest]
+    #[tokio::test]
     async fn test_upload_complete_upload() {
-        async fn inner(storage: &Storage, database: &Database) -> Result<ServiceResponse> {
+        async fn inner(storage: &Storage, database: &Database) -> Result<Response> {
             let content = "test_upload_complete_upload.txt";
 
             init(&storage).await?;
@@ -386,33 +427,45 @@ mod tests {
             let crypto = get_crypto();
             let auth = gen_auth(&crypto);
 
-            let mut app = atest::init_service(
-                App::new()
-                    .service(fetch_upload_id)
-                    .service(upload_part)
-                    .service(complete_upload)
-                    .app_data(web::Data::new(storage.clone()))
-                    .app_data(web::Data::new(database.clone()))
-                    .app_data(web::Data::new(crypto.clone())),
-            )
-            .await;
+            let router = Router::new()
+                .route(FETCH_UPLOAD_ID_PATH, post(fetch_upload_id))
+                .route(UPLOAD_PART_PATH, post(upload_part))
+                .route(COMPLETE_UPLOAD_PATH, post(complete_upload))
+                .layer(into_layer(storage.clone()))
+                .layer(into_layer(database.clone()))
+                .layer(into_layer(crypto.clone()));
 
-            let req = atest::TestRequest::post()
-                .uri("/fetchUploadId")
-                .set_json(FetchUploadIdJsonParams {
-                    content: content.to_string(),
-                    timestamp: get_current_timestamp(),
-                })
-                .insert_header(("Authorization", auth.clone()))
-                .to_request();
+            let data = FetchUploadIdJsonParams {
+                content: content.to_string(),
+                timestamp: get_current_timestamp(),
+            };
 
-            let resp = atest::call_service(&mut app, req).await;
-            let resp: FetchUploadIdResponse = atest::read_body_json(resp).await;
+            let body = serde_json::to_string(&data)
+                .map_err(|e| ToStrError(format!("failed to build request: {}", e)))?;
+
+            let req = Request::builder()
+                .method("POST")
+                .uri(FETCH_UPLOAD_ID_PATH)
+                .header("Authorization", auth.clone())
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(body))
+                .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+
+            let res = router
+                .clone()
+                .oneshot(req)
+                .await
+                .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+
+            let res_content =
+                String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec())
+                    .unwrap();
+            let res_data: FetchUploadIdResponse = serde_json::from_str(&res_content).unwrap();
 
             let FetchUploadIdResponse {
                 upload_id,
                 file_name,
-            } = resp;
+            } = res_data;
 
             let item =
                 MessageItem::new_file(content, get_current_timestamp(), false, &file_name, false);
@@ -429,36 +482,51 @@ mod tests {
 
             let payload = data.gen_payload();
 
-            let req = atest::TestRequest::post()
-                .uri("/uploadPart")
-                .set_payload(payload)
-                .insert_header(UploadPartFormParams::gen_header())
-                .insert_header(("Authorization", auth.clone()))
-                .to_request();
+            let (upload_header_key, upload_header_value) = UploadPartFormParams::gen_header();
 
-            let resp = atest::call_service(&mut app, req).await;
-            let etag_byte = atest::read_body(resp)
+            let req = Request::builder()
+                .method("POST")
+                .uri(UPLOAD_PART_PATH)
+                .header("Authorization", auth.clone())
+                .header(upload_header_key, upload_header_value)
+                .body(Body::from(payload))
+                .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+
+            let res = router
+                .clone()
+                .oneshot(req)
                 .await
-                .into_iter()
-                .collect::<Vec<u8>>();
-            let etag = String::from_utf8(etag_byte).map_err(|e| {
-                ToStrError(format!("Failed to convert etag Vec<u8> to String: {}", e))
-            })?;
+                .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
 
-            let req = atest::TestRequest::post()
-                .uri("/completeUpload")
-                .set_json(CompleteUploadFormParams {
-                    id: id as i64,
-                    file_name: file_name.clone(),
-                    upload_id: upload_id.clone(),
-                    parts: vec![Part { number: 1, etag }],
-                })
-                .insert_header(("Authorization", auth.clone()))
-                .to_request();
+            let etag =
+                String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec())
+                    .unwrap();
 
-            let resp = atest::call_service(&mut app, req).await;
+            let data = CompleteUploadFormParams {
+                id: id as i64,
+                file_name: file_name.clone(),
+                upload_id: upload_id.clone(),
+                parts: vec![Part { number: 1, etag }],
+            };
 
-            Ok(resp)
+            let body = serde_json::to_string(&data)
+                .map_err(|e| ToStrError(format!("failed to build request: {}", e)))?;
+
+            let req = Request::builder()
+                .method("POST")
+                .uri(COMPLETE_UPLOAD_PATH)
+                .header("Authorization", auth.clone())
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(body))
+                .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+
+            let res = router
+                .clone()
+                .oneshot(req)
+                .await
+                .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+
+            Ok(res)
         }
 
         let storage = get_storage();

@@ -5,27 +5,31 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use actix_web::{get, web, Error, HttpResponse, Result};
+use axum::extract::{Extension, Query};
+use axum::Json;
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 use crate::client::Storage;
+use crate::error::{Error, Result};
 
 #[derive(Deserialize)]
-struct DownloadUrlQueryParams {
+pub struct DownloadUrlQueryParams {
     #[serde[rename = "fileName"]]
     file_name: String,
 }
 
 #[derive(Serialize)]
-struct DownloadUrlResponseParams {
+pub struct DownloadUrlResponseParams {
     url: String,
 }
 
-#[get("downloadUrl")]
+pub static DOWNLOAD_URL_PATH: &str = "/downloadUrl";
+
 pub async fn download_url(
-    storage: web::Data<Storage>,
-    params: web::Query<DownloadUrlQueryParams>,
-) -> Result<HttpResponse> {
+    Extension(storage): Extension<Arc<Storage>>,
+    Query(params): Query<DownloadUrlQueryParams>,
+) -> Result<Json<DownloadUrlResponseParams>> {
     println!("received download url request");
 
     let file_name = params.file_name.clone();
@@ -37,47 +41,70 @@ pub async fn download_url(
 
     println!("download url pushed");
 
-    Ok(HttpResponse::Ok().json(DownloadUrlResponseParams { url }))
+    Ok(Json(DownloadUrlResponseParams { url }))
 }
 
 #[cfg(test)]
 mod tests {
-    use actix_web::dev::ServiceResponse;
-    use actix_web::http::StatusCode;
-    use actix_web::{test as atest, App};
-
     use super::*;
 
-    use crate::client::storage::tests::{get_storage, init, reset, upload_data};
-    use crate::error::Result;
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use axum::response::Response;
+    use axum::routing::get;
+    use axum::Router;
+    // use http_body_util::BodyExt;
+    use tower::ServiceExt;
 
-    #[atest]
+    use crate::client::storage::tests::{get_storage, init, reset, upload_data};
+    use crate::error::Error::DefaultError;
+    use crate::error::Result;
+    use crate::utils::into_layer;
+
+    #[tokio::test]
     async fn test_download_download_url() {
-        async fn inner(storage: &Storage) -> Result<ServiceResponse> {
+        async fn inner(storage: &Storage) -> Result<Response> {
             let remote_path = "test_message_page.txt";
+
             init(&storage).await?;
             upload_data(&storage, remote_path).await?;
 
-            let mut app = atest::init_service(
-                App::new()
-                    .service(download_url)
-                    .app_data(web::Data::new(storage.clone())),
-            )
-            .await;
+            let router = Router::new()
+                .route(DOWNLOAD_URL_PATH, get(download_url))
+                .layer(into_layer(storage.clone()));
 
-            let req = atest::TestRequest::get()
-                .uri(&format!("/downloadUrl?fileName={}", remote_path))
-                .to_request();
+            let req = Request::builder()
+                .method("GET")
+                .uri(&format!("{}?fileName={}", DOWNLOAD_URL_PATH, remote_path))
+                .body(Body::empty())
+                .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
 
-            let resp = atest::call_service(&mut app, req).await;
+            let res = router
+                .oneshot(req)
+                .await
+                .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
 
-            Ok(resp)
+            Ok(res)
         }
 
         let storage = get_storage();
 
         let result = inner(&storage).await;
+
         reset(&storage).await;
+
         assert_eq!(result.unwrap().status(), StatusCode::OK);
+
+        // let body = String::from_utf8(
+        //     result
+        //         .into_body()
+        //         .collect()
+        //         .await
+        //         .unwrap()
+        //         .to_bytes()
+        //         .to_vec(),
+        // )
+        // .unwrap();
+        // println!("{}", body);
     }
 }

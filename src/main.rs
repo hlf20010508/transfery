@@ -5,7 +5,8 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use actix_web::{web, App, HttpServer};
+use axum::routing::{get, post};
+use axum::Router;
 use pico_args::Arguments;
 
 mod auth;
@@ -21,40 +22,40 @@ use client::{get_database, get_storage};
 use crypto::Crypto;
 use env::PORT;
 use handler::{download, message, upload};
+use utils::into_layer;
 
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
+#[tokio::main]
+async fn main() {
     let mut args = Arguments::from_env();
 
     if args.contains("--init") {
         init::init().await;
     } else {
-        server().await?;
+        server().await;
     }
-
-    Ok(())
 }
 
-async fn server() -> std::io::Result<()> {
-    let storage = get_storage();
-    let database = get_database().await;
+async fn server() {
+    let storage = into_layer(get_storage());
+    let database = into_layer(get_database().await);
 
     let secret_key = database.get_secret_key().await.unwrap();
-    let crypto = Crypto::new(&secret_key).unwrap();
+    let crypto = into_layer(Crypto::new(&secret_key).unwrap());
 
-    HttpServer::new(move || {
-        App::new()
-            .app_data(web::Data::new(storage.clone()))
-            .app_data(web::Data::new(database.clone()))
-            .app_data(web::Data::new(crypto.clone()))
-            .service(download::download_url)
-            .service(message::page)
-            .service(message::sync)
-            .service(upload::fetch_upload_id)
-            .service(upload::upload_part)
-            .service(upload::complete_upload)
-    })
-    .bind(("0.0.0.0", PORT.clone()))?
-    .run()
-    .await
+    let router = Router::new()
+        .route(download::DOWNLOAD_URL_PATH, get(download::download_url))
+        .route(message::PAGE_PATH, get(message::page))
+        .route(message::SYNC_PATH, get(message::sync))
+        .route(upload::FETCH_UPLOAD_ID_PATH, post(upload::fetch_upload_id))
+        .route(upload::UPLOAD_PART_PATH, post(upload::upload_part))
+        .route(upload::COMPLETE_UPLOAD_PATH, post(upload::complete_upload))
+        .layer(storage)
+        .layer(database)
+        .layer(crypto);
+
+    let listener = tokio::net::TcpListener::bind(("0.0.0.0", PORT.clone()))
+        .await
+        .unwrap();
+
+    axum::serve(listener, router).await.unwrap();
 }

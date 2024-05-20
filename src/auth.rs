@@ -5,12 +5,15 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use actix_web::FromRequest;
+use axum::async_trait;
+use axum::extract::FromRequestParts;
+use axum::http::request::Parts;
 use serde::{Deserialize, Serialize};
-use std::future::{ready, Ready};
+use std::sync::Arc;
 
 use crate::crypto::Crypto;
-use crate::error::Error::{CryptoError, ToJsonError, ToStrError};
+use crate::error::Error::{self, UnauthorizedError};
+use crate::error::Result;
 
 #[derive(Deserialize, Serialize)]
 struct Authorization {
@@ -18,34 +21,34 @@ struct Authorization {
     certificate: Option<String>,
 }
 
-pub struct AuthState(bool);
+pub struct AuthState(pub bool);
 
-impl AuthState {
-    pub fn is_authorized(&self) -> bool {
-        self.0
-    }
-}
+#[async_trait]
+impl<S> FromRequestParts<S> for AuthState
+where
+    S: Send + Sync,
+{
+    type Rejection = Error;
 
-impl FromRequest for AuthState {
-    type Error = actix_web::Error;
-    type Future = Ready<Result<Self, Self::Error>>;
-
-    fn from_request(req: &actix_web::HttpRequest, _: &mut actix_web::dev::Payload) -> Self::Future {
-        if let Some(auth) = req.headers().get("Authorization") {
+    async fn from_request_parts(req: &mut Parts, _state: &S) -> Result<Self> {
+        if let Some(auth) = req.headers.get("Authorization") {
             let auth_str = match auth.to_str() {
                 Ok(str) => str,
                 Err(e) => {
-                    let e = ToStrError(format!("Failed to convert auth header to &str: {}", e));
-                    return ready(Err(Self::Error::from(e)));
+                    return Err(UnauthorizedError(format!(
+                        "Failed to convert auth header to &str: {}",
+                        e
+                    )));
                 }
             };
 
             let auth_json = match serde_json::from_str::<Authorization>(auth_str) {
                 Ok(json) => json,
                 Err(e) => {
-                    let e =
-                        ToJsonError(format!("Failed to convert auth header &str to json: {}", e));
-                    return ready(Err(Self::Error::from(e)));
+                    return Err(UnauthorizedError(format!(
+                        "Failed to convert auth header &str to json: {}",
+                        e
+                    )));
                 }
             };
 
@@ -55,23 +58,24 @@ impl FromRequest for AuthState {
             } = auth_json;
 
             if let Some(certificate) = certificate {
-                let crypto = match req.app_data::<actix_web::web::Data<Crypto>>() {
-                    Some(crypto) => crypto,
+                let crypto = match req.extensions.get::<Arc<Crypto>>() {
+                    Some(ext) => ext,
                     None => {
-                        let e = CryptoError(format!("Crypto data not found in from_request"));
-                        return ready(Err(Self::Error::from(e)));
+                        return Err(UnauthorizedError(format!(
+                            "Crypto data not found in from_request"
+                        )));
                     }
                 };
 
                 if let Ok(fingerprint_decrypted) = crypto.decrypt(&certificate) {
                     if fingerprint == fingerprint_decrypted {
-                        return ready(Ok(AuthState(true)));
+                        return Ok(AuthState(true));
                     }
                 };
             }
         };
 
-        return ready(Ok(AuthState(false)));
+        Ok(AuthState(false))
     }
 }
 
@@ -79,10 +83,15 @@ impl FromRequest for AuthState {
 pub mod tests {
     use super::*;
 
-    use actix_web::http::StatusCode;
-    use actix_web::{get, test as atest, web, App, HttpResponse, Result};
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode};
+    use axum::response::{IntoResponse, Response};
+    use axum::routing::get;
+    use axum::Router;
+    use tower::ServiceExt;
 
     use crate::crypto::tests::get_crypto;
+    use crate::utils::into_layer;
 
     pub fn gen_auth(crypto: &Crypto) -> String {
         let fingerprint = "fingerprint for test";
@@ -96,39 +105,42 @@ pub mod tests {
         serde_json::to_string(&auth).unwrap()
     }
 
-    #[get("/")]
-    async fn index(auth_state: AuthState) -> Result<HttpResponse> {
-        if auth_state.is_authorized() {
-            Ok(HttpResponse::Ok().finish())
+    async fn index(AuthState(is_authorized): AuthState) -> Response {
+        if is_authorized {
+            StatusCode::OK.into_response()
         } else {
-            Ok(HttpResponse::Unauthorized().finish())
+            StatusCode::UNAUTHORIZED.into_response()
         }
     }
 
-    #[atest]
+    #[tokio::test]
     async fn test_auth_from_request() {
         let crypto = get_crypto();
 
-        let mut app = atest::init_service(
-            App::new()
-                .service(index)
-                .app_data(web::Data::new(crypto.clone())),
-        )
-        .await;
+        let router = Router::new()
+            .route("/", get(index))
+            .layer(into_layer(crypto.clone()));
 
         let authorization = gen_auth(&crypto);
 
-        let req = atest::TestRequest::get()
+        let req = Request::builder()
+            .method("GET")
             .uri("/")
-            .insert_header(("Authorization", authorization))
-            .to_request();
+            .header("Authorization", authorization)
+            .body(Body::empty())
+            .unwrap();
 
-        let resp = atest::call_service(&mut app, req).await;
-        assert_eq!(resp.status(), StatusCode::OK);
+        let res = router.clone().oneshot(req).await.unwrap();
 
-        let req = atest::TestRequest::get().uri("/").to_request();
+        assert_eq!(res.status(), StatusCode::OK);
 
-        let resp = atest::call_service(&mut app, req).await;
-        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+        let req = Request::builder()
+            .method("GET")
+            .uri("/")
+            .body(Body::empty())
+            .unwrap();
+
+        let res = router.clone().oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
     }
 }

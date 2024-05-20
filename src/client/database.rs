@@ -509,7 +509,7 @@ pub mod tests {
         database.drop_database_if_exists().await.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_new() {
         dotenv().ok();
 
@@ -523,7 +523,7 @@ pub mod tests {
             .unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_create_database_if_not_exists() {
         let database = get_database().await;
 
@@ -533,7 +533,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_init() {
         let database = get_database().await;
 
@@ -542,7 +542,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_create_table_message_if_not_exists() {
         let database = get_database().await;
 
@@ -551,7 +551,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_create_table_auth_if_not_exists() {
         let database = get_database().await;
 
@@ -560,7 +560,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_create_table_device_if_not_exists() {
         let database = get_database().await;
 
@@ -569,7 +569,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_create_secret_key_if_not_exists() {
         async fn inner(database: &Database) -> Result<()> {
             database.create_table_auth_if_not_exists().await?;
@@ -585,7 +585,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_is_secret_key_exist() {
         async fn inner(database: &Database) -> Result<()> {
             database.create_table_auth_if_not_exists().await?;
@@ -621,7 +621,7 @@ pub mod tests {
         assert_eq!(result_false.unwrap(), false);
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_get_secret_key() {
         async fn inner(database: &Database) -> Result<String> {
             database.create_table_auth_if_not_exists().await?;
@@ -640,14 +640,14 @@ pub mod tests {
         assert_eq!(result.unwrap().len(), 44);
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_drop_database_if_exists() {
         let database = get_database().await;
 
         database.drop_database_if_exists().await.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_insert_message_item() {
         async fn inner(database: &Database, item: MessageItem) -> Result<u64> {
             database.create_table_message_if_not_exists().await?;
@@ -690,7 +690,7 @@ pub mod tests {
         assert_eq!(result_file.unwrap(), 2);
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_query_message_items() {
         async fn inner(database: &Database) -> Result<Vec<MessageItem>> {
             let item = MessageItem::new_text(
@@ -716,7 +716,7 @@ pub mod tests {
         );
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_query_message_items_after_id() {
         async fn inner(database: &Database) -> Result<Vec<MessageItem>> {
             let item1 = MessageItem::new_text(
@@ -756,7 +756,7 @@ pub mod tests {
         );
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_database_update_complete() {
         async fn inner(database: &Database) -> Result<()> {
             let content = "test_database_update_complete.txt";

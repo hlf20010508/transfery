@@ -5,7 +5,6 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use actix_web::http::Method;
 use minio::s3::args::{
     BucketArgs, BucketExistsArgs, CompleteMultipartUploadArgs, CreateMultipartUploadArgs,
     GetPresignedObjectUrlArgs, ListObjectsV2Args, MakeBucketArgs, ObjectVersionArgs,
@@ -240,14 +239,14 @@ impl Storage {
     }
 
     pub async fn get_download_url(&self, remote_path: &str) -> Result<String> {
-        let args = GetPresignedObjectUrlArgs::new(&self.bucket, remote_path, Method::GET).map_err(
-            |e| {
-                StorageObjectError(format!(
-                    "Storage create get presigned object url args failed: {}",
-                    e
-                ))
-            },
-        )?;
+        let args =
+            GetPresignedObjectUrlArgs::new(&self.bucket, remote_path, http::method::Method::GET)
+                .map_err(|e| {
+                    StorageObjectError(format!(
+                        "Storage create get presigned object url args failed: {}",
+                        e
+                    ))
+                })?;
 
         let response = self
             .client
@@ -352,7 +351,7 @@ pub mod tests {
         Storage::new(&endpoint, &username, &password, &bucket).unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_storage_init() {
         let storage = get_storage();
 
@@ -361,7 +360,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_storage_create_buffer_if_not_exists() {
         let storage = get_storage();
 
@@ -370,7 +369,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_storage_is_bucket_exists() {
         async fn inner_true(storage: &Storage) -> Result<bool> {
             init(storage).await?;
@@ -396,7 +395,7 @@ pub mod tests {
         assert_eq!(result_true.unwrap(), true);
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_storage_create_multipart_upload_id() {
         async fn inner(storage: &Storage) -> Result<()> {
             let remote_path = "test-create-multipart-upload-id.txt";
@@ -414,7 +413,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_storage_multipart_upload() {
         async fn inner(storage: &Storage) -> Result<()> {
             let remote_path = "test-multipart-upload.txt";
@@ -439,7 +438,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_storage_complete_multipart_upload() {
         async fn inner(storage: &Storage) -> Result<()> {
             let remote_path = "test-complete-multipart-upload.txt";
@@ -474,7 +473,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_storage_list_objects() {
         async fn inner(storage: &Storage) -> Result<()> {
             init(storage).await?;
@@ -491,7 +490,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_storage_remove_object() {
         async fn inner(storage: &Storage) -> Result<()> {
             let remote_path = "test_remove_object.txt";
@@ -511,7 +510,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_storage_remove_objects_all() {
         async fn inner(storage: &Storage) -> Result<()> {
             let remote_path = "test_remove_objects_all.txt";
@@ -531,7 +530,7 @@ pub mod tests {
         result.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_storage_remove_bucket() {
         let storage = get_storage();
 
@@ -540,7 +539,7 @@ pub mod tests {
         storage.remove_bucket().await.unwrap();
     }
 
-    #[actix_web::test]
+    #[tokio::test]
     async fn test_storage_get_download_url() {
         async fn inner(storage: &Storage) -> Result<()> {
             let remote_path = "get_download_url.txt";

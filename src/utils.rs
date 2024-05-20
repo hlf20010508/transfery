@@ -5,8 +5,10 @@
 :license: MIT, see LICENSE for more details.
 */
 
+use axum::extract::Extension;
 use chrono::Utc;
 use sanitize_filename::sanitize;
+use std::sync::Arc;
 
 pub fn get_current_timestamp() -> i64 {
     Utc::now().timestamp_millis()
@@ -28,4 +30,8 @@ pub fn rename(filename: &str, timestamp: i64) -> String {
 
     // prevent path issues
     sanitize(new_filename)
+}
+
+pub fn into_layer<T>(data: T) -> Extension<Arc<T>> {
+    Extension(Arc::new(data))
 }
