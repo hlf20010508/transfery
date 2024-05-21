@@ -8,6 +8,9 @@
 use axum::routing::{get, post};
 use axum::Router;
 use pico_args::Arguments;
+use socketioxide::extract::{Data, SocketRef};
+use socketioxide::socket::Sid;
+use socketioxide::SocketIo;
 
 mod auth;
 mod client;
@@ -21,7 +24,7 @@ mod utils;
 use client::{get_database, get_storage};
 use crypto::Crypto;
 use env::PORT;
-use handler::{download, message, upload};
+use handler::{download, message, socket, upload};
 use utils::into_layer;
 
 #[tokio::main]
@@ -42,6 +45,12 @@ async fn server() {
     let secret_key = database.get_secret_key().await.unwrap();
     let crypto = into_layer(Crypto::new(&secret_key).unwrap());
 
+    let (socketio_layer, socketio) = SocketIo::new_layer();
+
+    socketio.ns("/", |socket: SocketRef, data: Data<Sid>| {
+        socket::connect(socket, data);
+    });
+
     let router = Router::new()
         .route(download::DOWNLOAD_URL_PATH, get(download::download_url))
         .route(message::PAGE_PATH, get(message::page))
@@ -51,7 +60,8 @@ async fn server() {
         .route(upload::COMPLETE_UPLOAD_PATH, post(upload::complete_upload))
         .layer(storage)
         .layer(database)
-        .layer(crypto);
+        .layer(crypto)
+        .layer(socketio_layer);
 
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", PORT.clone()))
         .await

@@ -7,4 +7,5 @@
 
 pub mod download;
 pub mod message;
+pub mod socket;
 pub mod upload;
