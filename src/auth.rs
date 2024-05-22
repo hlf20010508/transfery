@@ -84,7 +84,7 @@ pub mod tests {
     use super::*;
 
     use axum::body::Body;
-    use axum::http::{Request, StatusCode};
+    use axum::http::{Method, Request, StatusCode};
     use axum::response::{IntoResponse, Response};
     use axum::routing::get;
     use axum::Router;
@@ -124,7 +124,7 @@ pub mod tests {
         let authorization = gen_auth(&crypto);
 
         let req = Request::builder()
-            .method("GET")
+            .method(Method::GET)
             .uri("/")
             .header("Authorization", authorization)
             .body(Body::empty())
@@ -135,7 +135,7 @@ pub mod tests {
         assert_eq!(res.status(), StatusCode::OK);
 
         let req = Request::builder()
-            .method("GET")
+            .method(Method::GET)
             .uri("/")
             .body(Body::empty())
             .unwrap();

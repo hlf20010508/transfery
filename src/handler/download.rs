@@ -49,7 +49,7 @@ mod tests {
     use super::*;
 
     use axum::body::Body;
-    use axum::http::{Request, StatusCode};
+    use axum::http::{Method, Request, StatusCode};
     use axum::response::Response;
     use axum::routing::get;
     use axum::Router;
@@ -74,7 +74,7 @@ mod tests {
                 .layer(into_layer(storage.clone()));
 
             let req = Request::builder()
-                .method("GET")
+                .method(Method::GET)
                 .uri(&format!("{}?fileName={}", DOWNLOAD_URL_PATH, remote_path))
                 .body(Body::empty())
                 .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;

@@ -233,7 +233,7 @@ mod tests {
 
     use axum::body::Body;
     use axum::extract::Request;
-    use axum::http::header;
+    use axum::http::{header, Method};
     use axum::response::Response;
     use axum::routing::post;
     use axum::Router;
@@ -313,7 +313,7 @@ mod tests {
                 .map_err(|e| ToStrError(format!("failed to build request: {}", e)))?;
 
             let req = Request::builder()
-                .method("POST")
+                .method(Method::POST)
                 .uri(FETCH_UPLOAD_ID_PATH)
                 .header("Authorization", auth)
                 .header(header::CONTENT_TYPE, "application/json")
@@ -359,7 +359,7 @@ mod tests {
                 .map_err(|e| ToStrError(format!("failed to build request: {}", e)))?;
 
             let req = Request::builder()
-                .method("POST")
+                .method(Method::POST)
                 .uri(FETCH_UPLOAD_ID_PATH)
                 .header("Authorization", auth.clone())
                 .header(header::CONTENT_TYPE, "application/json")
@@ -394,7 +394,7 @@ mod tests {
             let (upload_header_key, upload_header_value) = UploadPartFormParams::gen_header();
 
             let req = Request::builder()
-                .method("POST")
+                .method(Method::POST)
                 .uri(UPLOAD_PART_PATH)
                 .header("Authorization", auth.clone())
                 .header(upload_header_key, upload_header_value)
@@ -444,7 +444,7 @@ mod tests {
                 .map_err(|e| ToStrError(format!("failed to build request: {}", e)))?;
 
             let req = Request::builder()
-                .method("POST")
+                .method(Method::POST)
                 .uri(FETCH_UPLOAD_ID_PATH)
                 .header("Authorization", auth.clone())
                 .header(header::CONTENT_TYPE, "application/json")
@@ -485,7 +485,7 @@ mod tests {
             let (upload_header_key, upload_header_value) = UploadPartFormParams::gen_header();
 
             let req = Request::builder()
-                .method("POST")
+                .method(Method::POST)
                 .uri(UPLOAD_PART_PATH)
                 .header("Authorization", auth.clone())
                 .header(upload_header_key, upload_header_value)
@@ -513,7 +513,7 @@ mod tests {
                 .map_err(|e| ToStrError(format!("failed to build request: {}", e)))?;
 
             let req = Request::builder()
-                .method("POST")
+                .method(Method::POST)
                 .uri(COMPLETE_UPLOAD_PATH)
                 .header("Authorization", auth.clone())
                 .header(header::CONTENT_TYPE, "application/json")

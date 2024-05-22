@@ -74,7 +74,7 @@ mod tests {
     use super::*;
 
     use axum::body::Body;
-    use axum::http::{Request, StatusCode};
+    use axum::http::{Method, Request, StatusCode};
     use axum::response::Response;
     use axum::routing::get;
     use axum::Router;
@@ -110,7 +110,7 @@ mod tests {
             let authorization = gen_auth(&crypto);
 
             let req = Request::builder()
-                .method("GET")
+                .method(Method::GET)
                 .uri(format!("{}?size=0", PAGE_PATH))
                 .header("Authorization", authorization)
                 .body(Body::empty())
@@ -145,7 +145,7 @@ mod tests {
             let authorization = gen_auth(&crypto);
 
             let req = Request::builder()
-                .method("GET")
+                .method(Method::GET)
                 .uri(format!("{}?latestId=0", SYNC_PATH))
                 .header("Authorization", authorization)
                 .body(Body::empty())
