@@ -47,8 +47,8 @@ async fn server() {
 
     let (socketio_layer, socketio) = SocketIo::new_layer();
 
-    socketio.ns("/", |socket: SocketRef, data: Data<Sid>| {
-        socket::connect(socket, data);
+    socketio.ns("/", |socket: SocketRef| {
+        socket::connect(&socket);
     });
 
     let router = Router::new()

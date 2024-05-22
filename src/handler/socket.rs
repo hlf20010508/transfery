@@ -5,19 +5,51 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use socketioxide::extract::{Data, SocketRef};
-use socketioxide::socket::Sid;
+use socketioxide::extract::SocketRef;
 use std::sync::Mutex;
 
-static CONNECTION_NUMBER: Mutex<usize> = Mutex::new(0);
+struct MutexNumber(Mutex<usize>);
 
-pub fn connect(socket: SocketRef, Data(sid): Data<Sid>) {
-    let connection_number = CONNECTION_NUMBER
-        .lock()
-        .unwrap()
-        .checked_add(1)
-        .unwrap()
-        .clone();
+impl MutexNumber {
+    const fn new(number: usize) -> Self {
+        Self(Mutex::new(number))
+    }
+
+    fn get(&self) -> usize {
+        *self
+            .0
+            .lock()
+            .unwrap_or_else(|e| panic!("failed to acquire lock for MutexNumber in get: {}", e))
+    }
+
+    fn increase(&self) {
+        let mut number = self.0.lock().unwrap_or_else(|e| {
+            panic!("failed to acquire lock for MutexNumber in increase: {}", e)
+        });
+
+        *number = number
+            .checked_add(1)
+            .unwrap_or_else(|| panic!("MutexNumber overflowed in increase"));
+    }
+
+    fn decrease(&self) {
+        let mut number = self.0.lock().unwrap_or_else(|e| {
+            panic!("failed to acquire lock for MutexNumber in decrease: {}", e)
+        });
+
+        *number = number
+            .checked_add_signed(-1)
+            .unwrap_or_else(|| panic!("MutexNumber overflowed in decrease"));
+    }
+}
+
+static CONNECTION_NUMBER: MutexNumber = MutexNumber::new(0);
+
+pub fn connect(socket: &SocketRef) {
+    let sid = socket.id.clone();
+
+    CONNECTION_NUMBER.increase();
+    let connection_number = CONNECTION_NUMBER.get();
 
     println!(
         "client {} connected, connection number {}",
@@ -26,4 +58,44 @@ pub fn connect(socket: SocketRef, Data(sid): Data<Sid>) {
     );
 
     socket.emit("connectionNumber", connection_number).ok();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use axum::Router;
+    use rust_socketio::asynchronous::ClientBuilder;
+    use socketioxide::SocketIo;
+    use tokio::net::TcpListener;
+
+    #[tokio::test]
+    async fn test_socket_connect() {
+        let (socketio_layer, socketio) = SocketIo::new_layer();
+
+        socketio.ns("/", |socket: SocketRef| {
+            connect(&socket);
+        });
+
+        let router = Router::new().layer(socketio_layer);
+
+        let server = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = server.local_addr().unwrap();
+
+        tokio::spawn(async move {
+            axum::serve(server, router).await.unwrap();
+        });
+
+        let socket = ClientBuilder::new(format!("http://{}/", addr))
+            .connect()
+            .await
+            .unwrap_or_else(|e| panic!("Connection failed: {}", e));
+
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+
+        socket
+            .disconnect()
+            .await
+            .unwrap_or_else(|e| panic!("Disconnect failed: {}", e));
+    }
 }
