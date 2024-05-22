@@ -50,8 +50,9 @@ async fn server() {
 
     socketio.ns(
         "/",
-        |socket: SocketRef, connection_number: State<socket::ConnectionNumber>| {
-            socket::connect(&socket, connection_number);
+        |s: SocketRef, connection_number: State<socket::ConnectionNumber>| {
+            socket::connect(&s, connection_number);
+            s.on_disconnect(socket::disconnect);
         },
     );
 

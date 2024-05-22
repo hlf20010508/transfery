@@ -35,6 +35,19 @@ pub fn connect(socket: &SocketRef, connection_number: State<ConnectionNumber>) {
     socket.emit("connectionNumber", connection_number).ok();
 }
 
+pub fn disconnect(socket: SocketRef, connection_number: State<ConnectionNumber>) {
+    let sid = socket.id.clone();
+
+    let connection_number = connection_number.decrease();
+
+    println!(
+        "client {} disconnected, connection number {}",
+        sid, connection_number
+    );
+
+    socket.emit("connectionNumber", connection_number).ok();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -71,7 +84,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_socket_connect() {
-        let (socketio_layer, socketio) = SocketIo::new_layer();
+        let (socketio_layer, socketio) = SocketIo::builder()
+            .with_state(ConnectionNumber::new())
+            .build_layer();
 
         socketio.ns(
             "/",
@@ -101,5 +116,44 @@ mod tests {
             .disconnect()
             .await
             .unwrap_or_else(|e| panic!("Disconnect failed: {}", e));
+    }
+
+    #[tokio::test]
+    async fn test_socket_disconnect() {
+        let (socketio_layer, socketio) = SocketIo::builder()
+            .with_state(ConnectionNumber::new())
+            .build_layer();
+
+        socketio.ns(
+            "/",
+            |socket: SocketRef, connection_number: State<ConnectionNumber>| {
+                connect(&socket, connection_number);
+                socket.on_disconnect(disconnect);
+            },
+        );
+
+        let router = Router::new().layer(socketio_layer);
+
+        let server = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = server.local_addr().unwrap();
+
+        tokio::spawn(async move {
+            axum::serve(server, router).await.unwrap();
+        });
+
+        let socket = ClientBuilder::new(format!("http://{}/", addr))
+            .on("connectionNumber", connection_number)
+            .connect()
+            .await
+            .unwrap_or_else(|e| panic!("Connection failed: {}", e));
+
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+
+        socket
+            .disconnect()
+            .await
+            .unwrap_or_else(|e| panic!("Disconnect failed: {}", e));
+
+        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     }
 }
