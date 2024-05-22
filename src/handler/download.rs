@@ -53,7 +53,6 @@ mod tests {
     use axum::response::Response;
     use axum::routing::get;
     use axum::Router;
-    // use http_body_util::BodyExt;
     use tower::ServiceExt;
 
     use crate::client::storage::tests::{get_storage, init, reset, upload_data};
@@ -94,17 +93,5 @@ mod tests {
         reset(&storage).await;
 
         assert_eq!(result.unwrap().status(), StatusCode::OK);
-
-        // let body = String::from_utf8(
-        //     result
-        //         .into_body()
-        //         .collect()
-        //         .await
-        //         .unwrap()
-        //         .to_bytes()
-        //         .to_vec(),
-        // )
-        // .unwrap();
-        // println!("{}", body);
     }
 }

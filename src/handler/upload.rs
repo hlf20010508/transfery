@@ -248,6 +248,7 @@ mod tests {
     use crate::crypto::tests::get_crypto;
     use crate::error::Error::{DefaultError, ToStrError};
     use crate::error::Result;
+    use crate::utils::tests::ResponseExt;
     use crate::utils::{get_current_timestamp, into_layer};
 
     const BOUNDARY: &str = "------------------------boundary";
@@ -372,10 +373,9 @@ mod tests {
                 .await
                 .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
 
-            let res_content =
-                String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec())
-                    .unwrap();
-            let res_data: FetchUploadIdResponse = serde_json::from_str(&res_content).unwrap();
+            let res_content = res.to_string().await?;
+            let res_data: FetchUploadIdResponse = serde_json::from_str(&res_content)
+                .map_err(|e| ToStrError(format!("failed to parse response: {}", e)))?;
 
             let FetchUploadIdResponse {
                 upload_id,
@@ -457,10 +457,9 @@ mod tests {
                 .await
                 .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
 
-            let res_content =
-                String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec())
-                    .unwrap();
-            let res_data: FetchUploadIdResponse = serde_json::from_str(&res_content).unwrap();
+            let res_content = res.to_string().await?;
+            let res_data: FetchUploadIdResponse = serde_json::from_str(&res_content)
+                .map_err(|e| ToStrError(format!("failed to parse response: {}", e)))?;
 
             let FetchUploadIdResponse {
                 upload_id,
@@ -498,9 +497,7 @@ mod tests {
                 .await
                 .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
 
-            let etag =
-                String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec())
-                    .unwrap();
+            let etag = res.to_string().await?;
 
             let data = CompleteUploadFormParams {
                 id: id as i64,

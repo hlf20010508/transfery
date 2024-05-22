@@ -35,3 +35,33 @@ pub fn rename(filename: &str, timestamp: i64) -> String {
 pub fn into_layer<T>(data: T) -> Extension<Arc<T>> {
     Extension(Arc::new(data))
 }
+
+#[cfg(test)]
+pub mod tests {
+    use axum::body::Body;
+    use axum::response::Response;
+    use http_body_util::BodyExt;
+
+    use crate::error::Error::{DefaultError, ToStrError};
+    use crate::error::Result;
+
+    pub trait ResponseExt {
+        async fn to_string(self) -> Result<String>;
+    }
+
+    impl ResponseExt for Response<Body> {
+        async fn to_string(self) -> Result<String> {
+            let result = String::from_utf8(
+                self.into_body()
+                    .collect()
+                    .await
+                    .map_err(|e| DefaultError(format!("failed to collect response body: {}", e)))?
+                    .to_bytes()
+                    .to_vec(),
+            )
+            .map_err(|e| ToStrError(format!("failed to convert response body to string: {}", e)))?;
+
+            Ok(result)
+        }
+    }
+}
