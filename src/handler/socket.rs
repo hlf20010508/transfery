@@ -53,8 +53,7 @@ pub fn connect(socket: &SocketRef) {
 
     println!(
         "client {} connected, connection number {}",
-        sid.as_str(),
-        connection_number
+        sid, connection_number
     );
 
     socket.emit("connectionNumber", connection_number).ok();
@@ -65,9 +64,34 @@ mod tests {
     use super::*;
 
     use axum::Router;
-    use rust_socketio::asynchronous::ClientBuilder;
+    use futures::FutureExt;
+    use rust_socketio::asynchronous::{Client, ClientBuilder};
+    use rust_socketio::Payload;
     use socketioxide::SocketIo;
+    use std::future::Future;
+    use std::pin::Pin;
     use tokio::net::TcpListener;
+
+    fn connection_number(
+        payload: Payload,
+        _socket: Client,
+    ) -> Pin<Box<(dyn Future<Output = ()> + Send + 'static)>> {
+        async move {
+            match payload {
+                Payload::Text(value) => match value.get(0) {
+                    Some(value) => match value {
+                        serde_json::Value::Number(number) => {
+                            assert_eq!(number.as_u64(), Some(1));
+                        }
+                        _ => panic!("Unexpected payload value type"),
+                    },
+                    None => panic!("No connection number received"),
+                },
+                _ => panic!("Unexpected payload type"),
+            };
+        }
+        .boxed()
+    }
 
     #[tokio::test]
     async fn test_socket_connect() {
@@ -87,6 +111,7 @@ mod tests {
         });
 
         let socket = ClientBuilder::new(format!("http://{}/", addr))
+            .on("connectionNumber", connection_number)
             .connect()
             .await
             .unwrap_or_else(|e| panic!("Connection failed: {}", e));
