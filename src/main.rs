@@ -8,8 +8,7 @@
 use axum::routing::{get, post};
 use axum::Router;
 use pico_args::Arguments;
-use socketioxide::extract::{Data, SocketRef};
-use socketioxide::socket::Sid;
+use socketioxide::extract::{SocketRef, State};
 use socketioxide::SocketIo;
 
 mod auth;
@@ -45,11 +44,16 @@ async fn server() {
     let secret_key = database.get_secret_key().await.unwrap();
     let crypto = into_layer(Crypto::new(&secret_key).unwrap());
 
-    let (socketio_layer, socketio) = SocketIo::new_layer();
+    let (socketio_layer, socketio) = SocketIo::builder()
+        .with_state(socket::ConnectionNumber::new())
+        .build_layer();
 
-    socketio.ns("/", |socket: SocketRef| {
-        socket::connect(&socket);
-    });
+    socketio.ns(
+        "/",
+        |socket: SocketRef, connection_number: State<socket::ConnectionNumber>| {
+            socket::connect(&socket, connection_number);
+        },
+    );
 
     let router = Router::new()
         .route(download::DOWNLOAD_URL_PATH, get(download::download_url))

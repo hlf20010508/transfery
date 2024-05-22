@@ -5,51 +5,27 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use socketioxide::extract::SocketRef;
-use std::sync::Mutex;
+use socketioxide::extract::{SocketRef, State};
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering::SeqCst;
 
-struct MutexNumber(Mutex<usize>);
-
-impl MutexNumber {
-    const fn new(number: usize) -> Self {
-        Self(Mutex::new(number))
+pub struct ConnectionNumber(pub AtomicUsize);
+impl ConnectionNumber {
+    pub fn new() -> Self {
+        Self(AtomicUsize::new(0))
     }
-
-    fn get(&self) -> usize {
-        *self
-            .0
-            .lock()
-            .unwrap_or_else(|e| panic!("failed to acquire lock for MutexNumber in get: {}", e))
+    fn increase(&self) -> usize {
+        self.0.fetch_add(1, SeqCst) + 1
     }
-
-    fn increase(&self) {
-        let mut number = self.0.lock().unwrap_or_else(|e| {
-            panic!("failed to acquire lock for MutexNumber in increase: {}", e)
-        });
-
-        *number = number
-            .checked_add(1)
-            .unwrap_or_else(|| panic!("MutexNumber overflowed in increase"));
-    }
-
-    fn decrease(&self) {
-        let mut number = self.0.lock().unwrap_or_else(|e| {
-            panic!("failed to acquire lock for MutexNumber in decrease: {}", e)
-        });
-
-        *number = number
-            .checked_add_signed(-1)
-            .unwrap_or_else(|| panic!("MutexNumber overflowed in decrease"));
+    fn decrease(&self) -> usize {
+        self.0.fetch_sub(1, SeqCst) - 1
     }
 }
 
-static CONNECTION_NUMBER: MutexNumber = MutexNumber::new(0);
-
-pub fn connect(socket: &SocketRef) {
+pub fn connect(socket: &SocketRef, connection_number: State<ConnectionNumber>) {
     let sid = socket.id.clone();
 
-    CONNECTION_NUMBER.increase();
-    let connection_number = CONNECTION_NUMBER.get();
+    let connection_number = connection_number.increase();
 
     println!(
         "client {} connected, connection number {}",
@@ -97,9 +73,12 @@ mod tests {
     async fn test_socket_connect() {
         let (socketio_layer, socketio) = SocketIo::new_layer();
 
-        socketio.ns("/", |socket: SocketRef| {
-            connect(&socket);
-        });
+        socketio.ns(
+            "/",
+            |socket: SocketRef, connection_number: State<ConnectionNumber>| {
+                connect(&socket, connection_number);
+            },
+        );
 
         let router = Router::new().layer(socketio_layer);
 
