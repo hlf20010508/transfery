@@ -5,7 +5,8 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use socketioxide::extract::{SocketRef, State};
+use serde::{Deserialize, Serialize};
+use socketioxide::extract::{Data, SocketRef, State};
 use socketioxide::operators::RoomParam;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::SeqCst;
@@ -81,6 +82,21 @@ pub fn disconnect(socket: SocketRef, connection_number: State<ConnectionNumber>)
         .ok();
 }
 
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+pub struct ProgressData {
+    id: u32,
+    percentage: u8,
+    pause: bool,
+    #[serde(rename = "isComplete")]
+    is_complete: bool,
+}
+
+pub static PROGRESS_EVENT: &str = "progress";
+
+pub fn progress(socket: SocketRef, Data::<ProgressData>(data): Data<ProgressData>) {
+    socket.broadcast().emit("progress", data).ok();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,6 +124,35 @@ mod tests {
                         // assert_eq!(_number, 1)
                     }
                     None => panic!("No connection number received"),
+                },
+                _ => panic!("Unexpected payload type"),
+            };
+        }
+        .boxed()
+    }
+
+    fn progress_handler(
+        payload: Payload,
+        _socket: Client,
+    ) -> Pin<Box<(dyn Future<Output = ()> + Send + 'static)>> {
+        async move {
+            match payload {
+                Payload::Text(value) => match value.get(0) {
+                    Some(value) => {
+                        let data =
+                            serde_json::from_value::<ProgressData>(value.to_owned()).unwrap();
+                        println!("{:#?}", data);
+                        assert_eq!(
+                            data,
+                            ProgressData {
+                                id: 1,
+                                percentage: 100,
+                                pause: false,
+                                is_complete: true
+                            }
+                        );
+                    }
+                    _ => panic!("No progress data received"),
                 },
                 _ => panic!("Unexpected payload type"),
             };
@@ -188,5 +233,57 @@ mod tests {
             .unwrap_or_else(|e| panic!("Disconnect failed: {}", e));
 
         sleep_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn test_socket_progress() {
+        let (socketio_layer, socketio) = SocketIo::new_layer();
+
+        socketio.ns("/", |socket: SocketRef| socket.on(PROGRESS_EVENT, progress));
+
+        let router = Router::new().layer(socketio_layer);
+
+        let server = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = server.local_addr().unwrap();
+
+        tokio::spawn(async move {
+            axum::serve(server, router).await.unwrap();
+        });
+
+        let socket_sender = ClientBuilder::new(format!("http://{}/", addr))
+            .connect()
+            .await
+            .unwrap_or_else(|e| panic!("Connection failed: {}", e));
+
+        let socket_receiver = ClientBuilder::new(format!("http://{}/", addr))
+            .on("progress", progress_handler)
+            .connect()
+            .await
+            .unwrap_or_else(|e| panic!("Connection failed: {}", e));
+
+        sleep_async(1).await;
+
+        let data = ProgressData {
+            id: 1,
+            percentage: 100,
+            pause: false,
+            is_complete: true,
+        };
+
+        let data_json = serde_json::to_string(&data).unwrap();
+
+        socket_sender.emit(PROGRESS_EVENT, data_json).await.unwrap();
+
+        sleep_async(1).await;
+
+        socket_sender
+            .disconnect()
+            .await
+            .unwrap_or_else(|e| panic!("Disconnect failed: {}", e));
+
+        socket_receiver
+            .disconnect()
+            .await
+            .unwrap_or_else(|e| panic!("Disconnect failed: {}", e));
     }
 }

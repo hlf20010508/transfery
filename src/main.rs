@@ -53,6 +53,7 @@ async fn server() {
         |s: SocketRef, connection_number: State<socket::ConnectionNumber>| {
             socket::connect(&s, connection_number);
             s.on_disconnect(socket::disconnect);
+            s.on(socket::PROGRESS_EVENT, socket::progress);
         },
     );
 
