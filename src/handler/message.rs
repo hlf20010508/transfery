@@ -268,7 +268,7 @@ mod tests {
     use super::*;
 
     use axum::body::Body;
-    use axum::http::{header, Method, Request, StatusCode};
+    use axum::http::{Method, Request, StatusCode};
     use axum::response::Response;
     use axum::routing::{get, post};
     use axum::Router;
@@ -289,8 +289,8 @@ mod tests {
     };
     use crate::client::Database;
     use crate::crypto::tests::get_crypto;
-    use crate::error::Error::{DefaultError, ToStrError};
-    use crate::utils::tests::{sleep_async, ResponseExt};
+    use crate::error::Error::DefaultError;
+    use crate::utils::tests::sleep_async;
     use crate::utils::{get_current_timestamp, into_layer};
 
     async fn fake_message_item(database: &Database) {

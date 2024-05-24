@@ -237,7 +237,6 @@ mod tests {
     use axum::response::Response;
     use axum::routing::post;
     use axum::Router;
-    use http_body_util::BodyExt;
     use tower::ServiceExt;
 
     use crate::auth::tests::gen_auth;
