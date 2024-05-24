@@ -32,6 +32,7 @@ pub enum Error {
     CryptoKeyGenError(String),
     FromRequestError(String),
     FieldParseError(String),
+    SocketEmitError(String),
     UnauthorizedError(String),
 }
 
@@ -71,6 +72,7 @@ impl IntoResponse for Error {
             Error::CryptoKeyGenError(e) => internal_server_error_response(e),
             Error::FromRequestError(e) => internal_server_error_response(e),
             Error::FieldParseError(e) => internal_server_error_response(e),
+            Error::SocketEmitError(e) => internal_server_error_response(e),
             Error::UnauthorizedError(e) => unauthorized_response(e),
         }
     }
@@ -104,6 +106,7 @@ impl Error {
             Error::CryptoKeyGenError(e) => Error::CryptoKeyGenError(add_context(message, &e)),
             Error::FromRequestError(e) => Error::FromRequestError(add_context(message, &e)),
             Error::FieldParseError(e) => Error::FromRequestError(add_context(message, &e)),
+            Error::SocketEmitError(e) => Error::SocketEmitError(add_context(message, &e)),
             Error::UnauthorizedError(e) => Error::UnauthorizedError(add_context(message, &e)),
         }
     }
@@ -133,6 +136,7 @@ impl Display for Error {
             Error::CryptoKeyGenError(e) => write!(f, "Crypto key gen error: {}", e),
             Error::FromRequestError(e) => write!(f, "From Request error: {}", e),
             Error::FieldParseError(e) => write!(f, "Field parse error: {}", e),
+            Error::SocketEmitError(e) => write!(f, "Socket emit error: {}", e),
             Error::UnauthorizedError(e) => write!(f, "Unauthorized error: {}", e),
         }
     }

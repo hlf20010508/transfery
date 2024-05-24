@@ -61,13 +61,15 @@ async fn server() {
         .route(download::DOWNLOAD_URL_PATH, get(download::download_url))
         .route(message::PAGE_PATH, get(message::page))
         .route(message::SYNC_PATH, get(message::sync))
+        .route(message::NEW_ITEM_PATH, get(message::new_item))
         .route(upload::FETCH_UPLOAD_ID_PATH, post(upload::fetch_upload_id))
         .route(upload::UPLOAD_PART_PATH, post(upload::upload_part))
         .route(upload::COMPLETE_UPLOAD_PATH, post(upload::complete_upload))
         .layer(storage)
         .layer(database)
         .layer(crypto)
-        .layer(socketio_layer);
+        .layer(socketio_layer)
+        .layer(into_layer(socketio));
 
     let listener = tokio::net::TcpListener::bind(("0.0.0.0", PORT.clone()))
         .await

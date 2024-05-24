@@ -5,7 +5,7 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::mysql::{MySql, MySqlConnectOptions, MySqlPoolOptions, MySqlRow, MySqlValueRef};
 use sqlx::pool::Pool;
 use sqlx::{Decode, Encode, Executor, Row, Type};
@@ -24,8 +24,8 @@ pub struct Database {
     name: String,
 }
 
-#[derive(Debug, Serialize)]
-enum MessageItemType {
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub enum MessageItemType {
     #[serde(rename = "text")]
     Text,
     #[serde(rename = "file")]

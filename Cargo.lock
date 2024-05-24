@@ -2942,6 +2942,7 @@ dependencies = [
  "lazy_static",
  "minio",
  "pico-args",
+ "reqwest 0.12.4",
  "ring",
  "rust_socketio",
  "sanitize-filename",

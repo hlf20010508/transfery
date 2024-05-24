@@ -11,7 +11,7 @@ use socketioxide::operators::RoomParam;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::SeqCst;
 
-enum Room {
+pub enum Room {
     Public,
     Private,
 }
@@ -47,9 +47,10 @@ impl ConnectionNumber {
 }
 
 pub fn connect(socket: &SocketRef, connection_number: State<ConnectionNumber>) {
-    socket.join(Room::Public).ok();
-
     let sid = socket.id.clone();
+
+    socket.join(sid).ok();
+    socket.join(Room::Public).ok();
 
     let connection_number = connection_number.increase();
 
@@ -65,9 +66,10 @@ pub fn connect(socket: &SocketRef, connection_number: State<ConnectionNumber>) {
 }
 
 pub fn disconnect(socket: SocketRef, connection_number: State<ConnectionNumber>) {
-    socket.join(Room::Public).ok();
-
     let sid = socket.id.clone();
+
+    socket.join(sid).ok();
+    socket.join(Room::Public).ok();
 
     let connection_number = connection_number.decrease();
 
