@@ -6,6 +6,8 @@
 */
 
 use axum::extract::{Extension, Query};
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use axum::{debug_handler, Json};
 use serde::{Deserialize, Serialize};
 use socketioxide::socket::Sid;
@@ -14,7 +16,7 @@ use std::sync::Arc;
 
 use crate::auth::AuthState;
 use crate::client::database::{MessageItem, MessageItemType};
-use crate::client::Database;
+use crate::client::{Database, Storage};
 use crate::env::ITEM_PER_PAGE;
 use crate::error::Error::{FieldParseError, SocketEmitError};
 use crate::error::Result;
@@ -200,6 +202,67 @@ pub async fn new_item(
     Ok(item_id.to_string())
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct RemoveItemParams {
+    id: u64,
+    #[serde(rename = "type")]
+    type_field: MessageItemType,
+    #[serde(rename = "fileName")]
+    file_name: Option<String>,
+    sid: Sid,
+}
+
+pub static REMOVE_ITEM_PATH: &str = "/removeItem";
+
+pub async fn remove_item(
+    Extension(database): Extension<Arc<Database>>,
+    Extension(storage): Extension<Arc<Storage>>,
+    Extension(socketio): Extension<Arc<SocketIo>>,
+    AuthState(is_authorized): AuthState,
+    Json(item): Json<RemoveItemParams>,
+) -> Result<Response> {
+    if !is_authorized {
+        return Ok(StatusCode::UNAUTHORIZED.into_response());
+    }
+
+    println!("received item to be removed: {:#?}", item);
+
+    let sid = item.sid;
+
+    database.remove_message_item(item.id as i64).await?;
+
+    println!("removed item in db");
+
+    match item.type_field {
+        MessageItemType::File => {
+            let file_name = item.file_name;
+
+            match file_name {
+                Some(file_name) => {
+                    storage.remove_object(&file_name).await?;
+                    println!("removed item in storage");
+                }
+                None => {
+                    return Err(FieldParseError(
+                        "RemoveItemParams field fileName missed for file type".to_string(),
+                    ));
+                }
+            }
+        }
+        _ => {}
+    }
+
+    socketio
+        .to(Room::Public)
+        .except(sid)
+        .emit("removeItem", item.id)
+        .map_err(|e| SocketEmitError(format!("socketio emit error for event removeItem: {}", e)))?;
+
+    println!("broadcasted");
+
+    Ok(StatusCode::OK.into_response())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -219,8 +282,11 @@ mod tests {
     use tower::ServiceExt;
 
     use crate::auth::tests::gen_auth;
-    use crate::client::database::tests::{get_database, reset};
+    use crate::client::database::tests::{get_database, reset as reset_database};
     use crate::client::database::MessageItem;
+    use crate::client::storage::tests::{
+        get_storage, init as init_storage, reset as reset_storage, upload_data,
+    };
     use crate::client::Database;
     use crate::crypto::tests::get_crypto;
     use crate::error::Error::{DefaultError, ToStrError};
@@ -232,6 +298,24 @@ mod tests {
 
         database.create_table_message_if_not_exists().await.unwrap();
         database.insert_message_item(item).await.unwrap();
+    }
+
+    async fn fake_file(database: &Database, storage: &Storage, file_name: &str) -> Result<()> {
+        let item = MessageItem::new_file(
+            "fake file for message",
+            get_current_timestamp(),
+            false,
+            file_name,
+            true,
+        );
+
+        database.create_table_message_if_not_exists().await?;
+        database.insert_message_item(item).await?;
+
+        init_storage(storage).await?;
+        upload_data(storage, file_name).await?;
+
+        Ok(())
     }
 
     fn new_item_handler(
@@ -256,6 +340,25 @@ mod tests {
                                 type_field: MessageItemType::File
                             }
                         );
+                    }
+                    None => panic!("No new item received"),
+                },
+                _ => panic!("Unexpected payload type"),
+            };
+        }
+        .boxed()
+    }
+
+    fn remove_item_handler(
+        payload: Payload,
+        _socket: Client,
+    ) -> Pin<Box<(dyn Future<Output = ()> + Send + 'static)>> {
+        async move {
+            match payload {
+                Payload::Text(value) => match value.get(0) {
+                    Some(value) => {
+                        let id = serde_json::from_value::<u64>(value.to_owned()).unwrap();
+                        assert_eq!(id, 1);
                     }
                     None => panic!("No new item received"),
                 },
@@ -296,7 +399,7 @@ mod tests {
 
         let database = get_database().await;
         let result = inner(&database).await;
-        reset(&database).await;
+        reset_database(&database).await;
         assert_eq!(result.unwrap().status(), StatusCode::OK);
     }
 
@@ -331,7 +434,7 @@ mod tests {
 
         let database = get_database().await;
         let result = inner(&database).await;
-        reset(&database).await;
+        reset_database(&database).await;
         assert_eq!(result.unwrap().status(), StatusCode::OK);
     }
 
@@ -396,10 +499,85 @@ mod tests {
 
         let database = get_database().await;
         let result = inner(&database).await;
-        reset(&database).await;
+        reset_database(&database).await;
 
         let res = result.unwrap();
         assert_eq!(res.status(), StatusCode::OK);
         assert_eq!(res.text().await.unwrap(), "2".to_string());
+    }
+
+    #[tokio::test]
+    async fn test_message_remove_item() {
+        async fn inner(database: &Database, storage: &Storage) -> Result<reqwest::Response> {
+            let file_name = "test_message_remove_item.txt";
+
+            fake_file(database, storage, file_name).await?;
+
+            let crypto = get_crypto();
+            let auth = gen_auth(&crypto);
+
+            let (socketio_layer, socketio) = SocketIo::new_layer();
+
+            socketio.ns("/", |_socket: SocketRef| {});
+
+            let router = Router::new()
+                .route(REMOVE_ITEM_PATH, post(remove_item))
+                .layer(into_layer(database.clone()))
+                .layer(into_layer(storage.clone()))
+                .layer(into_layer(crypto))
+                .layer(socketio_layer)
+                .layer(into_layer(socketio));
+
+            let server = TcpListener::bind("127.0.0.1:0")
+                .await
+                .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+            let addr = server
+                .local_addr()
+                .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+
+            tokio::spawn(async move {
+                axum::serve(server, router).await.unwrap();
+            });
+
+            ClientBuilder::new(format!("http://{}/", addr))
+                .on("removeItem", remove_item_handler)
+                .connect()
+                .await
+                .map_err(|e| {
+                    DefaultError(format!("failed to connect to socketio server: {}", e))
+                })?;
+
+            sleep_async(1).await;
+
+            let data = RemoveItemParams {
+                id: 1,
+                type_field: MessageItemType::File,
+                file_name: Some(file_name.to_string()),
+                sid: Sid::new(),
+            };
+
+            let client = reqwest::Client::new();
+            let res = client
+                .post(format!("http://{}{}", addr, REMOVE_ITEM_PATH))
+                .json(&data)
+                .header("Authorization", auth)
+                .send()
+                .await
+                .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+
+            sleep_async(1).await;
+
+            Ok(res)
+        }
+
+        let database = get_database().await;
+        let storage = get_storage();
+
+        let result = inner(&database, &storage).await;
+
+        reset_database(&database).await;
+        reset_storage(&storage).await;
+
+        assert_eq!(result.unwrap().status(), StatusCode::OK);
     }
 }
