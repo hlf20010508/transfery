@@ -263,6 +263,47 @@ pub async fn remove_item(
     Ok(StatusCode::OK.into_response())
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct RemoveAllParams {
+    sid: Sid,
+}
+
+pub static REMOVE_ALL_PATH: &str = "/removeAll";
+
+pub async fn remove_all(
+    Extension(database): Extension<Arc<Database>>,
+    Extension(storage): Extension<Arc<Storage>>,
+    Extension(socketio): Extension<Arc<SocketIo>>,
+    AuthState(is_authorized): AuthState,
+    Query(item): Query<RemoveAllParams>,
+) -> Result<Response> {
+    if !is_authorized {
+        return Ok(StatusCode::UNAUTHORIZED.into_response());
+    }
+
+    println!("received remove all request");
+
+    let sid = item.sid;
+
+    database.remove_message_all().await?;
+
+    println!("removed all in db");
+
+    storage.remove_objects_all().await?;
+
+    println!("removed all in storage");
+
+    socketio
+        .to(Room::Public)
+        .except(sid)
+        .emit("removeItem", ())
+        .map_err(|e| SocketEmitError(format!("socketio emit error for event removeAll: {}", e)))?;
+
+    println!("broadcasted");
+
+    Ok(StatusCode::OK.into_response())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -560,6 +601,78 @@ mod tests {
             let res = client
                 .post(format!("http://{}{}", addr, REMOVE_ITEM_PATH))
                 .json(&data)
+                .header("Authorization", auth)
+                .send()
+                .await
+                .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+
+            sleep_async(1).await;
+
+            Ok(res)
+        }
+
+        let database = get_database().await;
+        let storage = get_storage();
+
+        let result = inner(&database, &storage).await;
+
+        reset_database(&database).await;
+        reset_storage(&storage).await;
+
+        assert_eq!(result.unwrap().status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_message_remove_all() {
+        async fn inner(database: &Database, storage: &Storage) -> Result<reqwest::Response> {
+            let file_name = "test_message_remove_all.txt";
+
+            fake_file(database, storage, file_name).await?;
+
+            let crypto = get_crypto();
+            let auth = gen_auth(&crypto);
+
+            let (socketio_layer, socketio) = SocketIo::new_layer();
+
+            socketio.ns("/", |_socket: SocketRef| {});
+
+            let router = Router::new()
+                .route(REMOVE_ALL_PATH, get(remove_all))
+                .layer(into_layer(database.clone()))
+                .layer(into_layer(storage.clone()))
+                .layer(into_layer(crypto))
+                .layer(socketio_layer)
+                .layer(into_layer(socketio));
+
+            let server = TcpListener::bind("127.0.0.1:0")
+                .await
+                .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+            let addr = server
+                .local_addr()
+                .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+
+            tokio::spawn(async move {
+                axum::serve(server, router).await.unwrap();
+            });
+
+            ClientBuilder::new(format!("http://{}/", addr))
+                .on("removeAll", |_payload: Payload, _socket: Client| {
+                    async {}.boxed()
+                })
+                .connect()
+                .await
+                .map_err(|e| {
+                    DefaultError(format!("failed to connect to socketio server: {}", e))
+                })?;
+
+            sleep_async(1).await;
+
+            let data = RemoveAllParams { sid: Sid::new() };
+
+            let client = reqwest::Client::new();
+            let res = client
+                .get(format!("http://{}{}", addr, REMOVE_ALL_PATH))
+                .query(&data)
                 .header("Authorization", auth)
                 .send()
                 .await

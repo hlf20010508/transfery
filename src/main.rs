@@ -63,6 +63,7 @@ async fn server() {
         .route(message::SYNC_PATH, get(message::sync))
         .route(message::NEW_ITEM_PATH, get(message::new_item))
         .route(message::REMOVE_ITEM_PATH, get(message::remove_item))
+        .route(message::REMOVE_ALL_PATH, get(message::remove_all))
         .route(upload::FETCH_UPLOAD_ID_PATH, post(upload::fetch_upload_id))
         .route(upload::UPLOAD_PART_PATH, post(upload::upload_part))
         .route(upload::COMPLETE_UPLOAD_PATH, post(upload::complete_upload))

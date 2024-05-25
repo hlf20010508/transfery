@@ -461,6 +461,19 @@ impl Database {
         Ok(())
     }
 
+    pub async fn remove_message_all(&self) -> Result<()> {
+        let sql = format!("delete from `{}`", MYSQL_TABLE_MESSAGE);
+
+        let query = sqlx::query(&sql);
+
+        self.pool
+            .execute(query)
+            .await
+            .map_err(|e| SqlExecuteError(format!("MySql remove message all failed: {}", e)))?;
+
+        Ok(())
+    }
+
     pub async fn update_complete(&self, id: i64) -> Result<()> {
         let sql = format!(
             "update `{}` set isComplete = 1 where id = ?",
@@ -715,6 +728,29 @@ pub mod tests {
             database.create_table_message_if_not_exists().await?;
             database.insert_message_item(item).await?;
             database.remove_message_item(1).await?;
+
+            Ok(())
+        }
+
+        let database = get_database().await;
+
+        let result = inner(&database).await;
+        reset(&database).await;
+        result.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_database_remove_message_all() {
+        async fn inner(database: &Database) -> Result<()> {
+            let item = MessageItem::new_text(
+                "test database remove message item",
+                get_current_timestamp(),
+                false,
+            );
+
+            database.create_table_message_if_not_exists().await?;
+            database.insert_message_item(item).await?;
+            database.remove_message_all().await?;
 
             Ok(())
         }
