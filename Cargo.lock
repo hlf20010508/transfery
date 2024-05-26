@@ -2939,7 +2939,6 @@ dependencies = [
  "futures",
  "http 0.2.12",
  "http-body-util",
- "lazy_static",
  "minio",
  "pico-args",
  "reqwest 0.12.4",

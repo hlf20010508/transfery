@@ -8,30 +8,27 @@
 pub mod database;
 pub mod storage;
 
-use crate::env::{
-    MINIO_BUCKET, MINIO_ENDPOINT, MINIO_PASSWORD, MINIO_USERNAME, MYSQL_DATABASE, MYSQL_ENDPOINT,
-    MYSQL_PASSWORD, MYSQL_USERNAME,
-};
-
 pub use database::Database;
 pub use storage::Storage;
 
-pub fn get_storage() -> Storage {
+use crate::env::Env;
+
+pub fn get_storage(env: &Env) -> Storage {
     Storage::new(
-        MINIO_ENDPOINT.as_ref().unwrap(),
-        MINIO_USERNAME.as_ref().unwrap(),
-        MINIO_PASSWORD.as_ref().unwrap(),
-        MINIO_BUCKET.as_ref().unwrap(),
+        &env.minio_endpoint,
+        &env.username,
+        &env.password,
+        &env.minio_bucket,
     )
     .unwrap()
 }
 
-pub async fn get_database() -> Database {
+pub async fn get_database(env: &Env) -> Database {
     Database::new(
-        MYSQL_ENDPOINT.as_ref().unwrap(),
-        MYSQL_USERNAME.as_ref().unwrap(),
-        MYSQL_PASSWORD.as_ref().unwrap(),
-        MYSQL_DATABASE.as_ref().unwrap(),
+        &env.mysql_endpoint,
+        &env.mysql_username,
+        &env.mysql_password,
+        &env.mysql_database,
     )
     .await
     .unwrap()

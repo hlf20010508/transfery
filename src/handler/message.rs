@@ -17,7 +17,7 @@ use std::sync::Arc;
 use crate::auth::AuthState;
 use crate::client::database::{MessageItem, MessageItemType};
 use crate::client::{Database, Storage};
-use crate::env::ITEM_PER_PAGE;
+use crate::env::Env;
 use crate::error::Error::{FieldParseError, SocketEmitError};
 use crate::error::Result;
 use crate::handler::socket::Room;
@@ -36,6 +36,7 @@ pub struct SyncQueryParams {
 pub static PAGE_PATH: &str = "/page";
 
 pub async fn page(
+    Extension(env): Extension<Arc<Env>>,
     Extension(database): Extension<Arc<Database>>,
     Query(params): Query<PageQueryParams>,
     AuthState(is_authorized): AuthState,
@@ -45,7 +46,7 @@ pub async fn page(
     let start = params.size;
 
     let result = database
-        .query_message_items(start, ITEM_PER_PAGE.clone(), is_authorized)
+        .query_message_items(start, env.item_per_page, is_authorized)
         .await?;
 
     println!("new page pushed");
@@ -330,6 +331,7 @@ mod tests {
     };
     use crate::client::Database;
     use crate::crypto::tests::get_crypto;
+    use crate::env::tests::get_env;
     use crate::error::Error::DefaultError;
     use crate::utils::tests::sleep_async;
     use crate::utils::{get_current_timestamp, into_layer};
@@ -413,11 +415,13 @@ mod tests {
     async fn test_message_page() {
         async fn inner(database: &Database) -> Result<Response> {
             let crypto = get_crypto();
+            let env = get_env();
 
             fake_message_item(&database).await;
 
             let router = Router::new()
                 .route(PAGE_PATH, get(page))
+                .layer(into_layer(env))
                 .layer(into_layer(database.clone()))
                 .layer(into_layer(crypto.clone()));
 

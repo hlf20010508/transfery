@@ -493,40 +493,22 @@ impl Database {
 
 #[cfg(test)]
 pub mod tests {
-    use dotenv::dotenv;
-    use std::env;
-
     use super::*;
 
+    use crate::env::tests::get_env;
     use crate::utils::get_current_timestamp;
 
-    fn get_endpoint() -> String {
-        env::var("MYSQL_ENDPOINT").unwrap()
-    }
-
-    fn get_username() -> String {
-        env::var("MYSQL_USERNAME").unwrap()
-    }
-
-    fn get_password() -> String {
-        env::var("MYSQL_PASSWORD").unwrap()
-    }
-
-    fn get_name() -> String {
-        env::var("MYSQL_DATABASE").unwrap()
-    }
-
     pub async fn get_database() -> Database {
-        dotenv().ok();
+        let env = get_env();
 
-        let endpoint = get_endpoint();
-        let username = get_username();
-        let password = get_password();
-        let name = get_name();
-
-        let database = Database::new(&endpoint, &username, &password, &name)
-            .await
-            .unwrap();
+        let database = Database::new(
+            &env.mysql_endpoint,
+            &env.mysql_username,
+            &env.mysql_password,
+            &env.mysql_database,
+        )
+        .await
+        .unwrap();
 
         database
     }
@@ -537,16 +519,16 @@ pub mod tests {
 
     #[tokio::test]
     async fn test_database_new() {
-        dotenv().ok();
+        let env = get_env();
 
-        let endpoint = get_endpoint();
-        let username = get_username();
-        let password = get_password();
-        let name = get_name();
-
-        Database::new(&endpoint, &username, &password, &name)
-            .await
-            .unwrap();
+        let database = Database::new(
+            &env.mysql_endpoint,
+            &env.mysql_username,
+            &env.mysql_password,
+            &env.mysql_database,
+        )
+        .await
+        .unwrap();
     }
 
     #[tokio::test]

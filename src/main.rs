@@ -22,27 +22,31 @@ mod utils;
 
 use client::{get_database, get_storage};
 use crypto::Crypto;
-use env::PORT;
+use env::Env;
 use handler::{download, message, socket, upload};
 use utils::into_layer;
 
 #[tokio::main]
 async fn main() {
+    let env = Env::new();
+
     let mut args = Arguments::from_env();
 
     if args.contains("--init") {
-        init::init().await;
+        init::init(&env).await;
     } else {
-        server().await;
+        server(env).await;
     }
 }
 
-async fn server() {
-    let storage = into_layer(get_storage());
-    let database = into_layer(get_database().await);
+async fn server(env: Env) {
+    let port = env.port;
+
+    let storage = get_storage(&env);
+    let database = get_database(&env).await;
 
     let secret_key = database.get_secret_key().await.unwrap();
-    let crypto = into_layer(Crypto::new(&secret_key).unwrap());
+    let crypto = Crypto::new(&secret_key).unwrap();
 
     let (socketio_layer, socketio) = SocketIo::builder()
         .with_state(socket::ConnectionNumber::new())
@@ -67,13 +71,14 @@ async fn server() {
         .route(upload::FETCH_UPLOAD_ID_PATH, post(upload::fetch_upload_id))
         .route(upload::UPLOAD_PART_PATH, post(upload::upload_part))
         .route(upload::COMPLETE_UPLOAD_PATH, post(upload::complete_upload))
-        .layer(storage)
-        .layer(database)
-        .layer(crypto)
         .layer(socketio_layer)
-        .layer(into_layer(socketio));
+        .layer(into_layer(socketio))
+        .layer(into_layer(env))
+        .layer(into_layer(storage))
+        .layer(into_layer(database))
+        .layer(into_layer(crypto));
 
-    let listener = tokio::net::TcpListener::bind(("0.0.0.0", PORT.clone()))
+    let listener = tokio::net::TcpListener::bind(("0.0.0.0", port))
         .await
         .unwrap();
 

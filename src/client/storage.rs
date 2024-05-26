@@ -269,31 +269,18 @@ pub mod tests {
 
     use super::*;
 
-    fn get_endpoint() -> String {
-        env::var("MINIO_ENDPOINT").unwrap()
-    }
-
-    fn get_username() -> String {
-        env::var("MINIO_USERNAME").unwrap()
-    }
-
-    fn get_password() -> String {
-        env::var("MINIO_PASSWORD").unwrap()
-    }
-
-    fn get_bucket() -> String {
-        env::var("MINIO_BUCKET").unwrap()
-    }
+    use crate::env::tests::get_env;
 
     pub fn get_storage() -> Storage {
-        dotenv().ok();
+        let env = get_env();
 
-        let endpoint = get_endpoint();
-        let username = get_username();
-        let password = get_password();
-        let bucket = get_bucket();
-
-        let storage = Storage::new(&endpoint, &username, &password, &bucket).unwrap();
+        let storage = Storage::new(
+            &env.minio_endpoint,
+            &env.minio_username,
+            &env.minio_password,
+            &env.minio_bucket,
+        )
+        .unwrap();
 
         storage
     }
@@ -341,14 +328,15 @@ pub mod tests {
 
     #[test]
     fn test_storage_new() {
-        dotenv().ok();
+        let env = get_env();
 
-        let endpoint = get_endpoint();
-        let username = get_username();
-        let password = get_password();
-        let bucket = get_bucket();
-
-        Storage::new(&endpoint, &username, &password, &bucket).unwrap();
+        let storage = Storage::new(
+            &env.minio_endpoint,
+            &env.minio_username,
+            &env.minio_password,
+            &env.minio_bucket,
+        )
+        .unwrap();
     }
 
     #[tokio::test]
