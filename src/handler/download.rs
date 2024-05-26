@@ -59,6 +59,7 @@ mod tests {
     use crate::error::Error::DefaultError;
     use crate::error::Result;
     use crate::utils::into_layer;
+    use crate::utils::tests::sleep_async;
 
     #[tokio::test]
     async fn test_download_download_url() {
@@ -93,5 +94,7 @@ mod tests {
         reset(&storage).await;
 
         assert_eq!(result.unwrap().status(), StatusCode::OK);
+
+        sleep_async(1).await;
     }
 }

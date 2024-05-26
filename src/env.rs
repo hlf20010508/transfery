@@ -91,8 +91,14 @@ pub mod tests {
     pub fn get_env() -> Env {
         dotenv().ok();
 
-        let port = 8080;
-        let item_per_page = 15;
+        let port = env::var("PORT")
+            .unwrap_or("8080".to_string())
+            .parse()
+            .unwrap();
+        let item_per_page = env::var("ITEM_PER_PAGE")
+            .unwrap_or("15".to_string())
+            .parse()
+            .unwrap();
         let username = env::var("USERNAME").unwrap();
         let password = env::var("PASSWORD").unwrap();
         let minio_endpoint = env::var("MINIO_ENDPOINT").unwrap();

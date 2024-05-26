@@ -92,6 +92,7 @@ pub mod tests {
 
     use crate::crypto::tests::get_crypto;
     use crate::utils::into_layer;
+    use crate::utils::tests::sleep_async;
 
     pub fn gen_auth(crypto: &Crypto) -> String {
         let fingerprint = "fingerprint for test";
@@ -142,5 +143,7 @@ pub mod tests {
 
         let res = router.clone().oneshot(req).await.unwrap();
         assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
+
+        sleep_async(1).await;
     }
 }

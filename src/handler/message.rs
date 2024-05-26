@@ -446,6 +446,8 @@ mod tests {
         let result = inner(&database).await;
         reset_database(&database).await;
         assert_eq!(result.unwrap().status(), StatusCode::OK);
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -481,6 +483,8 @@ mod tests {
         let result = inner(&database).await;
         reset_database(&database).await;
         assert_eq!(result.unwrap().status(), StatusCode::OK);
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -549,6 +553,8 @@ mod tests {
         let res = result.unwrap();
         assert_eq!(res.status(), StatusCode::OK);
         assert_eq!(res.text().await.unwrap(), "2".to_string());
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -624,6 +630,8 @@ mod tests {
         reset_storage(&storage).await;
 
         assert_eq!(result.unwrap().status(), StatusCode::OK);
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -696,5 +704,7 @@ mod tests {
         reset_storage(&storage).await;
 
         assert_eq!(result.unwrap().status(), StatusCode::OK);
+
+        sleep_async(1).await;
     }
 }

@@ -497,6 +497,7 @@ pub mod tests {
 
     use crate::env::tests::get_env;
     use crate::utils::get_current_timestamp;
+    use crate::utils::tests::sleep_async;
 
     pub async fn get_database() -> Database {
         let env = get_env();
@@ -521,7 +522,7 @@ pub mod tests {
     async fn test_database_new() {
         let env = get_env();
 
-        let database = Database::new(
+        Database::new(
             &env.mysql_endpoint,
             &env.mysql_username,
             &env.mysql_password,
@@ -529,6 +530,8 @@ pub mod tests {
         )
         .await
         .unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -539,6 +542,8 @@ pub mod tests {
             Database::create_database_if_not_exists(&database.pool, database.name.as_str()).await;
         reset(&database).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -548,6 +553,8 @@ pub mod tests {
         let result = database.init().await;
         reset(&database).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -557,6 +564,8 @@ pub mod tests {
         let result = database.create_table_message_if_not_exists().await;
         reset(&database).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -566,6 +575,8 @@ pub mod tests {
         let result = database.create_table_auth_if_not_exists().await;
         reset(&database).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -575,6 +586,8 @@ pub mod tests {
         let result = database.create_table_device_if_not_exists().await;
         reset(&database).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -591,6 +604,8 @@ pub mod tests {
         let result = inner(&database).await;
         reset(&database).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -627,6 +642,8 @@ pub mod tests {
 
         assert_eq!(result_true.unwrap(), true);
         assert_eq!(result_false.unwrap(), false);
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -646,6 +663,8 @@ pub mod tests {
         reset(&database).await;
 
         assert_eq!(result.unwrap().len(), 44);
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -653,6 +672,8 @@ pub mod tests {
         let database = get_database().await;
 
         database.drop_database_if_exists().await.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -696,6 +717,8 @@ pub mod tests {
 
         assert_eq!(result_text.unwrap(), 1);
         assert_eq!(result_file.unwrap(), 2);
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -719,6 +742,8 @@ pub mod tests {
         let result = inner(&database).await;
         reset(&database).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -742,6 +767,8 @@ pub mod tests {
         let result = inner(&database).await;
         reset(&database).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -768,6 +795,8 @@ pub mod tests {
             result.unwrap().get(0).unwrap().content,
             "test database query message items"
         );
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -808,6 +837,8 @@ pub mod tests {
             result.get(1).unwrap().content,
             "test database query message items after id 2"
         );
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -829,5 +860,7 @@ pub mod tests {
         let result = inner(&database).await;
         reset(&database).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 }

@@ -262,14 +262,13 @@ impl Storage {
 
 #[cfg(test)]
 pub mod tests {
-    use dotenv::dotenv;
     use minio::s3::args::PutObjectArgs;
-    use std::env;
     use std::io::Cursor;
 
     use super::*;
 
     use crate::env::tests::get_env;
+    use crate::utils::tests::{sleep, sleep_async};
 
     pub fn get_storage() -> Storage {
         let env = get_env();
@@ -330,13 +329,15 @@ pub mod tests {
     fn test_storage_new() {
         let env = get_env();
 
-        let storage = Storage::new(
+        Storage::new(
             &env.minio_endpoint,
             &env.minio_username,
             &env.minio_password,
             &env.minio_bucket,
         )
         .unwrap();
+
+        sleep(1);
     }
 
     #[tokio::test]
@@ -346,6 +347,8 @@ pub mod tests {
         let result = storage.init().await;
         reset(&storage).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -355,6 +358,8 @@ pub mod tests {
         let result = storage.create_buffer_if_not_exists().await;
         reset(&storage).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -381,6 +386,8 @@ pub mod tests {
 
         assert_eq!(result_false.unwrap(), false);
         assert_eq!(result_true.unwrap(), true);
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -399,6 +406,8 @@ pub mod tests {
         let result = inner(&storage).await;
         reset(&storage).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -424,6 +433,8 @@ pub mod tests {
         let result = inner(&storage).await;
         reset(&storage).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -459,6 +470,8 @@ pub mod tests {
         let result = inner(&storage).await;
         reset(&storage).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -476,6 +489,8 @@ pub mod tests {
         let result = inner(&storage).await;
         reset(&storage).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -496,6 +511,8 @@ pub mod tests {
         let result = inner(&storage).await;
         reset(&storage).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -516,6 +533,8 @@ pub mod tests {
         let result = inner(&storage).await;
         reset(&storage).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -525,6 +544,8 @@ pub mod tests {
         init(&storage).await.unwrap();
 
         storage.remove_bucket().await.unwrap();
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -545,5 +566,7 @@ pub mod tests {
         let result = inner(&storage).await;
         reset(&storage).await;
         result.unwrap();
+
+        sleep_async(1).await;
     }
 }

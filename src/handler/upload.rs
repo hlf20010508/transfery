@@ -247,6 +247,7 @@ mod tests {
     use crate::crypto::tests::get_crypto;
     use crate::error::Error::{DefaultError, ToStrError};
     use crate::error::Result;
+    use crate::utils::tests::sleep_async;
     use crate::utils::tests::ResponseExt;
     use crate::utils::{get_current_timestamp, into_layer};
 
@@ -333,6 +334,8 @@ mod tests {
         let result = inner(&storage).await;
         reset_storage(&storage).await;
         assert_eq!(result.unwrap().status(), StatusCode::OK);
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -414,6 +417,8 @@ mod tests {
         let result = inner(&storage).await;
         reset_storage(&storage).await;
         assert_eq!(result.unwrap().status(), StatusCode::OK);
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -532,5 +537,7 @@ mod tests {
         reset_storage(&storage).await;
         reset_database(&database).await;
         assert_eq!(result.unwrap().status(), StatusCode::OK);
+
+        sleep_async(1).await;
     }
 }

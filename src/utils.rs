@@ -65,6 +65,10 @@ pub mod tests {
         }
     }
 
+    pub fn sleep(secs: u64) {
+        std::thread::sleep(std::time::Duration::from_secs(secs));
+    }
+
     pub async fn sleep_async(secs: u64) {
         tokio::time::sleep(std::time::Duration::from_secs(secs)).await;
     }

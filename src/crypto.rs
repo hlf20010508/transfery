@@ -131,6 +131,8 @@ impl Crypto {
 pub mod tests {
     use super::*;
 
+    use crate::utils::tests::sleep;
+
     pub fn get_crypto() -> Crypto {
         let key = Crypto::gen_secret_key().unwrap();
         Crypto::new(&key).unwrap()
@@ -140,17 +142,23 @@ pub mod tests {
     fn test_crypto_gen_random_key() {
         let result = Crypto::gen_random_key(NONCE_SIZE);
         assert_eq!(result.unwrap().len(), NONCE_SIZE);
+
+        sleep(1);
     }
 
     #[test]
     fn test_crypto_gen_secret_key() {
         let result = Crypto::gen_secret_key();
         assert_eq!(result.unwrap().len(), 44);
+
+        sleep(1);
     }
 
     #[test]
     fn test_crypto_gen_nonce_pack() {
         Crypto::gen_nonce_pack().unwrap();
+
+        sleep(1);
     }
 
     #[test]
@@ -161,12 +169,16 @@ pub mod tests {
         } = Crypto::gen_nonce_pack().unwrap();
 
         Crypto::nonce_raw_to_nonce(&nonce_raw).unwrap();
+
+        sleep(1);
     }
 
     #[test]
     fn test_crypto_new() {
         let key = Crypto::gen_secret_key().unwrap();
         Crypto::new(&key).unwrap();
+
+        sleep(1);
     }
 
     #[test]
@@ -178,5 +190,7 @@ pub mod tests {
         let text_decrypted = crypto.decrypt(&text_encrypted).unwrap();
 
         assert_eq!(text, &text_decrypted);
+
+        sleep(1);
     }
 }

@@ -196,6 +196,8 @@ mod tests {
             .disconnect()
             .await
             .unwrap_or_else(|e| panic!("Disconnect failed: {}", e));
+
+        sleep_async(1).await;
     }
 
     #[tokio::test]
@@ -287,5 +289,7 @@ mod tests {
             .disconnect()
             .await
             .unwrap_or_else(|e| panic!("Disconnect failed: {}", e));
+
+        sleep_async(1).await;
     }
 }
