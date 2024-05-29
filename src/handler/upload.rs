@@ -535,7 +535,7 @@ mod tests {
 
         let result = inner(&storage, &database).await;
         reset_storage(&storage).await;
-        reset_database(&database).await;
+        reset_database(database).await;
         assert_eq!(result.unwrap().status(), StatusCode::OK);
 
         sleep_async(1).await;

@@ -31,6 +31,7 @@ where
     };
 }
 
+#[derive(Debug, Clone)]
 pub struct Env {
     pub port: u16,
     pub item_per_page: u8,

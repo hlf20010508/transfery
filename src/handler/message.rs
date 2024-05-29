@@ -444,7 +444,7 @@ mod tests {
 
         let database = get_database().await;
         let result = inner(&database).await;
-        reset_database(&database).await;
+        reset_database(database).await;
         assert_eq!(result.unwrap().status(), StatusCode::OK);
 
         sleep_async(1).await;
@@ -481,7 +481,7 @@ mod tests {
 
         let database = get_database().await;
         let result = inner(&database).await;
-        reset_database(&database).await;
+        reset_database(database).await;
         assert_eq!(result.unwrap().status(), StatusCode::OK);
 
         sleep_async(1).await;
@@ -548,7 +548,7 @@ mod tests {
 
         let database = get_database().await;
         let result = inner(&database).await;
-        reset_database(&database).await;
+        reset_database(database).await;
 
         let res = result.unwrap();
         assert_eq!(res.status(), StatusCode::OK);
@@ -626,7 +626,7 @@ mod tests {
 
         let result = inner(&database, &storage).await;
 
-        reset_database(&database).await;
+        reset_database(database).await;
         reset_storage(&storage).await;
 
         assert_eq!(result.unwrap().status(), StatusCode::OK);
@@ -668,9 +668,7 @@ mod tests {
             });
 
             ClientBuilder::new(format!("http://{}/", addr))
-                .on("removeAll", |_payload: Payload, _socket: Client| {
-                    async {}.boxed()
-                })
+                .on("removeAll", |_payload, _socket| async {}.boxed())
                 .connect()
                 .await
                 .map_err(|e| {
@@ -700,7 +698,7 @@ mod tests {
 
         let result = inner(&database, &storage).await;
 
-        reset_database(&database).await;
+        reset_database(database).await;
         reset_storage(&storage).await;
 
         assert_eq!(result.unwrap().status(), StatusCode::OK);

@@ -172,6 +172,16 @@ impl From<MySqlRow> for MessageItem {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct DeviceItem {
+    pub fingerprint: String,
+    pub browser: String,
+    #[serde(rename = "lastUseTimestamp")]
+    pub last_use_timestamp: i64,
+    #[serde(rename = "expirationTimestamp")]
+    pub expiration_timestamp: i64,
+}
+
 // init
 impl Database {
     pub async fn new(endpoint: &str, username: &str, password: &str, name: &str) -> Result<Self> {
@@ -213,6 +223,10 @@ impl Database {
             .map_err(|e| DatabaseClientError(format!("MySql pool creation failed: {}", e)))?;
 
         Ok(pool)
+    }
+
+    async fn close(self) {
+        self.pool.close().await;
     }
 
     async fn create_database_if_not_exists(pool: &Pool<MySql>, name: &str) -> Result<()> {
@@ -276,7 +290,7 @@ impl Database {
         Ok(())
     }
 
-    async fn create_table_device_if_not_exists(&self) -> Result<()> {
+    pub async fn create_table_device_if_not_exists(&self) -> Result<()> {
         let sql = format!(
             "create table if not exists `{}`(
                 id int primary key auto_increment,
@@ -425,8 +439,7 @@ impl Database {
                 fileName,
                 isComplete
             )
-            values (?, ?, ?, ?, ?, ?)
-            ",
+            values (?, ?, ?, ?, ?, ?)",
             MYSQL_TABLE_MESSAGE
         );
 
@@ -489,6 +502,76 @@ impl Database {
 
         Ok(())
     }
+
+    pub async fn insert_device(&self, device_item: DeviceItem) -> Result<()> {
+        let fingerprint_exists = {
+            let sql = format!(
+                "select count(*) from {} where fingerprint = \"{}\"",
+                MYSQL_TABLE_DEVICE, device_item.fingerprint
+            );
+
+            let (count,) = sqlx::query_as::<MySql, (i64,)>(&sql)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|e| {
+                    SqlQueryError(format!("MySql query fingerprint count failed: {}", e))
+                })?;
+
+            count > 0
+        };
+
+        if fingerprint_exists {
+            self.update_device(device_item.clone()).await?;
+        } else {
+            let sql = format!(
+                "insert into `{}` (
+                    fingerprint,
+                    browser,
+                    lastUseTimestamp,
+                    expirationTimestamp
+                )
+                values (?, ?, ?, ?)",
+                MYSQL_TABLE_DEVICE
+            );
+
+            let query = sqlx::query(&sql)
+                .bind(device_item.fingerprint)
+                .bind(device_item.browser)
+                .bind(device_item.last_use_timestamp)
+                .bind(device_item.expiration_timestamp);
+
+            self.pool
+                .execute(query)
+                .await
+                .map_err(|e| SqlExecuteError(format!("MySql insert device failed: {}", e)))?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn update_device(&self, device_item: DeviceItem) -> Result<()> {
+        let sql = format!(
+            "update `{}` set
+                browser = ?,
+                lastUseTimestamp = ?,
+                expirationTimestamp = ? 
+            where fingerprint = ?",
+            MYSQL_TABLE_DEVICE
+        );
+
+        let query = sqlx::query(&sql)
+            .bind(device_item.browser)
+            .bind(device_item.last_use_timestamp)
+            .bind(device_item.expiration_timestamp)
+            .bind(device_item.fingerprint);
+
+        self.pool
+            .execute(query)
+            .await
+            .map_err(|e| SqlExecuteError(format!("MySql update device failed: {}", e)))?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -514,8 +597,9 @@ pub mod tests {
         database
     }
 
-    pub async fn reset(database: &Database) {
+    pub async fn reset(database: Database) {
         database.drop_database_if_exists().await.unwrap();
+        database.close().await;
     }
 
     #[tokio::test]
@@ -540,7 +624,7 @@ pub mod tests {
 
         let result =
             Database::create_database_if_not_exists(&database.pool, database.name.as_str()).await;
-        reset(&database).await;
+        reset(database).await;
         result.unwrap();
 
         sleep_async(1).await;
@@ -551,7 +635,7 @@ pub mod tests {
         let database = get_database().await;
 
         let result = database.init().await;
-        reset(&database).await;
+        reset(database).await;
         result.unwrap();
 
         sleep_async(1).await;
@@ -562,7 +646,7 @@ pub mod tests {
         let database = get_database().await;
 
         let result = database.create_table_message_if_not_exists().await;
-        reset(&database).await;
+        reset(database).await;
         result.unwrap();
 
         sleep_async(1).await;
@@ -573,7 +657,7 @@ pub mod tests {
         let database = get_database().await;
 
         let result = database.create_table_auth_if_not_exists().await;
-        reset(&database).await;
+        reset(database).await;
         result.unwrap();
 
         sleep_async(1).await;
@@ -584,7 +668,7 @@ pub mod tests {
         let database = get_database().await;
 
         let result = database.create_table_device_if_not_exists().await;
-        reset(&database).await;
+        reset(database).await;
         result.unwrap();
 
         sleep_async(1).await;
@@ -602,7 +686,7 @@ pub mod tests {
         let database = get_database().await;
 
         let result = inner(&database).await;
-        reset(&database).await;
+        reset(database).await;
         result.unwrap();
 
         sleep_async(1).await;
@@ -638,7 +722,7 @@ pub mod tests {
 
         let result_false = inner_false(&database).await;
         let result_true = inner_true(&database).await;
-        reset(&database).await;
+        reset(database).await;
 
         assert_eq!(result_true.unwrap(), true);
         assert_eq!(result_false.unwrap(), false);
@@ -660,7 +744,7 @@ pub mod tests {
         let database = get_database().await;
 
         let result = inner(&database).await;
-        reset(&database).await;
+        reset(database).await;
 
         assert_eq!(result.unwrap().len(), 44);
 
@@ -713,7 +797,7 @@ pub mod tests {
 
         let result_text = inner_text(&database).await;
         let result_file = inner_file(&database).await;
-        reset(&database).await;
+        reset(database).await;
 
         assert_eq!(result_text.unwrap(), 1);
         assert_eq!(result_file.unwrap(), 2);
@@ -740,7 +824,7 @@ pub mod tests {
         let database = get_database().await;
 
         let result = inner(&database).await;
-        reset(&database).await;
+        reset(database).await;
         result.unwrap();
 
         sleep_async(1).await;
@@ -765,7 +849,7 @@ pub mod tests {
         let database = get_database().await;
 
         let result = inner(&database).await;
-        reset(&database).await;
+        reset(database).await;
         result.unwrap();
 
         sleep_async(1).await;
@@ -790,7 +874,7 @@ pub mod tests {
         let database = get_database().await;
 
         let result = inner(&database).await;
-        reset(&database).await;
+        reset(database).await;
         assert_eq!(
             result.unwrap().get(0).unwrap().content,
             "test database query message items"
@@ -825,7 +909,7 @@ pub mod tests {
         let database = get_database().await;
 
         let result = inner(&database).await;
-        reset(&database).await;
+        reset(database).await;
 
         let result = result.unwrap();
         assert_eq!(result.len(), 2);
@@ -858,7 +942,66 @@ pub mod tests {
         let database = get_database().await;
 
         let result = inner(&database).await;
-        reset(&database).await;
+        reset(database).await;
+        result.unwrap();
+
+        sleep_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn test_database_insert_device() {
+        async fn inner(database: &Database) -> Result<()> {
+            let device_item = DeviceItem {
+                fingerprint: "fingerprint".to_string(),
+                browser: "browser".to_string(),
+                last_use_timestamp: get_current_timestamp(),
+                expiration_timestamp: get_current_timestamp(),
+            };
+
+            database.create_table_device_if_not_exists().await?;
+            database.insert_device(device_item).await?;
+
+            Ok(())
+        }
+
+        let database = get_database().await;
+
+        let result = inner(&database).await;
+        reset(database).await;
+        result.unwrap();
+
+        sleep_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn test_database_update_device() {
+        async fn inner(database: &Database) -> Result<()> {
+            let device_item_old = DeviceItem {
+                fingerprint: "fingerprint".to_string(),
+                browser: "browser_old".to_string(),
+                last_use_timestamp: get_current_timestamp(),
+                expiration_timestamp: get_current_timestamp(),
+            };
+
+            database.create_table_device_if_not_exists().await?;
+            database.insert_device(device_item_old).await?;
+
+            let device_item_new = DeviceItem {
+                fingerprint: "fingerprint".to_string(),
+                browser: "browser_new".to_string(),
+                last_use_timestamp: get_current_timestamp(),
+                expiration_timestamp: get_current_timestamp(),
+            };
+
+            database.update_device(device_item_new).await?;
+
+            Ok(())
+        }
+
+        let database = get_database().await;
+
+        let result = inner(&database).await;
+        reset(database).await;
         result.unwrap();
 
         sleep_async(1).await;

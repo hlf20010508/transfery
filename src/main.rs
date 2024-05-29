@@ -23,7 +23,7 @@ mod utils;
 use client::{get_database, get_storage};
 use crypto::Crypto;
 use env::Env;
-use handler::{download, message, socket, upload};
+use handler::{download, login, message, socket, upload};
 use utils::into_layer;
 
 #[tokio::main]
@@ -71,6 +71,7 @@ async fn server(env: Env) {
         .route(upload::FETCH_UPLOAD_ID_PATH, post(upload::fetch_upload_id))
         .route(upload::UPLOAD_PART_PATH, post(upload::upload_part))
         .route(upload::COMPLETE_UPLOAD_PATH, post(upload::complete_upload))
+        .route(login::AUTH_PATH, post(login::auth))
         .layer(socketio_layer)
         .layer(into_layer(socketio))
         .layer(into_layer(env))

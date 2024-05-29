@@ -6,6 +6,7 @@
 */
 
 pub mod download;
+pub mod login;
 pub mod message;
 pub mod socket;
 pub mod upload;
