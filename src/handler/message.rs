@@ -14,7 +14,7 @@ use socketioxide::socket::Sid;
 use socketioxide::SocketIo;
 use std::sync::Arc;
 
-use crate::auth::AuthState;
+use crate::auth::{AuthChecker, AuthState};
 use crate::client::database::{MessageItem, MessageItemType};
 use crate::client::{Database, Storage};
 use crate::env::Env;
@@ -216,16 +216,12 @@ pub struct RemoveItemParams {
 pub static REMOVE_ITEM_PATH: &str = "/removeItem";
 
 pub async fn remove_item(
+    _: AuthChecker,
     Extension(database): Extension<Arc<Database>>,
     Extension(storage): Extension<Arc<Storage>>,
     Extension(socketio): Extension<Arc<SocketIo>>,
-    AuthState(is_authorized): AuthState,
     Json(item): Json<RemoveItemParams>,
 ) -> Result<Response> {
-    if !is_authorized {
-        return Ok(StatusCode::UNAUTHORIZED.into_response());
-    }
-
     println!("received item to be removed: {:#?}", item);
 
     let sid = item.sid;
@@ -272,16 +268,12 @@ pub struct RemoveAllParams {
 pub static REMOVE_ALL_PATH: &str = "/removeAll";
 
 pub async fn remove_all(
+    _: AuthChecker,
     Extension(database): Extension<Arc<Database>>,
     Extension(storage): Extension<Arc<Storage>>,
     Extension(socketio): Extension<Arc<SocketIo>>,
-    AuthState(is_authorized): AuthState,
     Query(item): Query<RemoveAllParams>,
 ) -> Result<Response> {
-    if !is_authorized {
-        return Ok(StatusCode::UNAUTHORIZED.into_response());
-    }
-
     println!("received remove all request");
 
     let sid = item.sid;

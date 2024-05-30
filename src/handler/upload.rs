@@ -12,7 +12,7 @@ use axum::{async_trait, debug_handler};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use crate::auth::AuthState;
+use crate::auth::AuthChecker;
 use crate::client::{Database, Storage};
 use crate::error::Error::{self, FieldParseError, FromRequestError};
 use crate::error::Result;
@@ -36,14 +36,10 @@ pub static FETCH_UPLOAD_ID_PATH: &str = "/fetchUploadId";
 
 #[debug_handler]
 pub async fn fetch_upload_id(
+    _: AuthChecker,
     Extension(storage): Extension<Arc<Storage>>,
-    AuthState(is_authorized): AuthState,
     Json(params): Json<FetchUploadIdJsonParams>,
 ) -> Result<Response> {
-    if !is_authorized {
-        return Ok(StatusCode::UNAUTHORIZED.into_response());
-    }
-
     println!("received fetch upload id request");
 
     let content = params.clone().content;
@@ -147,14 +143,10 @@ pub static UPLOAD_PART_PATH: &str = "/uploadPart";
 
 #[debug_handler]
 pub async fn upload_part(
+    _: AuthChecker,
     Extension(storage): Extension<Arc<Storage>>,
-    AuthState(is_authorized): AuthState,
     params: UploadPartFormParams,
 ) -> Result<Response> {
-    if !is_authorized {
-        return Ok(StatusCode::UNAUTHORIZED.into_response());
-    }
-
     let etag = storage
         .multipart_upload(
             &params.file_name,
@@ -197,15 +189,11 @@ pub static COMPLETE_UPLOAD_PATH: &str = "/completeUpload";
 
 #[debug_handler]
 pub async fn complete_upload(
+    _: AuthChecker,
     Extension(storage): Extension<Arc<Storage>>,
     Extension(database): Extension<Arc<Database>>,
-    AuthState(is_authorized): AuthState,
     Json(params): Json<CompleteUploadFormParams>,
 ) -> Result<Response> {
-    if !is_authorized {
-        return Ok(StatusCode::UNAUTHORIZED.into_response());
-    }
-
     println!("received complete upload request");
 
     let id = params.clone().id;
