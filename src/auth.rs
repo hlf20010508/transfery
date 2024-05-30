@@ -16,9 +16,36 @@ use crate::error::Error::{self, UnauthorizedError};
 use crate::error::Result;
 
 #[derive(Deserialize, Serialize)]
-struct Authorization {
-    fingerprint: String,
-    certificate: Option<String>,
+pub struct Authorization {
+    pub fingerprint: String,
+    pub certificate: Option<String>,
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for Authorization
+where
+    S: Send + Sync,
+{
+    type Rejection = Error;
+
+    async fn from_request_parts(req: &mut Parts, _state: &S) -> Result<Self> {
+        let authorization = req
+            .headers
+            .get("Authorization")
+            .ok_or(UnauthorizedError(
+                "Failed to parse Authorization".to_string(),
+            ))?
+            .to_str()
+            .map_err(|e| {
+                UnauthorizedError(format!("Failed to convert auth header to &str: {}", e))
+            })?;
+
+        let auth_json = serde_json::from_str::<Authorization>(authorization).map_err(|e| {
+            UnauthorizedError(format!("Failed to convert auth header &str to json: {}", e))
+        })?;
+
+        Ok(auth_json)
+    }
 }
 
 pub struct AuthState(pub bool);
@@ -30,42 +57,17 @@ where
 {
     type Rejection = Error;
 
-    async fn from_request_parts(req: &mut Parts, _state: &S) -> Result<Self> {
-        if let Some(auth) = req.headers.get("Authorization") {
-            let auth_str = match auth.to_str() {
-                Ok(str) => str,
-                Err(e) => {
-                    return Err(UnauthorizedError(format!(
-                        "Failed to convert auth header to &str: {}",
-                        e
-                    )));
-                }
-            };
-
-            let auth_json = match serde_json::from_str::<Authorization>(auth_str) {
-                Ok(json) => json,
-                Err(e) => {
-                    return Err(UnauthorizedError(format!(
-                        "Failed to convert auth header &str to json: {}",
-                        e
-                    )));
-                }
-            };
-
-            let Authorization {
-                fingerprint,
-                certificate,
-            } = auth_json;
-
+    async fn from_request_parts(req: &mut Parts, state: &S) -> Result<Self> {
+        if let Ok(Authorization {
+            fingerprint,
+            certificate,
+        }) = Authorization::from_request_parts(req, state).await
+        {
             if let Some(certificate) = certificate {
-                let crypto = match req.extensions.get::<Arc<Crypto>>() {
-                    Some(ext) => ext,
-                    None => {
-                        return Err(UnauthorizedError(format!(
-                            "Crypto data not found in from_request"
-                        )));
-                    }
-                };
+                let crypto = req
+                    .extensions
+                    .get::<Arc<Crypto>>()
+                    .ok_or(UnauthorizedError("Crypto data not found".to_string()))?;
 
                 if let Ok(fingerprint_decrypted) = crypto.decrypt(&certificate) {
                     if fingerprint == fingerprint_decrypted {
@@ -73,9 +75,29 @@ where
                     }
                 };
             }
-        };
+        }
 
         Ok(AuthState(false))
+    }
+}
+
+pub struct AuthChecker;
+
+#[async_trait]
+impl<S> FromRequestParts<S> for AuthChecker
+where
+    S: Send + Sync,
+{
+    type Rejection = Error;
+
+    async fn from_request_parts(req: &mut Parts, state: &S) -> Result<Self> {
+        let AuthState(is_authorized) = AuthState::from_request_parts(req, state).await?;
+
+        if is_authorized {
+            Ok(Self)
+        } else {
+            Err(UnauthorizedError("Unauthorized".to_string()))
+        }
     }
 }
 
@@ -106,7 +128,11 @@ pub mod tests {
         serde_json::to_string(&auth).unwrap()
     }
 
-    async fn index(AuthState(is_authorized): AuthState) -> Response {
+    async fn authorization_handler(_authorization: Authorization) -> Response {
+        StatusCode::OK.into_response()
+    }
+
+    async fn auth_state_handler(AuthState(is_authorized): AuthState) -> Response {
         if is_authorized {
             StatusCode::OK.into_response()
         } else {
@@ -114,12 +140,73 @@ pub mod tests {
         }
     }
 
+    async fn auth_checker_handler(_: AuthChecker) -> Response {
+        StatusCode::OK.into_response()
+    }
+
     #[tokio::test]
-    async fn test_auth_from_request() {
+    async fn test_auth_authorization_from_request_parts() {
         let crypto = get_crypto();
 
         let router = Router::new()
-            .route("/", get(index))
+            .route("/", get(authorization_handler))
+            .layer(into_layer(crypto.clone()));
+
+        let authorization = gen_auth(&crypto);
+
+        let req = Request::builder()
+            .method(Method::GET)
+            .uri("/")
+            .header("Authorization", authorization)
+            .body(Body::empty())
+            .unwrap();
+
+        let res = router.oneshot(req).await.unwrap();
+
+        assert_eq!(res.status(), StatusCode::OK);
+
+        sleep_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn test_auth_auth_state_from_request_parts() {
+        let crypto = get_crypto();
+
+        let router = Router::new()
+            .route("/", get(auth_state_handler))
+            .layer(into_layer(crypto.clone()));
+
+        let authorization = gen_auth(&crypto);
+
+        let req = Request::builder()
+            .method(Method::GET)
+            .uri("/")
+            .header("Authorization", authorization)
+            .body(Body::empty())
+            .unwrap();
+
+        let res = router.clone().oneshot(req).await.unwrap();
+
+        assert_eq!(res.status(), StatusCode::OK);
+
+        let req = Request::builder()
+            .method(Method::GET)
+            .uri("/")
+            .body(Body::empty())
+            .unwrap();
+
+        let res = router.clone().oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
+
+        sleep_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn test_auth_auth_checker_from_request_parts() {
+        let crypto = get_crypto();
+
+        let router = Router::new()
+            .route("/", get(auth_checker_handler))
             .layer(into_layer(crypto.clone()));
 
         let authorization = gen_auth(&crypto);

@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 use socketioxide::socket::Sid;
 use socketioxide::SocketIo;
 
+use crate::auth::{AuthChecker, Authorization};
 use crate::client::database::DeviceItem;
 use crate::client::Database;
 use crate::crypto::Crypto;
@@ -78,9 +79,9 @@ pub async fn auth(
 
         let device_item = DeviceItem {
             fingerprint: params.fingerprint,
-            browser: params.browser,
-            last_use_timestamp: current_timestamp,
-            expiration_timestamp,
+            browser: Some(params.browser),
+            last_use_timestamp: Some(current_timestamp),
+            expiration_timestamp: Some(expiration_timestamp),
         };
 
         database.insert_device(device_item).await?;
@@ -104,15 +105,40 @@ pub async fn auth(
     }
 }
 
+pub static AUTO_LOGIN_PATH: &str = "/autoLogin";
+
+pub async fn auto_login(
+    _: AuthChecker,
+    Authorization { fingerprint, .. }: Authorization,
+    Extension(database): Extension<Arc<Database>>,
+) -> Result<Response> {
+    println!("received login request");
+
+    let device_item = DeviceItem {
+        fingerprint,
+        browser: None,
+        last_use_timestamp: Some(get_current_timestamp()),
+        expiration_timestamp: None,
+    };
+
+    database.update_device(device_item).await?;
+
+    Ok(StatusCode::OK.into_response())
+}
+
 #[cfg(test)]
 mod tests {
-    use axum::routing::post;
+    use axum::body::Body;
+    use axum::http::{Method, Request};
+    use axum::routing::{get, post};
     use axum::Router;
     use futures::FutureExt;
     use rust_socketio::asynchronous::ClientBuilder;
     use socketioxide::extract::SocketRef;
     use tokio::net::TcpListener;
+    use tower::ServiceExt;
 
+    use crate::auth::tests::gen_auth;
     use crate::client::database::tests::{get_database, reset as reset_database};
     use crate::crypto::tests::get_crypto;
     use crate::env::tests::get_env;
@@ -125,7 +151,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_login_auth() {
-        async fn inner(database: &Database, env: Env) -> Result<reqwest::Response> {
+        async fn inner(database: &Database) -> Result<reqwest::Response> {
             database.create_table_device_if_not_exists().await?;
 
             let (socketio_layer, socketio) = SocketIo::new_layer();
@@ -133,6 +159,7 @@ mod tests {
             socketio.ns("/", |_socket: SocketRef| {});
 
             let crypto = get_crypto();
+            let env = get_env();
 
             let router = Router::new()
                 .route(AUTH_PATH, post(auth))
@@ -186,8 +213,45 @@ mod tests {
         }
 
         let database = get_database().await;
-        let env = get_env();
-        let result = inner(&database, env).await;
+        let result = inner(&database).await;
+        reset_database(database).await;
+
+        assert_eq!(result.unwrap().status(), StatusCode::OK);
+
+        sleep_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn test_login_login() {
+        async fn inner(database: &Database) -> Result<Response> {
+            database.create_table_device_if_not_exists().await?;
+
+            let crypto = get_crypto();
+            let auth = gen_auth(&crypto);
+
+            let router = Router::new()
+                .route(AUTO_LOGIN_PATH, get(auto_login))
+                .layer(into_layer(database.clone()))
+                .layer(into_layer(crypto));
+
+            let req = Request::builder()
+                .method(Method::GET)
+                .uri(AUTO_LOGIN_PATH)
+                .header("Authorization", auth)
+                .body(Body::empty())
+                .map_err(|e| DefaultError(format!("failed to create request: {}", e)))?;
+
+            let res = router
+                .oneshot(req)
+                .await
+                .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+
+            Ok(res)
+        }
+
+        let database = get_database().await;
+
+        let result = inner(&database).await;
         reset_database(database).await;
 
         assert_eq!(result.unwrap().status(), StatusCode::OK);

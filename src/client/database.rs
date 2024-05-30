@@ -175,11 +175,11 @@ impl From<MySqlRow> for MessageItem {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct DeviceItem {
     pub fingerprint: String,
-    pub browser: String,
+    pub browser: Option<String>,
     #[serde(rename = "lastUseTimestamp")]
-    pub last_use_timestamp: i64,
+    pub last_use_timestamp: Option<i64>,
     #[serde(rename = "expirationTimestamp")]
-    pub expiration_timestamp: i64,
+    pub expiration_timestamp: Option<i64>,
 }
 
 // init
@@ -549,21 +549,43 @@ impl Database {
         Ok(())
     }
 
-    pub async fn update_device(&self, device_item: DeviceItem) -> Result<()> {
-        let sql = format!(
-            "update `{}` set
-                browser = ?,
-                lastUseTimestamp = ?,
-                expirationTimestamp = ? 
-            where fingerprint = ?",
-            MYSQL_TABLE_DEVICE
-        );
+    pub async fn update_device(
+        &self,
+        DeviceItem {
+            fingerprint,
+            browser,
+            last_use_timestamp,
+            expiration_timestamp,
+        }: DeviceItem,
+    ) -> Result<()> {
+        let mut sql = format!("update `{}` set", MYSQL_TABLE_DEVICE);
+        let mut params = Vec::<String>::new();
 
-        let query = sqlx::query(&sql)
-            .bind(device_item.browser)
-            .bind(device_item.last_use_timestamp)
-            .bind(device_item.expiration_timestamp)
-            .bind(device_item.fingerprint);
+        if let Some(browser) = browser {
+            sql = format!("{} browser = ?,", sql);
+            params.push(browser);
+        }
+
+        if let Some(last_use_timestamp) = last_use_timestamp {
+            sql = format!("{} lastUseTimestamp = ?,", sql);
+            params.push(last_use_timestamp.to_string());
+        }
+
+        if let Some(expiration_timestamp) = expiration_timestamp {
+            sql = format!("{} expirationTimestamp = ?,", sql);
+            params.push(expiration_timestamp.to_string());
+        }
+
+        sql = sql.trim_end_matches(",").to_string();
+        sql = format!("{} where fingerprint = ?", sql);
+
+        params.push(fingerprint);
+
+        let mut query = sqlx::query(&sql);
+
+        for param in params.iter() {
+            query = query.bind(param);
+        }
 
         self.pool
             .execute(query)
@@ -953,9 +975,9 @@ pub mod tests {
         async fn inner(database: &Database) -> Result<()> {
             let device_item = DeviceItem {
                 fingerprint: "fingerprint".to_string(),
-                browser: "browser".to_string(),
-                last_use_timestamp: get_current_timestamp(),
-                expiration_timestamp: get_current_timestamp(),
+                browser: Some("browser".to_string()),
+                last_use_timestamp: Some(get_current_timestamp()),
+                expiration_timestamp: Some(get_current_timestamp()),
             };
 
             database.create_table_device_if_not_exists().await?;
@@ -978,9 +1000,9 @@ pub mod tests {
         async fn inner(database: &Database) -> Result<()> {
             let device_item_old = DeviceItem {
                 fingerprint: "fingerprint".to_string(),
-                browser: "browser_old".to_string(),
-                last_use_timestamp: get_current_timestamp(),
-                expiration_timestamp: get_current_timestamp(),
+                browser: Some("browser_old".to_string()),
+                last_use_timestamp: Some(get_current_timestamp()),
+                expiration_timestamp: Some(get_current_timestamp()),
             };
 
             database.create_table_device_if_not_exists().await?;
@@ -988,9 +1010,9 @@ pub mod tests {
 
             let device_item_new = DeviceItem {
                 fingerprint: "fingerprint".to_string(),
-                browser: "browser_new".to_string(),
-                last_use_timestamp: get_current_timestamp(),
-                expiration_timestamp: get_current_timestamp(),
+                browser: Some("browser_new".to_string()),
+                last_use_timestamp: Some(get_current_timestamp()),
+                expiration_timestamp: Some(get_current_timestamp()),
             };
 
             database.update_device(device_item_new).await?;
