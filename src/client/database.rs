@@ -172,7 +172,7 @@ impl From<MySqlRow> for MessageItem {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct DeviceItem {
     pub fingerprint: String,
     pub browser: Option<String>,
@@ -180,6 +180,33 @@ pub struct DeviceItem {
     pub last_use_timestamp: Option<i64>,
     #[serde(rename = "expirationTimestamp")]
     pub expiration_timestamp: Option<i64>,
+}
+
+impl From<MySqlRow> for DeviceItem {
+    fn from(row: MySqlRow) -> Self {
+        let fingerprint = row
+            .try_get::<String, &str>("fingerprint")
+            .expect("MySql failed to get fingerprint for DeviceItem");
+
+        let browser = row
+            .try_get::<Option<String>, &str>("browser")
+            .expect("MySql failed to get browser for DeviceItem");
+
+        let last_use_timestamp = row
+            .try_get::<Option<i64>, &str>("lastUseTimestamp")
+            .expect("MySql failed to get lastUseTimestamp for DeviceItem");
+
+        let expiration_timestamp = row
+            .try_get::<Option<i64>, &str>("expirationTimestamp")
+            .expect("MySql failed to get expirationTimestamp for DeviceItem");
+
+        Self {
+            fingerprint,
+            browser,
+            last_use_timestamp,
+            expiration_timestamp,
+        }
+    }
 }
 
 // init
@@ -591,6 +618,34 @@ impl Database {
             .execute(query)
             .await
             .map_err(|e| SqlExecuteError(format!("MySql update device failed: {}", e)))?;
+
+        Ok(())
+    }
+
+    pub async fn query_device_items(&self) -> Result<Vec<DeviceItem>> {
+        let sql = format!("select * from `{}`", MYSQL_TABLE_DEVICE);
+
+        let query = sqlx::query::<MySql>(&sql)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| SqlQueryError(format!("MySql query device failed: {}", e)))?;
+
+        let result = query
+            .into_iter()
+            .map(|row| DeviceItem::from(row))
+            .collect::<Vec<DeviceItem>>();
+
+        Ok(result)
+    }
+
+    pub async fn remove_device(&self, fingerprint: &str) -> Result<()> {
+        let sql = format!("delete from `{}` where fingerprint = ?", MYSQL_TABLE_DEVICE);
+        let query = sqlx::query(&sql).bind(fingerprint);
+
+        self.pool
+            .execute(query)
+            .await
+            .map_err(|e| SqlExecuteError(format!("MySql remove device failed: {}", e)))?;
 
         Ok(())
     }
@@ -1027,5 +1082,57 @@ pub mod tests {
         result.unwrap();
 
         sleep_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn test_database_query_device_items() {
+        async fn inner(database: &Database, device_item: DeviceItem) -> Result<Vec<DeviceItem>> {
+            database.create_table_device_if_not_exists().await?;
+            database.insert_device(device_item).await?;
+            let result = database.query_device_items().await?;
+
+            Ok(result)
+        }
+
+        let database = get_database().await;
+
+        let device_item = DeviceItem {
+            fingerprint: "fingerprint".to_string(),
+            browser: Some("browser".to_string()),
+            last_use_timestamp: Some(get_current_timestamp()),
+            expiration_timestamp: Some(get_current_timestamp()),
+        };
+
+        let result = inner(&database, device_item.clone()).await;
+        reset(database).await;
+
+        assert_eq!(result.unwrap(), vec![device_item]);
+    }
+
+    #[tokio::test]
+    async fn test_database_remove_device() {
+        async fn inner(database: &Database) -> Result<()> {
+            let fingerprint = "fingerprint";
+
+            let device_item = DeviceItem {
+                fingerprint: fingerprint.to_string(),
+                browser: Some("browser".to_string()),
+                last_use_timestamp: Some(get_current_timestamp()),
+                expiration_timestamp: Some(get_current_timestamp()),
+            };
+
+            database.create_table_device_if_not_exists().await?;
+            database.insert_device(device_item).await?;
+            database.remove_device(fingerprint).await?;
+
+            Ok(())
+        }
+
+        let database = get_database().await;
+
+        let result = inner(&database).await;
+        reset(database).await;
+
+        result.unwrap();
     }
 }

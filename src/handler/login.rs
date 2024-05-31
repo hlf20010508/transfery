@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::{Extension, Json};
+use axum::{debug_handler, Extension, Json};
 use serde::{Deserialize, Serialize};
 use socketioxide::socket::Sid;
 use socketioxide::SocketIo;
@@ -122,6 +122,49 @@ pub async fn auto_login(
     };
 
     database.update_device(device_item).await?;
+
+    Ok(StatusCode::OK.into_response())
+}
+
+pub static DEVICE_PATH: &str = "/device";
+
+pub async fn device(
+    _: AuthChecker,
+    Extension(database): Extension<Arc<Database>>,
+) -> Result<Json<Vec<DeviceItem>>> {
+    println!("received device request");
+
+    let device_items = database.query_device_items().await?;
+
+    Ok(Json(device_items))
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeviceSignOutParams {
+    fingerprint: String,
+    sid: Sid,
+}
+
+pub static DEVICE_SIGN_OUT_PATH: &str = "/deviceSignOut";
+
+#[debug_handler]
+pub async fn device_sign_out(
+    _: AuthChecker,
+    Extension(database): Extension<Arc<Database>>,
+    Extension(socketio): Extension<Arc<SocketIo>>,
+    Json(DeviceSignOutParams { fingerprint, sid }): Json<DeviceSignOutParams>,
+) -> Result<Response> {
+    println!("received device sign out request");
+
+    database.remove_device(&fingerprint).await?;
+
+    socketio
+        .to(Room::Private)
+        .except(sid)
+        .emit("signOut", fingerprint)
+        .map_err(|e| SocketEmitError(format!("socketio emit error for event signOut: {}", e)))?;
+
+    println!("broadcasted");
 
     Ok(StatusCode::OK.into_response())
 }
@@ -251,6 +294,120 @@ mod tests {
 
         let database = get_database().await;
 
+        let result = inner(&database).await;
+        reset_database(database).await;
+
+        assert_eq!(result.unwrap().status(), StatusCode::OK);
+
+        sleep_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn test_login_device() {
+        async fn inner(database: &Database) -> Result<Response> {
+            let device_item = DeviceItem {
+                fingerprint: "fingerprint".to_string(),
+                browser: Some("browser".to_string()),
+                last_use_timestamp: Some(get_current_timestamp()),
+                expiration_timestamp: Some(get_current_timestamp()),
+            };
+
+            database.create_table_device_if_not_exists().await?;
+            database.insert_device(device_item).await?;
+
+            let crypto = get_crypto();
+            let auth = gen_auth(&crypto);
+
+            let router = Router::new()
+                .route(DEVICE_PATH, get(device))
+                .layer(into_layer(database.clone()))
+                .layer(into_layer(crypto));
+
+            let req = Request::builder()
+                .method(Method::GET)
+                .uri(DEVICE_PATH)
+                .header("Authorization", auth)
+                .body(Body::empty())
+                .map_err(|e| DefaultError(format!("failed to create request: {}", e)))?;
+
+            let res = router
+                .oneshot(req)
+                .await
+                .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+
+            Ok(res)
+        }
+
+        let database = get_database().await;
+
+        let result = inner(&database).await;
+        reset_database(database).await;
+
+        assert_eq!(result.unwrap().status(), StatusCode::OK);
+
+        sleep_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn test_login_device_sign_out() {
+        async fn inner(database: &Database) -> Result<reqwest::Response> {
+            database.create_table_device_if_not_exists().await?;
+
+            let (socketio_layer, socketio) = SocketIo::new_layer();
+
+            socketio.ns("/", |_socket: SocketRef| {});
+
+            let crypto = get_crypto();
+            let auth = gen_auth(&crypto);
+
+            let router = Router::new()
+                .route(DEVICE_SIGN_OUT_PATH, post(device_sign_out))
+                .layer(into_layer(crypto))
+                .layer(into_layer(database.clone()))
+                .layer(socketio_layer)
+                .layer(into_layer(socketio));
+
+            let server = TcpListener::bind("127.0.0.1:0")
+                .await
+                .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+            let addr = server
+                .local_addr()
+                .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+
+            tokio::spawn(async move {
+                axum::serve(server, router).await.unwrap();
+            });
+
+            ClientBuilder::new(format!("http://{}/", addr))
+                .on("signOut", |_payload, _socket| async {}.boxed())
+                .connect()
+                .await
+                .map_err(|e| {
+                    DefaultError(format!("failed to connect to socketio server: {}", e))
+                })?;
+
+            sleep_async(1).await;
+
+            let data = DeviceSignOutParams {
+                fingerprint: "fingerprint".to_string(),
+                sid: Sid::new(),
+            };
+
+            let client = reqwest::Client::new();
+            let res = client
+                .post(format!("http://{}{}", addr, DEVICE_SIGN_OUT_PATH))
+                .header("Authorization", auth)
+                .json(&data)
+                .send()
+                .await
+                .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+
+            sleep_async(1).await;
+
+            Ok(res)
+        }
+
+        let database = get_database().await;
         let result = inner(&database).await;
         reset_database(database).await;
 

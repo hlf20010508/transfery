@@ -73,6 +73,8 @@ async fn server(env: Env) {
         .route(upload::COMPLETE_UPLOAD_PATH, post(upload::complete_upload))
         .route(login::AUTH_PATH, post(login::auth))
         .route(login::AUTO_LOGIN_PATH, post(login::auto_login))
+        .route(login::DEVICE_PATH, get(login::device))
+        .route(login::DEVICE_SIGN_OUT_PATH, post(login::device_sign_out))
         .layer(socketio_layer)
         .layer(into_layer(socketio))
         .layer(into_layer(env))
