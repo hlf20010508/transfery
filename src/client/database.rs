@@ -24,7 +24,7 @@ pub struct Database {
     name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub enum MessageItemType {
     #[serde(rename = "text")]
     Text,
@@ -83,10 +83,10 @@ impl Type<MySql> for MessageItemType {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone, PartialEq)]
 pub struct MessageItem {
-    id: Option<i64>,
-    content: String,
+    pub id: Option<i64>,
+    pub content: String,
     timestamp: i64,
     #[serde(rename = "isPrivate")]
     is_private: bool,
@@ -454,6 +454,18 @@ impl Database {
             .collect();
 
         Ok(result)
+    }
+
+    pub async fn query_message_latest(&self) -> Option<MessageItem> {
+        let sql = format!(
+            "select * from `{}` where isPrivate = true order by timestamp desc, id desc limit 1",
+            MYSQL_TABLE_MESSAGE
+        );
+
+        match sqlx::query::<MySql>(&sql).fetch_one(&self.pool).await {
+            Ok(row) => Some(MessageItem::from(row)),
+            Err(_) => None,
+        }
     }
 
     pub async fn insert_message_item(&self, item: MessageItem) -> Result<u64> {
@@ -998,6 +1010,34 @@ pub mod tests {
             result.get(1).unwrap().content,
             "test database query message items after id 2"
         );
+
+        sleep_async(1).await;
+    }
+
+    #[tokio::test]
+    async fn test_database_query_message_latest() {
+        async fn inner(database: &Database, item: MessageItem) -> Result<Option<MessageItem>> {
+            database.create_table_message_if_not_exists().await?;
+            database.insert_message_item(item).await?;
+            let items = database.query_message_latest().await;
+
+            Ok(items)
+        }
+
+        let database = get_database().await;
+
+        let item = MessageItem::new_text(
+            "test database query message latest",
+            get_current_timestamp(),
+            true,
+        );
+
+        let result = inner(&database, item.clone()).await;
+        reset(database).await;
+
+        let result = result.unwrap();
+
+        assert_eq!(result.unwrap().content, item.content);
 
         sleep_async(1).await;
     }

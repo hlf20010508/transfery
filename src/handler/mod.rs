@@ -5,6 +5,7 @@
 :license: MIT, see LICENSE for more details.
 */
 
+pub mod api;
 pub mod download;
 pub mod login;
 pub mod message;

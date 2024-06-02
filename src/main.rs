@@ -23,7 +23,7 @@ mod utils;
 use client::{get_database, get_storage};
 use crypto::Crypto;
 use env::Env;
-use handler::{download, login, message, socket, upload};
+use handler::{api, download, login, message, socket, upload};
 use utils::into_layer;
 
 #[tokio::main]
@@ -75,6 +75,11 @@ async fn server(env: Env) {
         .route(login::AUTO_LOGIN_PATH, get(login::auto_login))
         .route(login::DEVICE_PATH, get(login::device))
         .route(login::DEVICE_SIGN_OUT_PATH, post(login::device_sign_out))
+        .route(
+            api::PUSH_TEXT_PATH,
+            get(api::push_text).post(api::push_text),
+        )
+        .route(api::LATEST_TEXT_PATH, get(api::latest_text))
         .layer(socketio_layer)
         .layer(into_layer(socketio))
         .layer(into_layer(env))
