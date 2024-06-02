@@ -21,7 +21,7 @@ use crate::error::Result;
 #[derive(Debug, Clone)]
 pub struct Database {
     pool: Pool<MySql>,
-    name: String,
+    _name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
@@ -239,7 +239,7 @@ impl Database {
 
         Ok(Self {
             pool,
-            name: name.to_string(),
+            _name: name.to_string(),
         })
     }
 
@@ -252,7 +252,7 @@ impl Database {
         Ok(pool)
     }
 
-    async fn close(self) {
+    async fn _close(self) {
         self.pool.close().await;
     }
 
@@ -388,8 +388,8 @@ impl Database {
         Ok(secret_key)
     }
 
-    async fn drop_database_if_exists(&self) -> Result<()> {
-        let sql = format!("drop database if exists `{}`", self.name);
+    async fn _drop_database_if_exists(&self) -> Result<()> {
+        let sql = format!("drop database if exists `{}`", self._name);
         let query = sqlx::query::<MySql>(&sql);
 
         self.pool
@@ -687,8 +687,8 @@ pub mod tests {
     }
 
     pub async fn reset(database: Database) {
-        database.drop_database_if_exists().await.unwrap();
-        database.close().await;
+        database._drop_database_if_exists().await.unwrap();
+        database._close().await;
     }
 
     #[tokio::test]
@@ -712,7 +712,7 @@ pub mod tests {
         let database = get_database().await;
 
         let result =
-            Database::create_database_if_not_exists(&database.pool, database.name.as_str()).await;
+            Database::create_database_if_not_exists(&database.pool, database._name.as_str()).await;
         reset(database).await;
         result.unwrap();
 
@@ -844,7 +844,7 @@ pub mod tests {
     async fn test_database_drop_database_if_exists() {
         let database = get_database().await;
 
-        database.drop_database_if_exists().await.unwrap();
+        database._drop_database_if_exists().await.unwrap();
 
         sleep_async(1).await;
     }

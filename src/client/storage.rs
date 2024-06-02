@@ -21,7 +21,7 @@ use crate::error::Error::{
 use crate::error::Result;
 
 // s3 minimum allowed size is 5MB
-pub static PART_SIZE: u32 = 5 * 1024 * 1024; // 5MB
+pub static _PART_SIZE: u32 = 5 * 1024 * 1024; // 5MB
 
 #[derive(Debug, Clone)]
 pub struct Storage {
@@ -224,7 +224,7 @@ impl Storage {
         }
     }
 
-    async fn remove_bucket(&self) -> Result<()> {
+    async fn _remove_bucket(&self) -> Result<()> {
         self.remove_objects_all().await?;
 
         let args = BucketArgs::new(&self.bucket)
@@ -289,7 +289,7 @@ pub mod tests {
     }
 
     pub async fn reset(storage: &Storage) {
-        storage.remove_bucket().await.unwrap();
+        storage._remove_bucket().await.unwrap();
     }
 
     fn fake_data() -> Vec<u8> {
@@ -448,7 +448,7 @@ pub mod tests {
             let data = fake_data();
             let mut parts: Vec<Part> = Vec::new();
 
-            for (part_number, part_data) in data.chunks(PART_SIZE as usize).enumerate() {
+            for (part_number, part_data) in data.chunks(_PART_SIZE as usize).enumerate() {
                 let part_number = part_number as u16 + 1;
 
                 let part = storage
@@ -543,7 +543,7 @@ pub mod tests {
 
         init(&storage).await.unwrap();
 
-        storage.remove_bucket().await.unwrap();
+        storage._remove_bucket().await.unwrap();
 
         sleep_async(1).await;
     }
