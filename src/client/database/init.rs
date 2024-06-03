@@ -26,15 +26,17 @@ impl Database {
             .parse::<u16>()
             .map_err(|e| PortParseError(format!("MySql port parsing failed: {}", e)))?;
 
-        let options = MySqlConnectOptions::new()
-            .host(host)
-            .port(port)
-            .username(username)
-            .password(password);
+        {
+            let options = MySqlConnectOptions::new()
+                .host(host)
+                .port(port)
+                .username(username)
+                .password(password);
 
-        let pool = Database::get_pool(options).await?;
+            let pool = Database::get_pool(options).await?;
 
-        Self::create_database_if_not_exists(&pool, name).await?;
+            Self::create_database_if_not_exists(&pool, name).await?;
+        }
 
         let options = MySqlConnectOptions::new()
             .host(host)
@@ -66,6 +68,7 @@ impl Database {
 
     pub async fn create_database_if_not_exists(pool: &Pool<MySql>, name: &str) -> Result<()> {
         let sql = format!("create database if not exists `{}`", name);
+
         let query = sqlx::query::<MySql>(&sql);
 
         pool.execute(query)
@@ -97,6 +100,7 @@ impl Database {
             )",
             MYSQL_TABLE_MESSAGE
         );
+
         let query = sqlx::query::<MySql>(&sql);
 
         self.pool
@@ -115,6 +119,7 @@ impl Database {
             )",
             MYSQL_TABLE_AUTH
         );
+
         let query = sqlx::query::<MySql>(&sql);
 
         self.pool
@@ -136,6 +141,7 @@ impl Database {
             )",
             MYSQL_TABLE_DEVICE
         );
+
         let query = sqlx::query::<MySql>(&sql);
 
         self.pool
@@ -157,6 +163,7 @@ impl Database {
                 ",
                 MYSQL_TABLE_AUTH,
             );
+
             let query = sqlx::query::<MySql>(&sql).bind(secret_key);
 
             self.pool
@@ -170,20 +177,18 @@ impl Database {
 
     pub async fn is_secret_key_exist(&self) -> Result<bool> {
         let sql = format!("select count(*) from `{}`", MYSQL_TABLE_AUTH);
-        let query = sqlx::query::<MySql>(&sql)
+
+        let (count,) = sqlx::query_as::<MySql, (i64,)>(&sql)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| SqlQueryError(format!("MySql query secret key failed: {}", e)))?;
 
-        let has_secret_key = query.try_get::<bool, &str>("count(*)").map_err(|e| {
-            SqlGetValueError(format!("MySql get number of secret key failed: {}", e))
-        })?;
-
-        Ok(has_secret_key)
+        Ok(count > 0)
     }
 
     pub async fn get_secret_key(&self) -> Result<String> {
         let sql = format!("select secretKey from `{}` limit 1", MYSQL_TABLE_AUTH);
+
         let query = sqlx::query::<MySql>(&sql)
             .fetch_one(&self.pool)
             .await
@@ -198,6 +203,7 @@ impl Database {
 
     pub async fn _drop_database_if_exists(&self) -> Result<()> {
         let sql = format!("drop database if exists `{}`", self._name);
+
         let query = sqlx::query::<MySql>(&sql);
 
         self.pool

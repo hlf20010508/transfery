@@ -18,11 +18,12 @@ impl Database {
     pub async fn insert_device(&self, device_item: DeviceItem) -> Result<()> {
         let fingerprint_exists = {
             let sql = format!(
-                "select count(*) from {} where fingerprint = \"{}\"",
-                MYSQL_TABLE_DEVICE, device_item.fingerprint
+                "select count(*) from `{}` where fingerprint = ?",
+                MYSQL_TABLE_DEVICE
             );
 
             let (count,) = sqlx::query_as::<MySql, (i64,)>(&sql)
+                .bind(device_item.fingerprint.clone())
                 .fetch_one(&self.pool)
                 .await
                 .map_err(|e| {

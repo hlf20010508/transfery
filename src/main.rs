@@ -5,12 +5,6 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use axum::routing::{get, post};
-use axum::Router;
-use pico_args::Arguments;
-use socketioxide::extract::{SocketRef, State};
-use socketioxide::SocketIo;
-
 mod auth;
 mod client;
 mod crypto;
@@ -25,6 +19,12 @@ use crypto::Crypto;
 use env::Env;
 use handler::{api, download, login, message, socket, upload};
 use utils::into_layer;
+
+use axum::routing::{get, post};
+use axum::Router;
+use pico_args::Arguments;
+use socketioxide::extract::{SocketRef, State};
+use socketioxide::SocketIo;
 
 #[tokio::main]
 async fn main() {

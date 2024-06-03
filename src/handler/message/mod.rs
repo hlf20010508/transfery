@@ -30,6 +30,7 @@ use crate::handler::socket::Room;
 
 pub static PAGE_PATH: &str = "/page";
 
+#[debug_handler]
 pub async fn page(
     Extension(env): Extension<Arc<Env>>,
     Extension(database): Extension<Arc<Database>>,
@@ -53,6 +54,7 @@ pub async fn page(
 
 pub static SYNC_PATH: &str = "/sync";
 
+#[debug_handler]
 pub async fn sync(
     Extension(database): Extension<Arc<Database>>,
     Query(params): Query<SyncQueryParams>,
@@ -117,6 +119,7 @@ pub async fn new_item(
 
 pub static REMOVE_ITEM_PATH: &str = "/removeItem";
 
+#[debug_handler]
 pub async fn remove_item(
     _: AuthChecker,
     Extension(database): Extension<Arc<Database>>,
@@ -164,6 +167,7 @@ pub async fn remove_item(
 
 pub static REMOVE_ALL_PATH: &str = "/removeAll";
 
+#[debug_handler]
 pub async fn remove_all(
     _: AuthChecker,
     Extension(database): Extension<Arc<Database>>,

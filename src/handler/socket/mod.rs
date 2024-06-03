@@ -9,10 +9,10 @@ mod models;
 #[cfg(test)]
 mod tests;
 
-use socketioxide::extract::{Data, SocketRef, State};
-
 use models::ProgressData;
 pub use models::{ConnectionNumber, Room};
+
+use socketioxide::extract::{Data, SocketRef, State};
 
 pub fn connect(socket: &SocketRef, connection_number: State<ConnectionNumber>) {
     let sid = socket.id.clone();

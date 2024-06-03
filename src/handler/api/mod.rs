@@ -14,7 +14,7 @@ use models::{Account, LatestTextParams, PushTextParams};
 use axum::extract::Query;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Extension;
+use axum::{debug_handler, Extension};
 use socketioxide::SocketIo;
 use std::sync::Arc;
 
@@ -30,6 +30,7 @@ use crate::utils::get_current_timestamp;
 
 pub static PUSH_TEXT_PATH: &str = "/pushText";
 
+#[debug_handler]
 pub async fn push_text(
     Extension(crypto): Extension<Arc<Crypto>>,
     Extension(env): Extension<Arc<Env>>,
@@ -68,6 +69,7 @@ pub async fn push_text(
 
 pub static LATEST_TEXT_PATH: &str = "/latestText";
 
+#[debug_handler]
 pub async fn latest_text(
     Extension(database): Extension<Arc<Database>>,
     Extension(crypto): Extension<Arc<Crypto>>,

@@ -9,13 +9,13 @@ mod models;
 #[cfg(test)]
 mod tests;
 
+use models::{AuthParams, Certificate, DeviceSignOutParams};
+
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{debug_handler, Extension, Json};
 use socketioxide::SocketIo;
 use std::sync::Arc;
-
-use models::{AuthParams, Certificate, DeviceSignOutParams};
 
 use crate::auth::{AuthChecker, Authorization};
 use crate::client::database::DeviceItem;
@@ -29,6 +29,7 @@ use crate::utils::get_current_timestamp;
 
 pub static AUTH_PATH: &str = "/auth";
 
+#[debug_handler]
 pub async fn auth(
     Extension(env): Extension<Arc<Env>>,
     Extension(crypto): Extension<Arc<Crypto>>,
@@ -93,6 +94,7 @@ pub async fn auth(
 
 pub static AUTO_LOGIN_PATH: &str = "/autoLogin";
 
+#[debug_handler]
 pub async fn auto_login(
     _: AuthChecker,
     Authorization { fingerprint, .. }: Authorization,
@@ -114,6 +116,7 @@ pub async fn auto_login(
 
 pub static DEVICE_PATH: &str = "/device";
 
+#[debug_handler]
 pub async fn device(
     _: AuthChecker,
     Extension(database): Extension<Arc<Database>>,

@@ -12,7 +12,7 @@ mod tests;
 use models::{DownloadUrlQueryParams, DownloadUrlResponseParams};
 
 use axum::extract::{Extension, Query};
-use axum::Json;
+use axum::{debug_handler, Json};
 use std::sync::Arc;
 
 use crate::client::Storage;
@@ -20,6 +20,7 @@ use crate::error::{Error, Result};
 
 pub static DOWNLOAD_URL_PATH: &str = "/downloadUrl";
 
+#[debug_handler]
 pub async fn download_url(
     Extension(storage): Extension<Arc<Storage>>,
     Query(params): Query<DownloadUrlQueryParams>,

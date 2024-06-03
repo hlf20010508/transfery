@@ -12,10 +12,10 @@ mod models;
 #[cfg(test)]
 pub mod tests;
 
+pub use models::{DeviceItem, MessageItem, MessageItemType};
+
 use sqlx::mysql::MySql;
 use sqlx::pool::Pool;
-
-pub use models::{DeviceItem, MessageItem, MessageItemType};
 
 #[derive(Debug, Clone)]
 pub struct Database {

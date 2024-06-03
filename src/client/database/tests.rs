@@ -205,9 +205,8 @@ async fn test_database_insert_message_item() {
             get_current_timestamp(),
             false,
         );
-        let id = inner(database, item).await?;
 
-        Ok(id)
+        inner(database, item).await
     }
 
     async fn inner_file(database: &Database) -> Result<u64> {
@@ -218,9 +217,8 @@ async fn test_database_insert_message_item() {
             "test_database_insert_message_item.txt",
             true,
         );
-        let id = inner(database, item).await?;
 
-        Ok(id)
+        inner(database, item).await
     }
 
     let database = get_database().await;
@@ -487,6 +485,8 @@ async fn test_database_query_device_items() {
     reset(database).await;
 
     assert_eq!(result.unwrap(), vec![device_item]);
+
+    sleep_async(1).await;
 }
 
 #[tokio::test]
@@ -514,4 +514,6 @@ async fn test_database_remove_device() {
     reset(database).await;
 
     result.unwrap();
+
+    sleep_async(1).await;
 }

@@ -108,6 +108,8 @@ async fn test_api_push_text() {
     let status = result.status();
     println!("{}", result.text().await.unwrap());
     assert_eq!(status, reqwest::StatusCode::OK);
+
+    sleep_async(1).await;
 }
 
 #[tokio::test]
@@ -162,4 +164,6 @@ async fn test_api_latest_text() {
     let status = result.status();
     println!("{}", result.to_string().await.unwrap());
     assert_eq!(status, StatusCode::OK);
+
+    sleep_async(1).await;
 }

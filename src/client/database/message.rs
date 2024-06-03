@@ -21,11 +21,15 @@ impl Database {
         number: u8,
         access_private: bool,
     ) -> Result<Vec<MessageItem>> {
-        let mut sql = format!("select * from `{}` ", MYSQL_TABLE_MESSAGE);
-        if !access_private {
-            sql.push_str("where isPrivate = false ");
-        }
-        sql.push_str("order by timestamp desc, id desc limit ?, ?");
+        let sql = {
+            let mut sql = format!("select * from `{}` ", MYSQL_TABLE_MESSAGE);
+            if !access_private {
+                sql.push_str("where isPrivate = false ");
+            }
+            sql.push_str("order by timestamp desc, id desc limit ?, ?");
+
+            sql
+        };
 
         let query = sqlx::query::<MySql>(&sql)
             .bind(start)
@@ -47,10 +51,14 @@ impl Database {
         id: u32,
         access_private: bool,
     ) -> Result<Vec<MessageItem>> {
-        let mut sql = format!("select * from `{}` where id > ?", MYSQL_TABLE_MESSAGE);
-        if !access_private {
-            sql.push_str(" and isPrivate = false ");
-        }
+        let sql = {
+            let mut sql = format!("select * from `{}` where id > ?", MYSQL_TABLE_MESSAGE);
+            if !access_private {
+                sql.push_str(" and isPrivate = false ");
+            }
+
+            sql
+        };
 
         let query = sqlx::query::<MySql>(&sql)
             .bind(id)
@@ -140,7 +148,7 @@ impl Database {
 
     pub async fn update_complete(&self, id: i64) -> Result<()> {
         let sql = format!(
-            "update `{}` set isComplete = 1 where id = ?",
+            "update `{}` set isComplete = true where id = ?",
             MYSQL_TABLE_MESSAGE
         );
 
