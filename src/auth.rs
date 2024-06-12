@@ -11,9 +11,17 @@ use axum::http::request::Parts;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+use crate::client::Database;
 use crate::crypto::Crypto;
 use crate::error::Error::{self, UnauthorizedError};
 use crate::error::Result;
+use crate::utils::get_current_timestamp;
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Certificate {
+    pub fingerprint: String,
+    pub timestamp: i64,
+}
 
 #[derive(Deserialize, Serialize)]
 pub struct Authorization {
@@ -69,12 +77,23 @@ where
                     .get::<Arc<Crypto>>()
                     .ok_or(UnauthorizedError("Crypto data not found".to_string()))?;
 
-                if let Ok(fingerprint_decrypted) = crypto.decrypt(&certificate) {
-                    if fingerprint == fingerprint_decrypted {
-                        return Ok(AuthState(true));
+                if let Ok(certificate) = crypto.decrypt(&certificate) {
+                    if let Ok(certificate) = serde_json::from_str::<Certificate>(&certificate) {
+                        if fingerprint == certificate.fingerprint
+                            && get_current_timestamp() < certificate.timestamp
+                        {
+                            return Ok(AuthState(true));
+                        }
                     }
                 };
             }
+
+            let database = req
+                .extensions
+                .get::<Arc<Database>>()
+                .ok_or(UnauthorizedError("Database data not found".to_string()))?;
+
+            database.remove_device(&fingerprint).await.ok();
         }
 
         Ok(AuthState(false))
@@ -113,12 +132,22 @@ pub mod tests {
     use tower::ServiceExt;
 
     use crate::crypto::tests::get_crypto;
-    use crate::utils::into_layer;
     use crate::utils::tests::sleep_async;
+    use crate::utils::{get_current_timestamp, into_layer};
 
     pub fn gen_auth(crypto: &Crypto) -> String {
         let fingerprint = "fingerprint for test";
-        let certificate = crypto.encrypt(fingerprint).unwrap();
+
+        let certificate = {
+            let certificate = Certificate {
+                fingerprint: fingerprint.to_string(),
+                timestamp: get_current_timestamp() + 1000 * 60,
+            };
+
+            crypto
+                .encrypt(&serde_json::to_string(&certificate).unwrap())
+                .unwrap()
+        };
 
         let auth = Authorization {
             fingerprint: fingerprint.to_string(),

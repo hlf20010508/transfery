@@ -35,20 +35,18 @@ pub static PAGE_PATH: &str = "/page";
 pub async fn page(
     Extension(env): Extension<Arc<Env>>,
     Extension(database): Extension<Arc<Database>>,
-    Query(params): Query<PageQueryParams>,
+    Query(PageQueryParams { size }): Query<PageQueryParams>,
     AuthState(is_authorized): AuthState,
 ) -> Result<Json<Vec<MessageItem>>> {
-    println!("received new page request");
-
-    let start = params.size;
+    tracing::info!("received new page request");
+    tracing::debug!("page size: {}", size);
 
     let result = database
-        .query_message_items(start, env.item_per_page, is_authorized)
+        .query_message_items(size, env.item_per_page, is_authorized)
         .await?;
 
-    println!("new page pushed");
-
-    // println!("{:#?}", result);
+    tracing::info!("new page pushed");
+    tracing::debug!("page result: {:#?}", result);
 
     Ok(Json(result))
 }
@@ -58,18 +56,18 @@ pub static SYNC_PATH: &str = "/sync";
 #[debug_handler]
 pub async fn sync(
     Extension(database): Extension<Arc<Database>>,
-    Query(params): Query<SyncQueryParams>,
+    Query(SyncQueryParams { latest_id }): Query<SyncQueryParams>,
     AuthState(is_authorized): AuthState,
 ) -> Result<Json<Vec<MessageItem>>> {
-    println!("received sync request");
-
-    let latest_id = params.latest_id;
+    tracing::info!("received sync request");
+    tracing::debug!("sync latest id: {}", latest_id);
 
     let result = database
         .query_message_items_after_id(latest_id, is_authorized)
         .await?;
 
-    println!("synced: {:#?}", result);
+    tracing::info!("synced");
+    tracing::debug!("sync result: {:#?}", result);
 
     Ok(Json(result))
 }
@@ -82,13 +80,16 @@ pub async fn new_item(
     Extension(socketio): Extension<Arc<SocketIo>>,
     Json(item): Json<NewItemParams>,
 ) -> Result<Json<NewItemResponse>> {
-    println!("received item: {:#?}", item);
+    tracing::info!("received new item request");
+    tracing::debug!("new item: {:#?}", item);
 
     let sid = item.sid;
     let item_id = database
         .insert_message_item(Result::<MessageItem>::from(&item)?)
         .await?;
-    println!("pushed to db");
+
+    tracing::info!("pushed to db");
+    tracing::debug!("new item id: {}", item_id);
 
     match item.is_private {
         true => socketio
@@ -113,7 +114,7 @@ pub async fn new_item(
             })?,
     };
 
-    println!("broadcasted");
+    tracing::info!("broadcasted");
 
     Ok(Json(NewItemResponse { id: item_id }))
 }
@@ -128,13 +129,14 @@ pub async fn remove_item(
     Extension(socketio): Extension<Arc<SocketIo>>,
     Json(item): Json<RemoveItemParams>,
 ) -> Result<Response> {
-    println!("received item to be removed: {:#?}", item);
+    tracing::info!("received remove item request");
+    tracing::debug!("received item to be removed: {:#?}", item);
 
     let sid = item.sid;
 
     database.remove_message_item(item.id as i64).await?;
 
-    println!("removed item in db");
+    tracing::info!("removed item in db");
 
     match item.type_field {
         MessageItemType::File => {
@@ -143,7 +145,7 @@ pub async fn remove_item(
             match file_name {
                 Some(file_name) => {
                     storage.remove_object(&file_name).await?;
-                    println!("removed item in storage");
+                    tracing::info!("removed item in storage");
                 }
                 None => {
                     return Err(FieldParseError(
@@ -161,7 +163,7 @@ pub async fn remove_item(
         .emit("removeItem", item.id)
         .map_err(|e| SocketEmitError(format!("socketio emit error for event removeItem: {}", e)))?;
 
-    println!("broadcasted");
+    tracing::info!("broadcasted");
 
     Ok(StatusCode::OK.into_response())
 }
@@ -176,17 +178,17 @@ pub async fn remove_all(
     Extension(socketio): Extension<Arc<SocketIo>>,
     Query(item): Query<RemoveAllParams>,
 ) -> Result<Response> {
-    println!("received remove all request");
+    tracing::info!("received remove all request");
 
     let sid = item.sid;
 
     database.remove_message_all().await?;
 
-    println!("removed all in db");
+    tracing::info!("removed all in db");
 
     storage.remove_objects_all().await?;
 
-    println!("removed all in storage");
+    tracing::info!("removed all in storage");
 
     socketio
         .to(Room::Public)
@@ -194,7 +196,7 @@ pub async fn remove_all(
         .emit("removeItem", ())
         .map_err(|e| SocketEmitError(format!("socketio emit error for event removeAll: {}", e)))?;
 
-    println!("broadcasted");
+    tracing::info!("broadcasted");
 
     Ok(StatusCode::OK.into_response())
 }

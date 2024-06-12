@@ -25,7 +25,7 @@ pub async fn download_url(
     Extension(storage): Extension<Arc<Storage>>,
     Query(params): Query<DownloadUrlQueryParams>,
 ) -> Result<String> {
-    println!("received download url request");
+    tracing::info!("received download url request");
 
     let file_name = params.file_name.clone();
 
@@ -34,7 +34,8 @@ pub async fn download_url(
         .await
         .map_err(|e| Error::from(e.context("download url")))?;
 
-    println!("download url pushed");
+    tracing::info!("download url pushed");
+    tracing::debug!("download url: {}", url);
 
     Ok(url)
 }

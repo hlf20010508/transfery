@@ -9,7 +9,7 @@ mod models;
 #[cfg(test)]
 mod tests;
 
-use models::{AuthParams, Certificate, DeviceSignOutParams};
+use models::{AuthParams, DeviceSignOutParams};
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -17,7 +17,7 @@ use axum::{debug_handler, Extension, Json};
 use socketioxide::SocketIo;
 use std::sync::Arc;
 
-use crate::auth::{AuthChecker, Authorization};
+use crate::auth::{AuthChecker, Authorization, Certificate};
 use crate::client::database::DeviceItem;
 use crate::client::Database;
 use crate::crypto::Crypto;
@@ -37,7 +37,8 @@ pub async fn auth(
     Extension(socketio): Extension<Arc<SocketIo>>,
     Json(params): Json<AuthParams>,
 ) -> Result<Response> {
-    println!("received auth request");
+    tracing::info!("received auth request");
+    tracing::debug!("auth params: {:#?}", params);
 
     if params.username == env.username && params.password == env.password {
         let max_age = if params.remember_me {
@@ -60,6 +61,8 @@ pub async fn auth(
             })?;
 
             let certificate = crypto.encrypt(&certificate_raw)?;
+
+            tracing::debug!("certificate: {}", certificate);
 
             certificate
         };
@@ -84,7 +87,7 @@ pub async fn auth(
             .emit("signIn", ())
             .map_err(|e| SocketEmitError(format!("socketio emit error for event signIn: {}", e)))?;
 
-        println!("broadcasted");
+        tracing::info!("broadcasted");
 
         return Ok(certificate.into_response());
     } else {
@@ -100,7 +103,8 @@ pub async fn auto_login(
     Authorization { fingerprint, .. }: Authorization,
     Extension(database): Extension<Arc<Database>>,
 ) -> Result<Response> {
-    println!("received login request");
+    tracing::info!("received auto login request");
+    tracing::debug!("auto login fingerprint: {}", fingerprint);
 
     let device_item = DeviceItem {
         fingerprint,
@@ -121,9 +125,11 @@ pub async fn device(
     _: AuthChecker,
     Extension(database): Extension<Arc<Database>>,
 ) -> Result<Json<Vec<DeviceItem>>> {
-    println!("received device request");
+    tracing::info!("received device request");
 
     let device_items = database.query_device_items().await?;
+
+    tracing::debug!("device items: {:#?}", device_items);
 
     Ok(Json(device_items))
 }
@@ -137,7 +143,8 @@ pub async fn device_sign_out(
     Extension(socketio): Extension<Arc<SocketIo>>,
     Json(DeviceSignOutParams { fingerprint, sid }): Json<DeviceSignOutParams>,
 ) -> Result<Response> {
-    println!("received device sign out request");
+    tracing::info!("received device sign out request");
+    tracing::debug!("device sign out fingerprint: {}, sid: {}", fingerprint, sid);
 
     database.remove_device(&fingerprint).await?;
 
@@ -147,7 +154,7 @@ pub async fn device_sign_out(
         .emit("signOut", fingerprint)
         .map_err(|e| SocketEmitError(format!("socketio emit error for event signOut: {}", e)))?;
 
-    println!("broadcasted");
+    tracing::info!("broadcasted");
 
     Ok(StatusCode::OK.into_response())
 }

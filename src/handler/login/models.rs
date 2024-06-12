@@ -19,12 +19,6 @@ pub struct AuthParams {
     pub sid: Sid,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Certificate {
-    pub fingerprint: String,
-    pub timestamp: i64,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeviceSignOutParams {
     pub fingerprint: String,

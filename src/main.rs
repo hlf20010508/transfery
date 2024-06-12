@@ -81,7 +81,13 @@ async fn server(env: Env) {
     const HOST: &str = "0.0.0.0";
 
     tracing_subscriber::registry()
-        .with(EnvFilter::new("info"))
+        .with(
+            EnvFilter::from_default_env().add_directive(
+                format!("transfery={}", env.mode.tracing_level())
+                    .parse()
+                    .unwrap(),
+            ),
+        )
         .with(tracing_subscriber::fmt::layer())
         .init();
 

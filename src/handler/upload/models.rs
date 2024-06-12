@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::Error::{self, FieldParseError, FromRequestError};
 use crate::error::Result;
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Part {
     pub number: u16,
     pub etag: String,
@@ -27,7 +27,7 @@ impl Into<minio::s3::types::Part> for Part {
     }
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct FetchUploadIdJsonParams {
     pub content: String,
     pub timestamp: i64,
@@ -120,7 +120,7 @@ where
     }
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct CompleteUploadFormParams {
     pub id: i64,
     #[serde(rename = "fileName")]

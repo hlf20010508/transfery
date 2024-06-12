@@ -9,6 +9,9 @@ use pico_args::Arguments;
 use std::fmt::Display;
 use std::str::FromStr;
 
+use crate::error::Error::{self, DefaultError};
+use crate::error::Result;
+
 fn get_arg_value<T>(arg_name: &'static str) -> T
 where
     T: FromStr,
@@ -32,7 +35,48 @@ where
 }
 
 #[derive(Debug, Clone)]
+pub enum EnvMode {
+    Pro,
+    Dev,
+}
+
+impl EnvMode {
+    pub fn tracing_level(&self) -> String {
+        match self {
+            EnvMode::Pro => "info".to_string(),
+            EnvMode::Dev => "debug".to_string(),
+        }
+    }
+}
+
+impl FromStr for EnvMode {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        if s == "pro" {
+            Ok(Self::Pro)
+        } else if s == "dev" {
+            Ok(Self::Dev)
+        } else {
+            Err(DefaultError(
+                "EnvMode must be one of 'pro' or 'dev'".to_string(),
+            ))
+        }
+    }
+}
+
+impl Display for EnvMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Pro => write!(f, "pro"),
+            Self::Dev => write!(f, "dev"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Env {
+    pub mode: EnvMode,
     pub port: u16,
     pub item_per_page: u8,
     pub username: String,
@@ -49,6 +93,7 @@ pub struct Env {
 
 impl Env {
     pub fn new() -> Self {
+        let mode = get_arg_value_option("--mode", EnvMode::Pro);
         let port = get_arg_value_option("--port", 8080);
         let item_per_page = get_arg_value_option("--item-per-page", 15);
         let username = get_arg_value::<String>("--username");
@@ -63,6 +108,7 @@ impl Env {
         let mysql_database = get_arg_value::<String>("--mysql-database");
 
         Self {
+            mode,
             port,
             item_per_page,
             username,
@@ -92,6 +138,7 @@ pub mod tests {
     pub fn get_env() -> Env {
         dotenv().ok();
 
+        let mode = EnvMode::Dev;
         let port = env::var("PORT")
             .unwrap_or("8080".to_string())
             .parse()
@@ -112,6 +159,7 @@ pub mod tests {
         let mysql_database = env::var("MYSQL_DATABASE").unwrap();
 
         Env {
+            mode,
             port,
             item_per_page,
             username,

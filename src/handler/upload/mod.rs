@@ -32,7 +32,8 @@ pub async fn fetch_upload_id(
     Extension(storage): Extension<Arc<Storage>>,
     Json(params): Json<FetchUploadIdJsonParams>,
 ) -> Result<Json<FetchUploadIdResponse>> {
-    println!("received fetch upload id request");
+    tracing::info!("received fetch upload id request");
+    tracing::debug!("fetch upload id params: {:#?}", params);
 
     let content = params.clone().content;
     let timestamp = params.clone().timestamp;
@@ -45,9 +46,8 @@ pub async fn fetch_upload_id(
         upload_id,
     };
 
-    println!("upload id pushed");
-
-    // println!("{:#?}", result);
+    tracing::info!("upload id pushed");
+    tracing::debug!("fetch upload id response: {:#?}", result);
 
     Ok(Json(result))
 }
@@ -70,6 +70,8 @@ pub async fn upload_part(
         .await?
         .etag;
 
+    tracing::debug!("upload part etag: {}", etag);
+
     Ok(etag)
 }
 
@@ -82,7 +84,8 @@ pub async fn complete_upload(
     Extension(database): Extension<Arc<Database>>,
     Json(params): Json<CompleteUploadFormParams>,
 ) -> Result<Response> {
-    println!("received complete upload request");
+    tracing::info!("received complete upload request");
+    tracing::debug!("complete upload params: {:#?}", params);
 
     let id = params.clone().id;
     let file_name = params.clone().file_name;
@@ -99,6 +102,8 @@ pub async fn complete_upload(
         .await?;
 
     database.update_complete(id).await?;
+
+    tracing::info!("upload completed");
 
     Ok(StatusCode::OK.into_response())
 }

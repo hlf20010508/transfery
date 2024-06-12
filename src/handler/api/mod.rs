@@ -36,16 +36,20 @@ pub async fn push_text(
     Extension(env): Extension<Arc<Env>>,
     Extension(database): Extension<Arc<Database>>,
     Extension(socketio): Extension<Arc<SocketIo>>,
-    PushTextParams { content, token }: PushTextParams,
+    params: PushTextParams,
 ) -> Result<Response> {
+    tracing::info!("received push text request");
+    tracing::debug!("push text params: {:#?}", params);
+
     let is_valid = {
-        let account = Account::from(token, &crypto)?;
+        let account = Account::from(params.token, &crypto)?;
         account.is_valid(&env)
     };
 
     if is_valid {
-        if !content.trim().is_empty() {
-            let mut message_item = MessageItem::new_text(&content, get_current_timestamp(), true);
+        if !params.content.trim().is_empty() {
+            let mut message_item =
+                MessageItem::new_text(&params.content, get_current_timestamp(), true);
 
             let id = database.insert_message_item(message_item.clone()).await?;
 
@@ -56,7 +60,7 @@ pub async fn push_text(
                 .emit("newItem", message_item)
                 .map_err(|e| SocketEmitError(format!("failed to emit newItem: {}", e)))?;
 
-            println!("text pushed");
+            tracing::info!("text uploaded");
 
             Ok(StatusCode::OK.into_response())
         } else {
@@ -76,7 +80,7 @@ pub async fn latest_text(
     Extension(env): Extension<Arc<Env>>,
     Query(LatestTextParams { token }): Query<LatestTextParams>,
 ) -> Result<Response> {
-    println!("received get latest text request");
+    tracing::info!("received get latest text request");
 
     let is_valid = {
         let account = Account::from(token, &crypto)?;
@@ -85,7 +89,11 @@ pub async fn latest_text(
 
     if is_valid {
         match database.query_message_latest().await {
-            Some(item) => Ok(item.content.into_response()),
+            Some(item) => {
+                tracing::info!("latest text pushed");
+                tracing::debug!("latest text item: {:#?}", item);
+                Ok(item.content.into_response())
+            }
             None => Ok(StatusCode::NOT_FOUND.into_response()),
         }
     } else {

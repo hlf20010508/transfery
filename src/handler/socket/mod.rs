@@ -22,9 +22,10 @@ pub fn connect(socket: &SocketRef, connection_number: State<ConnectionNumber>) {
 
     let connection_number = connection_number.increase();
 
-    println!(
+    tracing::info!(
         "client {} connected, connection number {}",
-        sid, connection_number
+        sid,
+        connection_number
     );
 
     socket
@@ -41,9 +42,10 @@ pub fn disconnect(socket: SocketRef, connection_number: State<ConnectionNumber>)
 
     let connection_number = connection_number.decrease();
 
-    println!(
+    tracing::info!(
         "client {} disconnected, connection number {}",
-        sid, connection_number
+        sid,
+        connection_number
     );
 
     socket
@@ -55,5 +57,6 @@ pub fn disconnect(socket: SocketRef, connection_number: State<ConnectionNumber>)
 pub static PROGRESS_EVENT: &str = "progress";
 
 pub fn progress(socket: SocketRef, Data::<ProgressData>(data): Data<ProgressData>) {
+    tracing::debug!("progress: {:?}", data);
     socket.broadcast().emit("progress", data).ok();
 }
