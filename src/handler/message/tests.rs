@@ -21,7 +21,9 @@ use std::pin::Pin;
 use tokio::net::TcpListener;
 use tower::ServiceExt;
 
-use super::models::{NewItemData, NewItemParams, RemoveAllParams, RemoveItemParams};
+use super::models::{
+    NewItemData, NewItemParams, NewItemResponse, RemoveAllParams, RemoveItemParams,
+};
 use super::{
     new_item, page, remove_all, remove_item, sync, NEW_ITEM_PATH, PAGE_PATH, REMOVE_ALL_PATH,
     REMOVE_ITEM_PATH, SYNC_PATH,
@@ -256,7 +258,9 @@ async fn test_message_new_item() {
 
     let res = result.unwrap();
     assert_eq!(res.status(), StatusCode::OK);
-    assert_eq!(res.text().await.unwrap(), "2".to_string());
+
+    let data = res.json::<NewItemResponse>().await.unwrap();
+    assert_eq!(data, NewItemResponse { id: 2 });
 
     sleep_async(1).await;
 }

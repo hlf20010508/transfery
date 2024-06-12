@@ -9,10 +9,10 @@ mod models;
 #[cfg(test)]
 mod tests;
 
-use models::{DownloadUrlQueryParams, DownloadUrlResponseParams};
+use models::DownloadUrlQueryParams;
 
+use axum::debug_handler;
 use axum::extract::{Extension, Query};
-use axum::{debug_handler, Json};
 use std::sync::Arc;
 
 use crate::client::Storage;
@@ -24,7 +24,7 @@ pub static DOWNLOAD_URL_PATH: &str = "/downloadUrl";
 pub async fn download_url(
     Extension(storage): Extension<Arc<Storage>>,
     Query(params): Query<DownloadUrlQueryParams>,
-) -> Result<Json<DownloadUrlResponseParams>> {
+) -> Result<String> {
     println!("received download url request");
 
     let file_name = params.file_name.clone();
@@ -36,5 +36,5 @@ pub async fn download_url(
 
     println!("download url pushed");
 
-    Ok(Json(DownloadUrlResponseParams { url }))
+    Ok(url)
 }

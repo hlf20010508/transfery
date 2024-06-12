@@ -10,7 +10,8 @@ mod models;
 mod tests;
 
 use models::{
-    NewItemData, NewItemParams, PageQueryParams, RemoveAllParams, RemoveItemParams, SyncQueryParams,
+    NewItemData, NewItemParams, NewItemResponse, PageQueryParams, RemoveAllParams,
+    RemoveItemParams, SyncQueryParams,
 };
 
 use axum::extract::{Extension, Query};
@@ -80,7 +81,7 @@ pub async fn new_item(
     Extension(database): Extension<Arc<Database>>,
     Extension(socketio): Extension<Arc<SocketIo>>,
     Json(item): Json<NewItemParams>,
-) -> Result<String> {
+) -> Result<Json<NewItemResponse>> {
     println!("received item: {:#?}", item);
 
     let sid = item.sid;
@@ -114,7 +115,7 @@ pub async fn new_item(
 
     println!("broadcasted");
 
-    Ok(item_id.to_string())
+    Ok(Json(NewItemResponse { id: item_id }))
 }
 
 pub static REMOVE_ITEM_PATH: &str = "/removeItem";

@@ -31,7 +31,7 @@ pub async fn fetch_upload_id(
     _: AuthChecker,
     Extension(storage): Extension<Arc<Storage>>,
     Json(params): Json<FetchUploadIdJsonParams>,
-) -> Result<Response> {
+) -> Result<Json<FetchUploadIdResponse>> {
     println!("received fetch upload id request");
 
     let content = params.clone().content;
@@ -49,7 +49,7 @@ pub async fn fetch_upload_id(
 
     // println!("{:#?}", result);
 
-    Ok(axum::Json(result).into_response())
+    Ok(Json(result))
 }
 
 pub static UPLOAD_PART_PATH: &str = "/uploadPart";
@@ -59,7 +59,7 @@ pub async fn upload_part(
     _: AuthChecker,
     Extension(storage): Extension<Arc<Storage>>,
     params: UploadPartFormParams,
-) -> Result<Response> {
+) -> Result<String> {
     let etag = storage
         .multipart_upload(
             &params.file_name,
@@ -70,7 +70,7 @@ pub async fn upload_part(
         .await?
         .etag;
 
-    Ok(etag.into_response())
+    Ok(etag)
 }
 
 pub static COMPLETE_UPLOAD_PATH: &str = "/completeUpload";

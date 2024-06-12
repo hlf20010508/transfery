@@ -18,7 +18,9 @@ serde = { version = "1.0.197", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0.115", default-features = false }
 socketioxide = { version = "0.13.1", default-features = false, features = ["state", "tracing"] }
 sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "mysql"] }
-tokio = { version = "1.37.0", default-features = false }
+tokio = { version = "1.38.0", default-features = false }
+tracing = { version = "0.1.40", default-features = false }
+tracing-subscriber = { version = "0.3.18", default-features = false, features = ["std", "registry", "fmt", "env-filter"] }
 
 [dev-dependencies]
 dotenv = { version = "0.15.0", default-features = false }

@@ -106,6 +106,11 @@ impl From<&NewItemParams> for Result<MessageItem> {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+pub struct NewItemResponse {
+    pub id: u64,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RemoveItemParams {
     pub id: u64,
