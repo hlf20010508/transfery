@@ -6,26 +6,48 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version = "0.7.5", default-features = false, features = ["tokio", "http2", "json", "query", "multipart", "macros"] }
+axum = { version = "0.7.5", default-features = false, features = [
+    "tokio",
+    "http1",
+    "json",
+    "query",
+    "multipart",
+    "macros",
+] }
 base64 = { version = "0.22.0", default-features = false, features = ["alloc"] }
 chrono = { version = "0.4.37", default-features = false }
 http = { version = "0.2.12", default-features = false }
 minio = { git = "https://github.com/hlf20010508/minio-rs", branch = "transfery", default-features = false }
-pico-args = { version = "0.5.0", default-features = false, features = ["short-space-opt"] }
+pico-args = { version = "0.5.0", default-features = false, features = [
+    "short-space-opt",
+] }
 ring = { version = "0.17.8", default-features = false }
 sanitize-filename = { version = "0.5.0", default-features = false }
 serde = { version = "1.0.197", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0.115", default-features = false }
-socketioxide = { version = "0.13.1", default-features = false, features = ["state", "tracing"] }
-sqlx = { version = "0.7.4", default-features = false, features = ["runtime-tokio", "mysql"] }
+socketioxide = { version = "0.13.1", default-features = false, features = [
+    "state",
+    "tracing",
+] }
+sqlx = { version = "0.7.4", default-features = false, features = [
+    "runtime-tokio",
+    "mysql",
+] }
 tokio = { version = "1.38.0", default-features = false }
 tracing = { version = "0.1.40", default-features = false }
-tracing-subscriber = { version = "0.3.18", default-features = false, features = ["std", "registry", "fmt", "env-filter"] }
+tracing-subscriber = { version = "0.3.18", default-features = false, features = [
+    "std",
+    "registry",
+    "fmt",
+    "env-filter",
+] }
 
 [dev-dependencies]
 dotenv = { version = "0.15.0", default-features = false }
 tower = { version = "0.4.13", default-features = false }
 http-body-util = { version = "0.1.1", default-features = false }
-rust_socketio = { version = "0.6.0", default-features = false, features = ["async"] }
+rust_socketio = { version = "0.6.0", default-features = false, features = [
+    "async",
+] }
 futures = { version = "0.3.30", default-features = false }
 reqwest = { version = "0.12.4", default-features = false, features = ["json"] }
