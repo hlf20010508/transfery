@@ -1,6 +1,7 @@
 /target
 .DS_Store
-dev*
+dev.*
+devrc.*
 .env
 !device.rs
 index.html
