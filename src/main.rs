@@ -17,7 +17,7 @@ mod utils;
 use client::{get_database, get_storage};
 use crypto::Crypto;
 use env::Env;
-use handler::{api, download, login, message, socket, upload};
+use handler::{admin, api, download, message, socket, upload};
 use utils::into_layer;
 
 use axum::body::Body;
@@ -122,10 +122,13 @@ async fn server(env: Env) {
         .route(upload::FETCH_UPLOAD_ID_PATH, post(upload::fetch_upload_id))
         .route(upload::UPLOAD_PART_PATH, post(upload::upload_part))
         .route(upload::COMPLETE_UPLOAD_PATH, post(upload::complete_upload))
-        .route(login::AUTH_PATH, post(login::auth))
-        .route(login::AUTO_LOGIN_PATH, get(login::auto_login))
-        .route(login::DEVICE_PATH, get(login::device))
-        .route(login::DEVICE_SIGN_OUT_PATH, post(login::device_sign_out))
+        .route(admin::AUTH_PATH, post(admin::auth))
+        .route(admin::AUTO_LOGIN_PATH, get(admin::auto_login))
+        .route(admin::DEVICE_PATH, get(admin::device))
+        .route(admin::DEVICE_SIGN_OUT_PATH, post(admin::device_sign_out))
+        .route(admin::CREATE_TOKEN_PATH, post(admin::create_token))
+        .route(admin::GET_TOKEN_PATH, get(admin::get_token))
+        .route(admin::REMOVE_TOKEN_PATH, post(admin::remove_token))
         .route(
             api::PUSH_TEXT_PATH,
             get(api::push_text).post(api::push_text),

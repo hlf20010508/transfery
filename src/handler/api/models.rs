@@ -15,15 +15,6 @@ use crate::env::Env;
 use crate::error::Error::{self, FieldParseError, FromRequestError, UnauthorizedError};
 use crate::error::Result;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Token(pub String);
-
-impl Token {
-    pub fn to_string(self) -> String {
-        self.0
-    }
-}
-
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Account {
     pub username: String,
@@ -31,9 +22,9 @@ pub struct Account {
 }
 
 impl Account {
-    pub fn from(token: Token, crypto: &Crypto) -> Result<Self> {
+    pub fn from(token: &str, crypto: &Crypto) -> Result<Self> {
         let account_json = crypto
-            .decrypt(&token.to_string())
+            .decrypt(token)
             .map_err(|e| UnauthorizedError(format!("failed to decrypt token: {}", e)))?;
 
         let account = serde_json::from_str::<Account>(&account_json)
@@ -50,7 +41,7 @@ impl Account {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PushTextParams {
     pub content: String,
-    pub token: Token,
+    pub token: String,
 }
 
 #[async_trait]
@@ -95,5 +86,5 @@ where
 
 #[derive(Debug, Deserialize)]
 pub struct LatestTextParams {
-    pub token: Token,
+    pub token: String,
 }

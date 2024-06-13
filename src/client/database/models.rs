@@ -195,3 +195,54 @@ impl From<MySqlRow> for DeviceItem {
         }
     }
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenItem {
+    id: i64,
+    pub token: String,
+    pub name: String,
+    #[serde(rename = "lastUseTimestamp")]
+    last_use_timestamp: i64,
+    #[serde(rename = "expirationTimestamp")]
+    expiration_timestamp: i64,
+}
+
+impl From<MySqlRow> for TokenItem {
+    fn from(row: MySqlRow) -> Self {
+        let id = row
+            .try_get::<i64, &str>("id")
+            .expect("MySql failed to get id for TokenItem");
+
+        let token = row
+            .try_get::<String, &str>("token")
+            .expect("MySql failed to get token for TokenItem");
+
+        let name = row
+            .try_get::<String, &str>("name")
+            .expect("MySql failed to get name for TokenItem");
+
+        let last_use_timestamp = row
+            .try_get::<i64, &str>("lastUseTimestamp")
+            .expect("MySql failed to get lastUseTimestamp for TokenItem");
+
+        let expiration_timestamp = row
+            .try_get::<i64, &str>("expirationTimestamp")
+            .expect("MySql failed to get expirationTimestamp for TokenItem");
+
+        Self {
+            id,
+            token,
+            name,
+            last_use_timestamp,
+            expiration_timestamp,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct NewTokenItem {
+    pub token: String,
+    pub name: String,
+    #[serde(rename = "expirationTimestamp")]
+    pub expiration_timestamp: i64,
+}

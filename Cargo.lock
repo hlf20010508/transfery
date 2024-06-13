@@ -2941,6 +2941,7 @@ dependencies = [
  "http-body-util",
  "minio",
  "pico-args",
+ "rand",
  "reqwest 0.12.4",
  "ring",
  "rust_socketio",

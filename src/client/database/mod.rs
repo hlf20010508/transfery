@@ -11,8 +11,9 @@ mod message;
 mod models;
 #[cfg(test)]
 pub mod tests;
+mod token;
 
-pub use models::{DeviceItem, MessageItem, MessageItemType};
+pub use models::{DeviceItem, MessageItem, MessageItemType, NewTokenItem, TokenItem};
 
 use sqlx::mysql::MySql;
 use sqlx::pool::Pool;

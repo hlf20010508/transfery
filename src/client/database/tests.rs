@@ -7,6 +7,7 @@
 
 use super::{Database, DeviceItem, MessageItem};
 
+use crate::client::database::{NewTokenItem, TokenItem};
 use crate::env::tests::get_env;
 use crate::error::Result;
 use crate::utils::get_current_timestamp;
@@ -98,6 +99,17 @@ async fn test_database_create_table_device_if_not_exists() {
     let database = get_database().await;
 
     let result = database.create_table_device_if_not_exists().await;
+    reset(database).await;
+    result.unwrap();
+
+    sleep_async(1).await;
+}
+
+#[tokio::test]
+async fn test_database_create_table_token_if_not_exists() {
+    let database = get_database().await;
+
+    let result = database.create_table_token_if_not_exists().await;
     reset(database).await;
     result.unwrap();
 
@@ -513,6 +525,111 @@ async fn test_database_remove_device() {
     let result = inner(&database).await;
     reset(database).await;
 
+    result.unwrap();
+
+    sleep_async(1).await;
+}
+
+#[tokio::test]
+async fn test_database_insert_token() {
+    async fn inner(database: &Database) -> Result<()> {
+        database.create_table_token_if_not_exists().await?;
+        let new_token_item = NewTokenItem {
+            token: "test_token".to_string(),
+            name: "test name".to_string(),
+            expiration_timestamp: get_current_timestamp(),
+        };
+        database.insert_token(new_token_item).await?;
+
+        Ok(())
+    }
+
+    let database = get_database().await;
+    let result = inner(&database).await;
+    reset(database).await;
+    result.unwrap();
+
+    sleep_async(1).await;
+}
+
+#[tokio::test]
+async fn test_database_update_token() {
+    async fn inner(database: &Database) -> Result<()> {
+        database.create_table_token_if_not_exists().await?;
+
+        let timestamp = get_current_timestamp();
+        let token = "test_token".to_string();
+
+        let new_token_item = NewTokenItem {
+            token: token.clone(),
+            name: "test name".to_string(),
+            expiration_timestamp: timestamp,
+        };
+        database.insert_token(new_token_item).await?;
+
+        database.update_token(&token, timestamp + 1000).await?;
+
+        Ok(())
+    }
+
+    let database = get_database().await;
+    let result = inner(&database).await;
+    reset(database).await;
+    result.unwrap();
+
+    sleep_async(1).await;
+}
+
+#[tokio::test]
+async fn test_database_query_token_items() {
+    async fn inner(database: &Database, new_token_item: NewTokenItem) -> Result<Vec<TokenItem>> {
+        database.create_table_token_if_not_exists().await?;
+        database.insert_token(new_token_item).await?;
+
+        let result = database.query_token_items().await?;
+
+        Ok(result)
+    }
+
+    let database = get_database().await;
+
+    let new_token_item = NewTokenItem {
+        token: "test_token".to_string(),
+        name: "test name".to_string(),
+        expiration_timestamp: get_current_timestamp(),
+    };
+
+    let result = inner(&database, new_token_item.clone()).await;
+    reset(database).await;
+
+    let result = result.unwrap();
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].token, new_token_item.token);
+    assert_eq!(result[0].name, new_token_item.name);
+
+    sleep_async(1).await;
+}
+
+#[tokio::test]
+async fn test_database_remove_token() {
+    async fn inner(database: &Database) -> Result<()> {
+        database.create_table_token_if_not_exists().await?;
+
+        let new_token_item = NewTokenItem {
+            token: "test_token".to_string(),
+            name: "test name".to_string(),
+            expiration_timestamp: get_current_timestamp(),
+        };
+        database.insert_token(new_token_item.clone()).await?;
+
+        database.remove_token(new_token_item.token).await?;
+
+        Ok(())
+    }
+
+    let database = get_database().await;
+    let result = inner(&database).await;
+    reset(database).await;
     result.unwrap();
 
     sleep_async(1).await;

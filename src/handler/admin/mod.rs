@@ -9,7 +9,7 @@ mod models;
 #[cfg(test)]
 mod tests;
 
-use models::{AuthParams, DeviceSignOutParams};
+use models::{AuthParams, CreateTokenParams, DeviceSignOutParams, RemoveTokenParams, TokenRaw};
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -18,7 +18,7 @@ use socketioxide::SocketIo;
 use std::sync::Arc;
 
 use crate::auth::{AuthChecker, Authorization, Certificate};
-use crate::client::database::DeviceItem;
+use crate::client::database::{DeviceItem, NewTokenItem, TokenItem};
 use crate::client::Database;
 use crate::crypto::Crypto;
 use crate::env::Env;
@@ -104,7 +104,6 @@ pub async fn auto_login(
     Extension(database): Extension<Arc<Database>>,
 ) -> Result<Response> {
     tracing::info!("received auto login request");
-    tracing::debug!("auto login fingerprint: {}", fingerprint);
 
     let device_item = DeviceItem {
         fingerprint,
@@ -155,6 +154,82 @@ pub async fn device_sign_out(
         .map_err(|e| SocketEmitError(format!("socketio emit error for event signOut: {}", e)))?;
 
     tracing::info!("broadcasted");
+
+    Ok(StatusCode::OK.into_response())
+}
+
+pub static CREATE_TOKEN_PATH: &str = "/createToken";
+
+#[debug_handler]
+pub async fn create_token(
+    _: AuthChecker,
+    Extension(env): Extension<Arc<Env>>,
+    Extension(crypto): Extension<Arc<Crypto>>,
+    Extension(database): Extension<Arc<Database>>,
+    Extension(socketio): Extension<Arc<SocketIo>>,
+    Json(params): Json<CreateTokenParams>,
+) -> Result<Response> {
+    tracing::info!("received create token request");
+    tracing::debug!("new token item: {:#?}", params);
+
+    let token = {
+        let token_raw = TokenRaw::new(&env.username, &env.password);
+        let token_json = serde_json::to_string(&token_raw)
+            .map_err(|e| ToJsonError(format!("failed to convert token raw to json: {}", e)))?;
+
+        crypto.encrypt(&token_json)?
+    };
+
+    let new_token_item = NewTokenItem {
+        token,
+        name: params.name,
+        expiration_timestamp: params.expiration_timestamp,
+    };
+
+    database.insert_token(new_token_item).await?;
+
+    socketio
+        .to(Room::Public)
+        .emit("token", ())
+        .map_err(|e| SocketEmitError(format!("socketio emit error for event token: {}", e)))?;
+
+    Ok(StatusCode::OK.into_response())
+}
+
+pub static GET_TOKEN_PATH: &str = "/getToken";
+
+#[debug_handler]
+pub async fn get_token(
+    _: AuthChecker,
+    Extension(database): Extension<Arc<Database>>,
+) -> Result<Json<Vec<TokenItem>>> {
+    tracing::info!("received get token request");
+
+    let tokens = database.query_token_items().await?;
+
+    tracing::debug!("tokens: {:#?}", tokens);
+
+    Ok(Json(tokens))
+}
+
+pub static REMOVE_TOKEN_PATH: &str = "/removeToken";
+
+#[debug_handler]
+pub async fn remove_token(
+    _: AuthChecker,
+    Extension(database): Extension<Arc<Database>>,
+    Extension(socketio): Extension<Arc<SocketIo>>,
+    Json(RemoveTokenParams { token }): Json<RemoveTokenParams>,
+) -> Result<Response> {
+    tracing::info!("received remove token request");
+    tracing::debug!("remove token: {}", token);
+
+    database.remove_token(token).await?;
+
+    socketio
+        .to(Room::Public)
+        .emit("token", ())
+        .map_err(|e| SocketEmitError(format!("socketio emit error for event token: {}", e)))?;
 
     Ok(StatusCode::OK.into_response())
 }

@@ -128,6 +128,7 @@ impl Env {
 pub static MYSQL_TABLE_MESSAGE: &str = "message";
 pub static MYSQL_TABLE_AUTH: &str = "auth";
 pub static MYSQL_TABLE_DEVICE: &str = "device";
+pub static MYSQL_TABLE_TOKEN: &str = "token";
 
 #[cfg(test)]
 pub mod tests {

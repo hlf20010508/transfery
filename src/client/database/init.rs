@@ -12,7 +12,7 @@ use sqlx::{Executor, Row};
 use super::Database;
 
 use crate::crypto::Crypto;
-use crate::env::{MYSQL_TABLE_AUTH, MYSQL_TABLE_DEVICE, MYSQL_TABLE_MESSAGE};
+use crate::env::{MYSQL_TABLE_AUTH, MYSQL_TABLE_DEVICE, MYSQL_TABLE_MESSAGE, MYSQL_TABLE_TOKEN};
 use crate::error::Error::{
     DatabaseClientError, PortParseError, SqlExecuteError, SqlGetValueError, SqlQueryError,
 };
@@ -82,6 +82,7 @@ impl Database {
         self.create_table_message_if_not_exists().await?;
         self.create_table_auth_if_not_exists().await?;
         self.create_table_device_if_not_exists().await?;
+        self.create_table_token_if_not_exists().await?;
         self.create_secret_key_if_not_exists().await?;
 
         Ok(())
@@ -148,6 +149,28 @@ impl Database {
             .execute(query)
             .await
             .map_err(|e| SqlExecuteError(format!("MySql create table device failed: {}", e)))?;
+
+        Ok(())
+    }
+
+    pub async fn create_table_token_if_not_exists(&self) -> Result<()> {
+        let sql = format!(
+            "create table if not exists `{}`(
+                id int primary key auto_increment,
+                token text not null unique,
+                name text not null,
+                lastUseTimestamp bigint not null,
+                expirationTimestamp bigint not null
+            )",
+            MYSQL_TABLE_TOKEN
+        );
+
+        let query = sqlx::query::<MySql>(&sql);
+
+        self.pool
+            .execute(query)
+            .await
+            .map_err(|e| SqlExecuteError(format!("MySql create table token failed: {}", e)))?;
 
         Ok(())
     }

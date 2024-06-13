@@ -42,11 +42,15 @@ pub async fn push_text(
     tracing::debug!("push text params: {:#?}", params);
 
     let is_valid = {
-        let account = Account::from(params.token, &crypto)?;
+        let account = Account::from(&params.token, &crypto)?;
         account.is_valid(&env)
     };
 
     if is_valid {
+        database
+            .update_token(&params.token, get_current_timestamp())
+            .await?;
+
         if !params.content.trim().is_empty() {
             let mut message_item =
                 MessageItem::new_text(&params.content, get_current_timestamp(), true);
@@ -83,7 +87,7 @@ pub async fn latest_text(
     tracing::info!("received get latest text request");
 
     let is_valid = {
-        let account = Account::from(token, &crypto)?;
+        let account = Account::from(&token, &crypto)?;
         account.is_valid(&env)
     };
 

@@ -17,7 +17,7 @@ use socketioxide::SocketIo;
 use tokio::net::TcpListener;
 use tower::ServiceExt;
 
-use super::models::{Account, PushTextParams, Token};
+use super::models::{Account, PushTextParams};
 use super::{latest_text, push_text, LATEST_TEXT_PATH, PUSH_TEXT_PATH};
 
 use crate::client::database::tests::{get_database, reset};
@@ -43,12 +43,10 @@ async fn test_api_push_text() {
             password: env.password.clone(),
         };
 
-        let token = Token(
-            crypto.encrypt(
-                &serde_json::to_string(&account)
-                    .map_err(|e| ToStrError(format!("failed to serialize account: {}", e)))?,
-            )?,
-        );
+        let token = crypto.encrypt(
+            &serde_json::to_string(&account)
+                .map_err(|e| ToStrError(format!("failed to serialize account: {}", e)))?,
+        )?;
 
         let (socketio_layer, socketio) = SocketIo::new_layer();
 
@@ -125,12 +123,10 @@ async fn test_api_latest_text() {
             password: env.password.clone(),
         };
 
-        let token = Token(
-            crypto.encrypt(
-                &serde_json::to_string(&account)
-                    .map_err(|e| ToStrError(format!("failed to serialize account: {}", e)))?,
-            )?,
-        );
+        let token = crypto.encrypt(
+            &serde_json::to_string(&account)
+                .map_err(|e| ToStrError(format!("failed to serialize account: {}", e)))?,
+        )?;
 
         let router = Router::new()
             .route(LATEST_TEXT_PATH, get(latest_text))
