@@ -79,6 +79,12 @@ where
 
                 if let Ok(certificate) = crypto.decrypt(&certificate) {
                     if let Ok(certificate) = serde_json::from_str::<Certificate>(&certificate) {
+                        tracing::debug!(
+                            "certificate details:\nfingerprint: {}\ncurrent timestamp: {}\ncertificate: {:#?}",
+                            fingerprint,
+                            get_current_timestamp(),
+                            certificate
+                        );
                         if fingerprint == certificate.fingerprint
                             && get_current_timestamp() < certificate.timestamp
                         {
