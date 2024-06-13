@@ -72,9 +72,9 @@ async fn main() {
 
     if args.contains("--init") {
         init::init(&env).await;
-    } else {
-        server(env).await;
     }
+
+    server(env).await;
 }
 
 async fn server(env: Env) {
