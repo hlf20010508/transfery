@@ -12,6 +12,7 @@ use std::fmt::Display;
 #[derive(Debug)]
 pub enum Error {
     DefaultError(String),
+    FileReadError(String),
     UrlParseError(String),
     StorageClientError(String),
     StorageInitError(String),
@@ -52,6 +53,7 @@ impl IntoResponse for Error {
     fn into_response(self) -> Response {
         match self {
             Error::DefaultError(e) => internal_server_error_response(e),
+            Error::FileReadError(e) => internal_server_error_response(e),
             Error::UrlParseError(e) => internal_server_error_response(e),
             Error::StorageClientError(e) => internal_server_error_response(e),
             Error::StorageInitError(e) => internal_server_error_response(e),
@@ -86,6 +88,7 @@ impl Error {
     pub fn context(self, message: &str) -> Self {
         match self {
             Error::DefaultError(e) => Error::DefaultError(add_context(message, &e)),
+            Error::FileReadError(e) => Error::FileReadError(add_context(message, &e)),
             Error::UrlParseError(e) => Error::UrlParseError(add_context(message, &e)),
             Error::StorageClientError(e) => Error::StorageClientError(add_context(message, &e)),
             Error::StorageInitError(e) => Error::StorageInitError(add_context(message, &e)),
@@ -116,6 +119,7 @@ impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::DefaultError(e) => write!(f, "Default error: {}", e),
+            Error::FileReadError(e) => write!(f, "File read error: {}", e),
             Error::UrlParseError(e) => write!(f, "URL parse error: {}", e),
             Error::StorageClientError(e) => write!(f, "Storage client error: {}", e),
             Error::StorageInitError(e) => write!(f, "Storage initialization error: {}", e),

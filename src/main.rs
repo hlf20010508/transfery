@@ -17,7 +17,7 @@ mod utils;
 use client::{get_database, get_storage};
 use crypto::Crypto;
 use env::Env;
-use handler::{admin, api, download, message, socket, upload};
+use handler::{admin, api, download, index, message, socket, upload};
 use utils::into_layer;
 
 use axum::body::Body;
@@ -30,6 +30,7 @@ use pico_args::Arguments;
 use socketioxide::extract::{SocketRef, State};
 use socketioxide::SocketIo;
 use tokio::time::Instant;
+use tower_http::services::ServeDir;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::EnvFilter;
@@ -113,6 +114,8 @@ async fn server(env: Env) {
     );
 
     let router = Router::new()
+        .nest_service("/static", ServeDir::new("./static"))
+        .route(index::INDEX_PATH, get(index::index))
         .route(download::DOWNLOAD_URL_PATH, get(download::download_url))
         .route(message::PAGE_PATH, get(message::page))
         .route(message::SYNC_PATH, get(message::sync))

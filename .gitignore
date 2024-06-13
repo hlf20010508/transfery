@@ -3,3 +3,5 @@
 dev*
 .env
 !device.rs
+index.html
+/static
