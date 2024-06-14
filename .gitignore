@@ -3,6 +3,6 @@
 dev.*
 devrc.*
 .env
-!device.rs
 index.html
 /static
+actions-runner
