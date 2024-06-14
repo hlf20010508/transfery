@@ -12,7 +12,10 @@ RUN apk add --update --no-cache curl git &&\
     npm install &&\
     npm run build
 
+FROM alpine:3.20 as certs
+
 FROM scratch
 COPY --from=rust-builder /transfery/target/release/transfery /
 COPY --from=node-builder /transfery-vue/dist /
+COPY --from=certs /etc/ssl/cert.pem /etc/ssl/
 ENTRYPOINT [ "/transfery", "--init" ]
