@@ -2971,7 +2971,7 @@ dependencies = [
 
 [[package]]
 name = "transfery"
-version = "0.1.0"
+version = "5.0.0"
 dependencies = [
  "axum",
  "base64 0.22.0",
