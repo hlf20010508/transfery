@@ -42,10 +42,12 @@ fn into_response(status_code: StatusCode, error_string: String) -> Response {
 }
 
 fn internal_server_error_response(error_string: String) -> Response {
+    tracing::debug!("Internal server error: {}", error_string);
     into_response(StatusCode::INTERNAL_SERVER_ERROR, error_string)
 }
 
 fn unauthorized_response(error_string: String) -> Response {
+    tracing::debug!("Unauthorized error: {}", error_string);
     into_response(StatusCode::UNAUTHORIZED, error_string)
 }
 

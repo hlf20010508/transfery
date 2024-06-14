@@ -21,6 +21,7 @@ use handler::{admin, api, download, index, message, socket, upload};
 use utils::into_layer;
 
 use axum::body::Body;
+use axum::extract::DefaultBodyLimit;
 use axum::http::Request;
 use axum::middleware::{self, Next};
 use axum::response::Response;
@@ -138,6 +139,7 @@ async fn server(env: Env) {
         )
         .route(api::LATEST_TEXT_PATH, get(api::latest_text))
         .layer(middleware::from_fn(trace_middleware))
+        .layer(DefaultBodyLimit::max(1024 * 1024 * 10)) // 10 MB, must larger than 5 MB for minio
         .layer(socketio_layer)
         .layer(into_layer(socketio))
         .layer(into_layer(env))

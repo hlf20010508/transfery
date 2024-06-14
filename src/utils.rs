@@ -15,17 +15,18 @@ pub fn get_current_timestamp() -> i64 {
 }
 
 pub fn rename(filename: &str, timestamp: i64) -> String {
-    let parts: Vec<&str> = filename.split(".").collect();
-
     let timestamp_str = timestamp.to_string();
     let timestamp_second = &timestamp_str[..timestamp_str.len() - 3];
 
-    let new_filename = if parts.len() > 1 {
-        // file has extension
-        format!("{}_{}.{}", parts[0], timestamp_second, parts[1])
+    let last_dot_pos = filename.rfind('.'); // the last dot position
+
+    let new_filename = if let Some(pos) = last_dot_pos {
+        // the file has extension
+        let name = &filename[..pos];
+        let extension = &filename[pos + 1..];
+        format!("{}_{}.{}", name, timestamp_second, extension)
     } else {
-        // file doesn't have extension
-        format!("{}_{}", parts[0], timestamp_second)
+        format!("{}_{}", filename, timestamp_second)
     };
 
     // prevent path issues
