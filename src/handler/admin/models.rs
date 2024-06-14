@@ -22,6 +22,16 @@ pub struct AuthParams {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct AutoLoginParams {
+    pub sid: Sid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignOutParams {
+    pub sid: Sid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DeviceSignOutParams {
     pub fingerprint: String,
     pub sid: Sid,

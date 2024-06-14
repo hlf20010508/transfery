@@ -128,6 +128,7 @@ async fn server(env: Env) {
         .route(upload::COMPLETE_UPLOAD_PATH, post(upload::complete_upload))
         .route(admin::AUTH_PATH, post(admin::auth))
         .route(admin::AUTO_LOGIN_PATH, get(admin::auto_login))
+        .route(admin::SIGN_OUT_PATH, get(admin::sign_out))
         .route(admin::DEVICE_PATH, get(admin::device))
         .route(admin::DEVICE_SIGN_OUT_PATH, post(admin::device_sign_out))
         .route(admin::CREATE_TOKEN_PATH, post(admin::create_token))

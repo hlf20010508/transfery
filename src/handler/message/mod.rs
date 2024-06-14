@@ -33,10 +33,10 @@ pub static PAGE_PATH: &str = "/page";
 
 #[debug_handler]
 pub async fn page(
+    AuthState(is_authorized): AuthState,
     Extension(env): Extension<Arc<Env>>,
     Extension(database): Extension<Arc<Database>>,
     Query(PageQueryParams { size }): Query<PageQueryParams>,
-    AuthState(is_authorized): AuthState,
 ) -> Result<Json<Vec<MessageItem>>> {
     tracing::info!("received new page request");
     tracing::debug!("page size: {}", size);
@@ -55,9 +55,9 @@ pub static SYNC_PATH: &str = "/sync";
 
 #[debug_handler]
 pub async fn sync(
+    AuthState(is_authorized): AuthState,
     Extension(database): Extension<Arc<Database>>,
     Query(SyncQueryParams { latest_id }): Query<SyncQueryParams>,
-    AuthState(is_authorized): AuthState,
 ) -> Result<Json<Vec<MessageItem>>> {
     tracing::info!("received sync request");
     tracing::debug!("sync latest id: {}", latest_id);

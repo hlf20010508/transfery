@@ -25,15 +25,19 @@ use super::{
 };
 
 use crate::auth::tests::gen_auth;
+use crate::auth::Authorization;
 use crate::client::database::tests::{get_database, reset as reset_database};
 use crate::client::database::{Database, DeviceItem, NewTokenItem, TokenItem};
 use crate::crypto::tests::get_crypto;
 use crate::env::tests::get_env;
 use crate::error::Error::DefaultError;
 use crate::error::Result;
-use crate::handler::admin::models::{CreateTokenParams, RemoveTokenParams};
+use crate::handler::admin::models::{
+    AutoLoginParams, CreateTokenParams, RemoveTokenParams, SignOutParams,
+};
 use crate::handler::admin::{
-    create_token, get_token, remove_token, CREATE_TOKEN_PATH, GET_TOKEN_PATH, REMOVE_TOKEN_PATH,
+    create_token, get_token, remove_token, sign_out, CREATE_TOKEN_PATH, GET_TOKEN_PATH,
+    REMOVE_TOKEN_PATH, SIGN_OUT_PATH,
 };
 use crate::utils::tests::{sleep_async, ResponseExt};
 use crate::utils::{get_current_timestamp, into_layer};
@@ -70,7 +74,7 @@ async fn test_admin_auth() {
         });
 
         ClientBuilder::new(format!("http://{}/", addr))
-            .on("signIn", |_payload, _socket| async {}.boxed())
+            .on("device", |_payload, _socket| async {}.boxed())
             .connect()
             .await
             .map_err(|e| DefaultError(format!("failed to connect to socketio server: {}", e)))?;
@@ -109,35 +113,124 @@ async fn test_admin_auth() {
 }
 
 #[tokio::test]
-async fn test_admin_login() {
-    async fn inner(database: &Database) -> Result<Response> {
+async fn test_admin_auto_login() {
+    async fn inner(database: &Database) -> Result<reqwest::Response> {
         database.create_table_device_if_not_exists().await?;
+
+        let (socketio_layer, socketio) = SocketIo::new_layer();
+
+        socketio.ns("/", |_socket: SocketRef| {});
 
         let crypto = get_crypto();
         let auth = gen_auth(&crypto);
 
         let router = Router::new()
             .route(AUTO_LOGIN_PATH, get(auto_login))
+            .layer(into_layer(crypto))
             .layer(into_layer(database.clone()))
-            .layer(into_layer(crypto));
+            .layer(socketio_layer)
+            .layer(into_layer(socketio));
 
-        let req = Request::builder()
-            .method(Method::GET)
-            .uri(AUTO_LOGIN_PATH)
+        let server = TcpListener::bind("127.0.0.1:0")
+            .await
+            .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+        let addr = server
+            .local_addr()
+            .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+
+        tokio::spawn(async move {
+            axum::serve(server, router).await.unwrap();
+        });
+
+        sleep_async(1).await;
+
+        let data = AutoLoginParams { sid: Sid::new() };
+
+        let client = reqwest::Client::new();
+        let res = client
+            .get(format!("http://{}{}", addr, AUTO_LOGIN_PATH))
+            .query(&data)
             .header("Authorization", auth)
-            .body(Body::empty())
-            .map_err(|e| DefaultError(format!("failed to create request: {}", e)))?;
-
-        let res = router
-            .oneshot(req)
+            .send()
             .await
             .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+
+        sleep_async(1).await;
 
         Ok(res)
     }
 
     let database = get_database().await;
+    let result = inner(&database).await;
+    reset_database(database).await;
 
+    assert_eq!(result.unwrap().status(), reqwest::StatusCode::OK);
+
+    sleep_async(1).await;
+}
+
+#[tokio::test]
+async fn test_admin_sign_out() {
+    async fn inner(database: &Database) -> Result<reqwest::Response> {
+        database.create_table_device_if_not_exists().await?;
+
+        let (socketio_layer, socketio) = SocketIo::new_layer();
+
+        socketio.ns("/", |_socket: SocketRef| {});
+
+        let crypto = get_crypto();
+        let auth = gen_auth(&crypto);
+
+        let fingerprint = serde_json::from_str::<Authorization>(&auth)
+            .map_err(|e| DefaultError(format!("failed to parse authorization: {}", e)))?
+            .fingerprint;
+
+        database
+            .insert_device(DeviceItem {
+                fingerprint,
+                browser: Some("browser".to_string()),
+                last_use_timestamp: Some(get_current_timestamp()),
+                expiration_timestamp: Some(get_current_timestamp() + 1000 * 60),
+            })
+            .await?;
+
+        let router = Router::new()
+            .route(SIGN_OUT_PATH, get(sign_out))
+            .layer(into_layer(crypto))
+            .layer(into_layer(database.clone()))
+            .layer(socketio_layer)
+            .layer(into_layer(socketio));
+
+        let server = TcpListener::bind("127.0.0.1:0")
+            .await
+            .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+        let addr = server
+            .local_addr()
+            .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+
+        tokio::spawn(async move {
+            axum::serve(server, router).await.unwrap();
+        });
+
+        sleep_async(1).await;
+
+        let data = SignOutParams { sid: Sid::new() };
+
+        let client = reqwest::Client::new();
+        let res = client
+            .get(format!("http://{}{}", addr, SIGN_OUT_PATH))
+            .query(&data)
+            .header("Authorization", auth)
+            .send()
+            .await
+            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+
+        sleep_async(1).await;
+
+        Ok(res)
+    }
+
+    let database = get_database().await;
     let result = inner(&database).await;
     reset_database(database).await;
 

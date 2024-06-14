@@ -9,7 +9,11 @@ mod models;
 #[cfg(test)]
 mod tests;
 
-use models::{AuthParams, CreateTokenParams, DeviceSignOutParams, RemoveTokenParams, TokenRaw};
+use axum::extract::Query;
+use models::{
+    AuthParams, AutoLoginParams, CreateTokenParams, DeviceSignOutParams, RemoveTokenParams,
+    SignOutParams, TokenRaw,
+};
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -81,11 +85,13 @@ pub async fn auth(
             .join(Room::Private)
             .map_err(|e| SocketEmitError(format!("socketio join private error: {}", e)))?;
 
+        tracing::info!("client {} joined room private", params.sid);
+
         socketio
             .within(Room::Private)
             .except(params.sid)
-            .emit("signIn", ())
-            .map_err(|e| SocketEmitError(format!("socketio emit error for event signIn: {}", e)))?;
+            .emit("device", ())
+            .map_err(|e| SocketEmitError(format!("socketio emit error for event device: {}", e)))?;
 
         tracing::info!("broadcasted");
 
@@ -102,8 +108,17 @@ pub async fn auto_login(
     _: AuthChecker,
     Authorization { fingerprint, .. }: Authorization,
     Extension(database): Extension<Arc<Database>>,
+    Extension(socketio): Extension<Arc<SocketIo>>,
+    Query(AutoLoginParams { sid }): Query<AutoLoginParams>,
 ) -> Result<Response> {
     tracing::info!("received auto login request");
+
+    socketio
+        .to(sid)
+        .join(Room::Private)
+        .map_err(|e| SocketEmitError(format!("socketio join private error: {}", e)))?;
+
+    tracing::info!("client {} joined room private", sid);
 
     let device_item = DeviceItem {
         fingerprint,
@@ -113,6 +128,36 @@ pub async fn auto_login(
     };
 
     database.update_device(device_item).await?;
+
+    Ok(StatusCode::OK.into_response())
+}
+
+pub static SIGN_OUT_PATH: &str = "/signOut";
+
+#[debug_handler]
+pub async fn sign_out(
+    _: AuthChecker,
+    Authorization { fingerprint, .. }: Authorization,
+    Extension(database): Extension<Arc<Database>>,
+    Extension(socketio): Extension<Arc<SocketIo>>,
+    Query(SignOutParams { sid }): Query<SignOutParams>,
+) -> Result<Response> {
+    tracing::info!("received sign out request");
+
+    socketio
+        .to(sid)
+        .leave(Room::Private)
+        .map_err(|e| SocketEmitError(format!("socketio leave private error: {}", e)))?;
+
+    tracing::info!("client {} left room private", sid);
+
+    socketio
+        .within(Room::Private)
+        .except(sid)
+        .emit("device", ())
+        .map_err(|e| SocketEmitError(format!("socketio emit error for event device: {}", e)))?;
+
+    database.remove_device(&fingerprint).await?;
 
     Ok(StatusCode::OK.into_response())
 }
