@@ -173,7 +173,7 @@ pub async fn create_token(
     tracing::debug!("new token item: {:#?}", params);
 
     let token = {
-        let token_raw = TokenRaw::new(&env.username, &env.password);
+        let token_raw = TokenRaw::new(&env.username, &env.password, params.expiration_timestamp);
         let token_json = serde_json::to_string(&token_raw)
             .map_err(|e| ToJsonError(format!("failed to convert token raw to json: {}", e)))?;
 

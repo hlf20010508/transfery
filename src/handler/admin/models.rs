@@ -43,11 +43,13 @@ pub struct RemoveTokenParams {
 pub struct TokenRaw {
     pub username: String,
     pub password: String,
+    #[serde(rename = "expirationTimestamp")]
+    pub expiration_timestamp: i64,
     pub nonce: String,
 }
 
 impl TokenRaw {
-    pub fn new(username: &str, password: &str) -> Self {
+    pub fn new(username: &str, password: &str, expiration_timestamp: i64) -> Self {
         let nonce = thread_rng()
             .sample_iter(Alphanumeric)
             .take(8)
@@ -57,6 +59,7 @@ impl TokenRaw {
         Self {
             username: username.to_string(),
             password: password.to_string(),
+            expiration_timestamp,
             nonce,
         }
     }

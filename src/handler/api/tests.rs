@@ -21,7 +21,7 @@ use super::models::{Account, PushTextParams};
 use super::{latest_text, push_text, LATEST_TEXT_PATH, PUSH_TEXT_PATH};
 
 use crate::client::database::tests::{get_database, reset};
-use crate::client::database::MessageItem;
+use crate::client::database::{MessageItem, NewTokenItem};
 use crate::client::Database;
 use crate::crypto::tests::get_crypto;
 use crate::env::tests::get_env;
@@ -34,6 +34,7 @@ use crate::utils::{get_current_timestamp, into_layer};
 async fn test_api_push_text() {
     async fn inner(database: &Database) -> Result<reqwest::Response> {
         database.create_table_message_if_not_exists().await?;
+        database.create_table_token_if_not_exists().await?;
 
         let crypto = get_crypto();
         let env = get_env();
@@ -41,12 +42,21 @@ async fn test_api_push_text() {
         let account = Account {
             username: env.username.clone(),
             password: env.password.clone(),
+            expiration_timestamp: get_current_timestamp() + 1000 * 60,
         };
 
         let token = crypto.encrypt(
             &serde_json::to_string(&account)
                 .map_err(|e| ToStrError(format!("failed to serialize account: {}", e)))?,
         )?;
+
+        let new_token_item = NewTokenItem {
+            token: token.clone(),
+            name: "test name".to_string(),
+            expiration_timestamp: get_current_timestamp() + 1000 * 60,
+        };
+
+        database.insert_token(new_token_item).await?;
 
         let (socketio_layer, socketio) = SocketIo::new_layer();
 
@@ -121,6 +131,7 @@ async fn test_api_latest_text() {
         let account = Account {
             username: env.username.clone(),
             password: env.password.clone(),
+            expiration_timestamp: get_current_timestamp() + 1000 * 60,
         };
 
         let token = crypto.encrypt(

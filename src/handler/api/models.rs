@@ -14,11 +14,14 @@ use crate::crypto::Crypto;
 use crate::env::Env;
 use crate::error::Error::{self, FieldParseError, FromRequestError, UnauthorizedError};
 use crate::error::Result;
+use crate::utils::get_current_timestamp;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Account {
     pub username: String,
     pub password: String,
+    #[serde(rename = "expirationTimestamp")]
+    pub expiration_timestamp: i64,
 }
 
 impl Account {
@@ -34,7 +37,9 @@ impl Account {
     }
 
     pub fn is_valid(&self, env: &Env) -> bool {
-        self.username == env.username && self.password == env.password
+        self.username == env.username
+            && self.password == env.password
+            && get_current_timestamp() < self.expiration_timestamp
     }
 }
 
