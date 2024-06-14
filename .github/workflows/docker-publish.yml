@@ -111,4 +111,4 @@ jobs:
 
       - name: Send Notification
         run: |
-          docker run --rm alpine/curl -X POST -d "title=Github Actions Notification&body=${{ env.GITHUB_REPOSITORY }}@${{ env.TAG_NAME }} build completed." ${{ secrets.WEBHOOK_URL }}
+          docker run --rm alpine/curl -X POST -d "title=Github Actions Notification&body=${{ github.repository }}@${{ env.TAG_NAME }} build completed." ${{ secrets.WEBHOOK_URL }}
