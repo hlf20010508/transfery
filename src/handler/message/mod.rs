@@ -193,7 +193,7 @@ pub async fn remove_all(
     socketio
         .to(Room::Public)
         .except(sid)
-        .emit("removeItem", ())
+        .emit("removeAll", ())
         .map_err(|e| SocketEmitError(format!("socketio emit error for event removeAll: {}", e)))?;
 
     tracing::info!("broadcasted");
