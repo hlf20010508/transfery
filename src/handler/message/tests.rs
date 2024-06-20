@@ -21,17 +21,14 @@ use std::pin::Pin;
 use tokio::net::TcpListener;
 use tower::ServiceExt;
 
-use super::models::{
-    NewItemData, NewItemParams, NewItemResponse, RemoveAllParams, RemoveItemParams,
-};
+use super::models::{NewItemParams, NewItemResponse, RemoveAllParams, RemoveItemParams};
 use super::{
     new_item, page, remove_all, remove_item, sync, NEW_ITEM_PATH, PAGE_PATH, REMOVE_ALL_PATH,
     REMOVE_ITEM_PATH, SYNC_PATH,
 };
-
 use crate::auth::tests::gen_auth;
+use crate::client::database::models::message::{MessageItem, MessageItemType, Model};
 use crate::client::database::tests::{get_database, reset as reset_database};
-use crate::client::database::{MessageItem, MessageItemType};
 use crate::client::storage::tests::{
     get_storage, init as init_storage, reset as reset_storage, upload_data,
 };
@@ -77,11 +74,11 @@ fn new_item_handler(
         match payload {
             Payload::Text(value) => match value.get(0) {
                 Some(value) => {
-                    let data = serde_json::from_value::<NewItemData>(value.to_owned()).unwrap();
+                    let data = serde_json::from_value::<Model>(value.to_owned()).unwrap();
                     println!("{:#?}", data);
                     assert_eq!(
                         data,
-                        NewItemData {
+                        Model {
                             id: 2,
                             content: "content".to_string(),
                             timestamp: 0,
@@ -108,7 +105,7 @@ fn remove_item_handler(
         match payload {
             Payload::Text(value) => match value.get(0) {
                 Some(value) => {
-                    let id = serde_json::from_value::<u64>(value.to_owned()).unwrap();
+                    let id = serde_json::from_value::<i64>(value.to_owned()).unwrap();
                     assert_eq!(id, 1);
                 }
                 None => panic!("No new item received"),

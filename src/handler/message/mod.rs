@@ -10,8 +10,8 @@ mod models;
 mod tests;
 
 use models::{
-    NewItemData, NewItemParams, NewItemResponse, PageQueryParams, RemoveAllParams,
-    RemoveItemParams, SyncQueryParams,
+    NewItemParams, NewItemResponse, PageQueryParams, RemoveAllParams, RemoveItemParams,
+    SyncQueryParams,
 };
 
 use axum::extract::{Extension, Query};
@@ -22,7 +22,7 @@ use socketioxide::SocketIo;
 use std::sync::Arc;
 
 use crate::auth::{AuthChecker, AuthState};
-use crate::client::database::{MessageItem, MessageItemType};
+use crate::client::database::models::message::{MessageItem, MessageItemType, Model};
 use crate::client::{Database, Storage};
 use crate::env::Env;
 use crate::error::Error::{FieldParseError, SocketEmitError};
@@ -37,7 +37,7 @@ pub async fn page(
     Extension(env): Extension<Arc<Env>>,
     Extension(database): Extension<Arc<Database>>,
     Query(PageQueryParams { size }): Query<PageQueryParams>,
-) -> Result<Json<Vec<MessageItem>>> {
+) -> Result<Json<Vec<Model>>> {
     tracing::info!("received new page request");
     tracing::debug!("page size: {}", size);
 
@@ -58,7 +58,7 @@ pub async fn sync(
     AuthState(is_authorized): AuthState,
     Extension(database): Extension<Arc<Database>>,
     Query(SyncQueryParams { latest_id }): Query<SyncQueryParams>,
-) -> Result<Json<Vec<MessageItem>>> {
+) -> Result<Json<Vec<Model>>> {
     tracing::info!("received sync request");
     tracing::debug!("sync latest id: {}", latest_id);
 
@@ -85,7 +85,14 @@ pub async fn new_item(
 
     let sid = item.sid;
     let item_id = database
-        .insert_message_item(Result::<MessageItem>::from(&item)?)
+        .insert_message_item(MessageItem {
+            content: item.content.clone(),
+            timestamp: item.timestamp.clone(),
+            is_private: item.is_private.clone(),
+            type_field: item.type_field.clone(),
+            file_name: item.file_name.clone(),
+            is_complete: item.is_complete.clone(),
+        })
         .await?;
 
     tracing::info!("pushed to db");
@@ -95,7 +102,7 @@ pub async fn new_item(
         true => socketio
             .to(Room::Private)
             .except(sid)
-            .emit("newItem", NewItemData::from((item_id, item)))
+            .emit("newItem", Model::from((item_id, item)))
             .map_err(|e| {
                 SocketEmitError(format!(
                     "socketio emit error for event newItem private: {}",
@@ -105,7 +112,7 @@ pub async fn new_item(
         false => socketio
             .to(Room::Public)
             .except(sid)
-            .emit("newItem", NewItemData::from((item_id, item)))
+            .emit("newItem", Model::from((item_id, item)))
             .map_err(|e| {
                 SocketEmitError(format!(
                     "socketio emit error for event newItem public: {}",
@@ -134,7 +141,7 @@ pub async fn remove_item(
 
     let sid = item.sid;
 
-    database.remove_message_item(item.id as i64).await?;
+    database.remove_message_item(item.id).await?;
 
     tracing::info!("removed item in db");
 

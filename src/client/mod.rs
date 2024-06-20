@@ -8,10 +8,11 @@
 pub mod database;
 pub mod storage;
 
+use database::models::config::{Config, MySqlConfig, SqliteConfig};
 pub use database::Database;
 pub use storage::Storage;
 
-use crate::env::Env;
+use crate::env::{DatabaseEnv, Env};
 
 pub fn get_storage(env: &Env) -> Storage {
     Storage::new(
@@ -24,12 +25,17 @@ pub fn get_storage(env: &Env) -> Storage {
 }
 
 pub async fn get_database(env: &Env) -> Database {
-    Database::new(
-        &env.mysql_endpoint,
-        &env.mysql_username,
-        &env.mysql_password,
-        &env.mysql_database,
-    )
-    .await
-    .unwrap()
+    match &env.database {
+        DatabaseEnv::MySql(env) => {
+            let config =
+                MySqlConfig::new(&env.endpoint, &env.username, &env.password, &env.database);
+
+            Database::new(Config::MySql(config)).await.unwrap()
+        }
+        DatabaseEnv::Sqlite(env) => {
+            let config = SqliteConfig::new(&env.path);
+
+            Database::new(Config::Sqlite(config)).await.unwrap()
+        }
+    }
 }

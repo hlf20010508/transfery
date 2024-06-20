@@ -28,7 +28,7 @@ fn connection_number(
         match payload {
             Payload::Text(value) => match value.get(0) {
                 Some(value) => {
-                    let _number = serde_json::from_value::<u64>(value.to_owned()).unwrap();
+                    let _number = serde_json::from_value::<i64>(value.to_owned()).unwrap();
                     // assert_eq!(_number, 1)
                 }
                 None => panic!("No connection number received"),

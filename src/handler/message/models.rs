@@ -8,48 +8,46 @@
 use serde::{Deserialize, Serialize};
 use socketioxide::socket::Sid;
 
-use crate::client::database::{MessageItem, MessageItemType};
+use crate::client::database::models::message::{MessageItem, MessageItemType, Model};
 use crate::error::Error::FieldParseError;
 use crate::error::Result;
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct NewItemData {
-    pub id: u64,
-    pub content: String,
-    pub timestamp: i64,
-    #[serde(rename = "isPrivate")]
-    pub is_private: bool,
-    #[serde(rename = "fileName")]
-    pub file_name: Option<String>,
-    #[serde(rename = "isComplete")]
-    pub is_complete: Option<bool>,
-    #[serde(rename = "type")]
-    pub type_field: MessageItemType,
-}
-
-impl From<(u64, NewItemParams)> for NewItemData {
-    fn from((id, params): (u64, NewItemParams)) -> Self {
+impl From<(i64, NewItemParams)> for Model {
+    fn from(
+        (
+            id,
+            NewItemParams {
+                content,
+                timestamp,
+                is_private,
+                file_name,
+                is_complete,
+                type_field,
+                ..
+            },
+        ): (i64, NewItemParams),
+    ) -> Self {
         Self {
             id,
-            content: params.content,
-            timestamp: params.timestamp,
-            is_private: params.is_private,
-            file_name: params.file_name,
-            is_complete: params.is_complete,
-            type_field: params.type_field,
+            content,
+            timestamp,
+            is_private,
+            file_name,
+            is_complete,
+            type_field,
         }
     }
 }
 
 #[derive(Deserialize)]
 pub struct PageQueryParams {
-    pub size: u32,
+    pub size: i64,
 }
 
 #[derive(Deserialize)]
 pub struct SyncQueryParams {
     #[serde(rename = "latestId")]
-    pub latest_id: u32,
+    pub latest_id: i64,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -108,12 +106,12 @@ impl From<&NewItemParams> for Result<MessageItem> {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct NewItemResponse {
-    pub id: u64,
+    pub id: i64,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct RemoveItemParams {
-    pub id: u64,
+    pub id: i64,
     #[serde(rename = "type")]
     pub type_field: MessageItemType,
     #[serde(rename = "fileName")]

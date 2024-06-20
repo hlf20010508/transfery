@@ -5,133 +5,109 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use sqlx::mysql::MySql;
-use sqlx::Executor;
+use sea_orm::sea_query::Expr;
+use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set};
 
-use super::{Database, DeviceItem};
-
-use crate::env::MYSQL_TABLE_DEVICE;
+use super::models::device::{self, DeviceItem, DeviceUpdateItem};
+use super::Database;
 use crate::error::Error::{SqlExecuteError, SqlQueryError};
 use crate::error::Result;
 
 impl Database {
     pub async fn insert_device(&self, device_item: DeviceItem) -> Result<()> {
-        let fingerprint_exists = {
-            let sql = format!(
-                "select count(*) from `{}` where fingerprint = ?",
-                MYSQL_TABLE_DEVICE
-            );
-
-            let (count,) = sqlx::query_as::<MySql, (i64,)>(&sql)
-                .bind(device_item.fingerprint.clone())
-                .fetch_one(&self.pool)
-                .await
-                .map_err(|e| {
-                    SqlQueryError(format!("MySql query fingerprint count failed: {}", e))
-                })?;
-
-            count > 0
-        };
-
-        if fingerprint_exists {
-            self.update_device(device_item.clone()).await?;
+        if self.is_fingerprint_exist(&device_item.fingerprint).await? {
+            self.update_device(DeviceUpdateItem {
+                fingerprint: device_item.fingerprint.clone(),
+                browser: Some(device_item.browser),
+                last_use_timestamp: Some(device_item.last_use_timestamp),
+                expiration_timestamp: Some(device_item.expiration_timestamp),
+            })
+            .await?;
         } else {
-            let sql = format!(
-                "insert into `{}` (
-                    fingerprint,
-                    browser,
-                    lastUseTimestamp,
-                    expirationTimestamp
-                )
-                values (?, ?, ?, ?)",
-                MYSQL_TABLE_DEVICE
-            );
+            let insert_item = device::ActiveModel {
+                fingerprint: Set(device_item.fingerprint),
+                browser: Set(device_item.browser),
+                last_use_timestamp: Set(device_item.last_use_timestamp),
+                expiration_timestamp: Set(device_item.expiration_timestamp),
+                ..Default::default()
+            };
 
-            let query = sqlx::query(&sql)
-                .bind(device_item.fingerprint)
-                .bind(device_item.browser)
-                .bind(device_item.last_use_timestamp)
-                .bind(device_item.expiration_timestamp);
-
-            self.pool
-                .execute(query)
+            device::Entity::insert(insert_item)
+                .exec(&self.connection)
                 .await
-                .map_err(|e| SqlExecuteError(format!("MySql insert device failed: {}", e)))?;
+                .map_err(|e| SqlExecuteError(format!("failed to insert device: {}", e)))?;
         }
 
         Ok(())
+    }
+
+    pub async fn is_fingerprint_exist(&self, fingerprint: &str) -> Result<bool> {
+        let count = device::Entity::find()
+            .filter(device::Column::Fingerprint.eq(fingerprint))
+            .count(&self.connection)
+            .await
+            .map_err(|e| SqlQueryError(format!("failed to count fingerprint: {}", e)))?;
+
+        Ok(count > 0)
     }
 
     pub async fn update_device(
         &self,
-        DeviceItem {
+        DeviceUpdateItem {
             fingerprint,
             browser,
             last_use_timestamp,
             expiration_timestamp,
-        }: DeviceItem,
+        }: DeviceUpdateItem,
     ) -> Result<()> {
-        let mut sql = format!("update `{}` set", MYSQL_TABLE_DEVICE);
-        let mut params = Vec::<String>::new();
+        let query = {
+            let mut query =
+                device::Entity::update_many().filter(device::Column::Fingerprint.eq(fingerprint));
 
-        if let Some(browser) = browser {
-            sql = format!("{} browser = ?,", sql);
-            params.push(browser);
-        }
+            if let Some(browser) = browser {
+                query = query.col_expr(device::Column::Browser, Expr::value(browser));
+            }
 
-        if let Some(last_use_timestamp) = last_use_timestamp {
-            sql = format!("{} lastUseTimestamp = ?,", sql);
-            params.push(last_use_timestamp.to_string());
-        }
+            if let Some(last_use_timestamp) = last_use_timestamp {
+                query = query.col_expr(
+                    device::Column::LastUseTimestamp,
+                    Expr::value(last_use_timestamp),
+                );
+            }
 
-        if let Some(expiration_timestamp) = expiration_timestamp {
-            sql = format!("{} expirationTimestamp = ?,", sql);
-            params.push(expiration_timestamp.to_string());
-        }
+            if let Some(expiration_timestamp) = expiration_timestamp {
+                query = query.col_expr(
+                    device::Column::ExpirationTimestamp,
+                    Expr::value(expiration_timestamp),
+                );
+            }
 
-        sql = sql.trim_end_matches(",").to_string();
-        sql = format!("{} where fingerprint = ?", sql);
+            query
+        };
 
-        params.push(fingerprint);
-
-        let mut query = sqlx::query(&sql);
-
-        for param in params.iter() {
-            query = query.bind(param);
-        }
-
-        self.pool
-            .execute(query)
+        query
+            .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("MySql update device failed: {}", e)))?;
+            .map_err(|e| SqlExecuteError(format!("failed  to update device: {}", e)))?;
 
         Ok(())
     }
 
-    pub async fn query_device_items(&self) -> Result<Vec<DeviceItem>> {
-        let sql = format!("select * from `{}`", MYSQL_TABLE_DEVICE);
-
-        let query = sqlx::query::<MySql>(&sql)
-            .fetch_all(&self.pool)
+    pub async fn query_device_items(&self) -> Result<Vec<device::Model>> {
+        let items = device::Entity::find()
+            .all(&self.connection)
             .await
-            .map_err(|e| SqlQueryError(format!("MySql query device failed: {}", e)))?;
+            .map_err(|e| SqlQueryError(format!("failed to query device items: {}", e)))?;
 
-        let result = query
-            .into_iter()
-            .map(|row| DeviceItem::from(row))
-            .collect::<Vec<DeviceItem>>();
-
-        Ok(result)
+        Ok(items)
     }
 
     pub async fn remove_device(&self, fingerprint: &str) -> Result<()> {
-        let sql = format!("delete from `{}` where fingerprint = ?", MYSQL_TABLE_DEVICE);
-        let query = sqlx::query(&sql).bind(fingerprint);
-
-        self.pool
-            .execute(query)
+        device::Entity::delete_many()
+            .filter(device::Column::Fingerprint.eq(fingerprint))
+            .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("MySql remove device failed: {}", e)))?;
+            .map_err(|e| SqlExecuteError(format!("failed to remove device: {}", e)))?;
 
         Ok(())
     }

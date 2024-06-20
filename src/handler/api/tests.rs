@@ -19,9 +19,9 @@ use tower::ServiceExt;
 
 use super::models::{Account, PushTextParams};
 use super::{latest_text, push_text, LATEST_TEXT_PATH, PUSH_TEXT_PATH};
-
+use crate::client::database::models::message::MessageItem;
+use crate::client::database::models::token::TokenNewItem;
 use crate::client::database::tests::{get_database, reset};
-use crate::client::database::{MessageItem, NewTokenItem};
 use crate::client::Database;
 use crate::crypto::tests::get_crypto;
 use crate::env::tests::get_env;
@@ -50,7 +50,7 @@ async fn test_api_push_text() {
                 .map_err(|e| ToStrError(format!("failed to serialize account: {}", e)))?,
         )?;
 
-        let new_token_item = NewTokenItem {
+        let new_token_item = TokenNewItem {
             token: token.clone(),
             name: "test name".to_string(),
             expiration_timestamp: get_current_timestamp() + 1000 * 60,

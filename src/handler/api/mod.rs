@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use super::socket::Room;
 
-use crate::client::database::MessageItem;
+use crate::client::database::models::message::{self, MessageItem};
 use crate::client::Database;
 use crate::crypto::Crypto;
 use crate::env::Env;
@@ -52,16 +52,14 @@ pub async fn push_text(
             .await?;
 
         if !params.content.trim().is_empty() {
-            let mut message_item =
+            let message_item =
                 MessageItem::new_text(&params.content, get_current_timestamp(), true);
 
             let id = database.insert_message_item(message_item.clone()).await?;
 
-            message_item.id = Some(id as i64);
-
             socketio
                 .to(Room::Private)
-                .emit("newItem", message_item)
+                .emit("newItem", message::Model::from((id, message_item)))
                 .map_err(|e| SocketEmitError(format!("failed to emit newItem: {}", e)))?;
 
             tracing::info!("text uploaded");
@@ -92,7 +90,7 @@ pub async fn latest_text(
     };
 
     if is_valid {
-        match database.query_message_latest().await {
+        match database.query_message_latest().await? {
             Some(item) => {
                 tracing::info!("latest text pushed");
                 tracing::debug!("latest text item: {:#?}", item);

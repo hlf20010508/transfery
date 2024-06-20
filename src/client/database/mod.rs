@@ -5,21 +5,18 @@
 :license: MIT, see LICENSE for more details.
 */
 
+use sea_orm::DatabaseConnection;
+
 mod device;
 mod init;
 mod message;
-mod models;
+pub mod models;
 #[cfg(test)]
 pub mod tests;
 mod token;
 
-pub use models::{DeviceItem, MessageItem, MessageItemType, NewTokenItem, TokenItem};
-
-use sqlx::mysql::MySql;
-use sqlx::pool::Pool;
-
 #[derive(Debug, Clone)]
 pub struct Database {
-    pool: Pool<MySql>,
+    connection: DatabaseConnection,
     _name: String,
 }

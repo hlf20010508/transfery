@@ -5,12 +5,11 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use sqlx::mysql::MySql;
-use sqlx::Executor;
+use sea_orm::sea_query::Expr;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
 
-use super::{Database, NewTokenItem, TokenItem};
-
-use crate::env::MYSQL_TABLE_TOKEN;
+use super::models::token::{self, TokenNewItem};
+use super::Database;
 use crate::error::Error::{SqlExecuteError, SqlQueryError};
 use crate::error::Result;
 use crate::utils::get_current_timestamp;
@@ -18,78 +17,57 @@ use crate::utils::get_current_timestamp;
 impl Database {
     pub async fn insert_token(
         &self,
-        NewTokenItem {
+        TokenNewItem {
             token,
             name,
             expiration_timestamp,
-        }: NewTokenItem,
+        }: TokenNewItem,
     ) -> Result<()> {
-        let sql = format!(
-            "insert into `{}` (
-                token,
-                name,
-                lastUseTimestamp,
-                expirationTimestamp
-            )
-            values (?, ?, ?, ?)",
-            MYSQL_TABLE_TOKEN
-        );
+        let insert_item = token::ActiveModel {
+            token: Set(token),
+            name: Set(name),
+            last_use_timestamp: Set(get_current_timestamp()),
+            expiration_timestamp: Set(expiration_timestamp),
+            ..Default::default()
+        };
 
-        let query = sqlx::query(&sql)
-            .bind(token)
-            .bind(name)
-            .bind(get_current_timestamp())
-            .bind(expiration_timestamp);
-
-        self.pool
-            .execute(query)
+        token::Entity::insert(insert_item)
+            .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("MySql insert token failed: {}", e)))?;
+            .map_err(|e| SqlExecuteError(format!("failed to insert token: {}", e)))?;
 
         Ok(())
     }
 
-    pub async fn query_token_items(&self) -> Result<Vec<TokenItem>> {
-        let sql = format!("select * from `{}`", MYSQL_TABLE_TOKEN);
-
-        let query = sqlx::query::<MySql>(&sql)
-            .fetch_all(&self.pool)
+    pub async fn query_token_items(&self) -> Result<Vec<token::Model>> {
+        let token_items = token::Entity::find()
+            .all(&self.connection)
             .await
-            .map_err(|e| SqlQueryError(format!("MySql query token failed: {}", e)))?;
+            .map_err(|e| SqlQueryError(format!("failed to query token items: {}", e)))?;
 
-        let result = query
-            .into_iter()
-            .map(|row| TokenItem::from(row))
-            .collect::<Vec<TokenItem>>();
-
-        Ok(result)
+        Ok(token_items)
     }
 
     pub async fn remove_token(&self, token: String) -> Result<()> {
-        let sql = format!("delete from `{}` where token = ?", MYSQL_TABLE_TOKEN);
-
-        let query = sqlx::query(&sql).bind(token);
-
-        self.pool
-            .execute(query)
+        token::Entity::delete_many()
+            .filter(token::Column::Token.eq(token))
+            .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("MySql remove token failed: {}", e)))?;
+            .map_err(|e| SqlExecuteError(format!("failed to remove token: {}", e)))?;
 
         Ok(())
     }
 
     pub async fn update_token(&self, token: &str, last_use_timestamp: i64) -> Result<()> {
-        let sql = format!(
-            "update `{}` set lastUseTimestamp = ? where token = ?",
-            MYSQL_TABLE_TOKEN
-        );
-
-        let query = sqlx::query(&sql).bind(last_use_timestamp).bind(token);
-
-        self.pool
-            .execute(query)
+        token::Entity::update_many()
+            .filter(token::Column::Token.eq(token))
+            .col_expr(
+                token::Column::LastUseTimestamp,
+                Expr::value(last_use_timestamp),
+            )
+            .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("MySql update token failed: {}", e)))?;
+            .map_err(|e| SqlExecuteError(format!("failed to update token: {}", e)))?;
 
         Ok(())
     }

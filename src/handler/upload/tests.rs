@@ -23,8 +23,8 @@ use super::{
 };
 
 use crate::auth::tests::gen_auth;
+use crate::client::database::models::message::MessageItem;
 use crate::client::database::tests::{get_database, reset as reset_database};
-use crate::client::database::MessageItem;
 use crate::client::storage::tests::{get_storage, init, reset as reset_storage};
 use crate::client::{Database, Storage};
 use crate::crypto::tests::get_crypto;
@@ -287,7 +287,7 @@ async fn test_upload_complete_upload() {
         let etag = res.to_string().await?;
 
         let data = CompleteUploadFormParams {
-            id: id as i64,
+            id,
             file_name: file_name.clone(),
             upload_id: upload_id.clone(),
             parts: vec![Part { number: 1, etag }],

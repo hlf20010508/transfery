@@ -22,7 +22,8 @@ use socketioxide::SocketIo;
 use std::sync::Arc;
 
 use crate::auth::{AuthChecker, Authorization, Certificate};
-use crate::client::database::{DeviceItem, NewTokenItem, TokenItem};
+use crate::client::database::models::device::{self, DeviceItem, DeviceUpdateItem};
+use crate::client::database::models::token::{self, TokenNewItem};
 use crate::client::Database;
 use crate::crypto::Crypto;
 use crate::env::Env;
@@ -73,9 +74,9 @@ pub async fn auth(
 
         let device_item = DeviceItem {
             fingerprint: params.fingerprint,
-            browser: Some(params.browser),
-            last_use_timestamp: Some(current_timestamp),
-            expiration_timestamp: Some(expiration_timestamp),
+            browser: params.browser,
+            last_use_timestamp: current_timestamp,
+            expiration_timestamp: expiration_timestamp,
         };
 
         database.insert_device(device_item).await?;
@@ -120,7 +121,7 @@ pub async fn auto_login(
 
     tracing::info!("client {} joined room private", sid);
 
-    let device_item = DeviceItem {
+    let device_item = DeviceUpdateItem {
         fingerprint,
         browser: None,
         last_use_timestamp: Some(get_current_timestamp()),
@@ -168,7 +169,7 @@ pub static DEVICE_PATH: &str = "/device";
 pub async fn device(
     _: AuthChecker,
     Extension(database): Extension<Arc<Database>>,
-) -> Result<Json<Vec<DeviceItem>>> {
+) -> Result<Json<Vec<device::Model>>> {
     tracing::info!("received device request");
 
     let device_items = database.query_device_items().await?;
@@ -225,7 +226,7 @@ pub async fn create_token(
         crypto.encrypt(&token_json)?
     };
 
-    let new_token_item = NewTokenItem {
+    let new_token_item = TokenNewItem {
         token,
         name: params.name,
         expiration_timestamp: params.expiration_timestamp,
@@ -247,7 +248,7 @@ pub static GET_TOKEN_PATH: &str = "/getToken";
 pub async fn get_token(
     _: AuthChecker,
     Extension(database): Extension<Arc<Database>>,
-) -> Result<Json<Vec<TokenItem>>> {
+) -> Result<Json<Vec<token::Model>>> {
     tracing::info!("received get token request");
 
     let tokens = database.query_token_items().await?;

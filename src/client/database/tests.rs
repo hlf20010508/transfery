@@ -5,46 +5,43 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use super::{Database, DeviceItem, MessageItem};
-
-use crate::client::database::{NewTokenItem, TokenItem};
+use super::models::config::{Config, MySqlConfig, SqliteConfig};
+use super::models::device::{self, DeviceItem};
+use super::models::message::{self, MessageItem};
+use super::models::token::{self, TokenNewItem};
+use super::Database;
+use crate::client::database::models::device::DeviceUpdateItem;
 use crate::env::tests::get_env;
+use crate::env::{DatabaseEnv, Env};
 use crate::error::Result;
 use crate::utils::get_current_timestamp;
 use crate::utils::tests::sleep_async;
 
 pub async fn get_database() -> Database {
-    let env = get_env();
+    let Env { database, .. } = get_env();
 
-    let database = Database::new(
-        &env.mysql_endpoint,
-        &env.mysql_username,
-        &env.mysql_password,
-        &env.mysql_database,
-    )
-    .await
-    .unwrap();
+    match database {
+        DatabaseEnv::MySql(env) => {
+            let config =
+                MySqlConfig::new(&env.endpoint, &env.username, &env.password, &env.database);
 
-    database
+            Database::new(Config::MySql(config)).await.unwrap()
+        }
+        DatabaseEnv::Sqlite(env) => {
+            let config = SqliteConfig::new(&env.path);
+
+            Database::new(Config::Sqlite(config)).await.unwrap()
+        }
+    }
 }
 
 pub async fn reset(database: Database) {
     database._drop_database_if_exists().await.unwrap();
-    database._close().await;
 }
 
 #[tokio::test]
 async fn test_database_new() {
-    let env = get_env();
-
-    Database::new(
-        &env.mysql_endpoint,
-        &env.mysql_username,
-        &env.mysql_password,
-        &env.mysql_database,
-    )
-    .await
-    .unwrap();
+    get_database().await;
 
     sleep_async(1).await;
 }
@@ -54,7 +51,7 @@ async fn test_database_create_database_if_not_exists() {
     let database = get_database().await;
 
     let result =
-        Database::create_database_if_not_exists(&database.pool, database._name.as_str()).await;
+        Database::create_database_if_not_exists(&database.connection, &database._name).await;
     reset(database).await;
     result.unwrap();
 
@@ -204,14 +201,14 @@ async fn test_database_drop_database_if_exists() {
 
 #[tokio::test]
 async fn test_database_insert_message_item() {
-    async fn inner(database: &Database, item: MessageItem) -> Result<u64> {
+    async fn inner(database: &Database, item: MessageItem) -> Result<i64> {
         database.create_table_message_if_not_exists().await?;
         let id = database.insert_message_item(item).await?;
 
         Ok(id)
     }
 
-    async fn inner_text(database: &Database) -> Result<u64> {
+    async fn inner_text(database: &Database) -> Result<i64> {
         let item = MessageItem::new_text(
             "test database insert message item text",
             get_current_timestamp(),
@@ -221,7 +218,7 @@ async fn test_database_insert_message_item() {
         inner(database, item).await
     }
 
-    async fn inner_file(database: &Database) -> Result<u64> {
+    async fn inner_file(database: &Database) -> Result<i64> {
         let item = MessageItem::new_file(
             "test database insert message item file",
             get_current_timestamp(),
@@ -297,7 +294,7 @@ async fn test_database_remove_message_all() {
 
 #[tokio::test]
 async fn test_database_query_message_items() {
-    async fn inner(database: &Database) -> Result<Vec<MessageItem>> {
+    async fn inner(database: &Database) -> Result<Vec<message::Model>> {
         let item = MessageItem::new_text(
             "test database query message items",
             get_current_timestamp(),
@@ -306,9 +303,7 @@ async fn test_database_query_message_items() {
 
         database.create_table_message_if_not_exists().await?;
         database.insert_message_item(item).await?;
-        let items = database.query_message_items(0, 1, false).await?;
-
-        Ok(items)
+        database.query_message_items(0, 1, false).await
     }
 
     let database = get_database().await;
@@ -325,7 +320,7 @@ async fn test_database_query_message_items() {
 
 #[tokio::test]
 async fn test_database_query_message_items_after_id() {
-    async fn inner(database: &Database) -> Result<Vec<MessageItem>> {
+    async fn inner(database: &Database) -> Result<Vec<message::Model>> {
         let item1 = MessageItem::new_text(
             "test database query message items after id 1",
             get_current_timestamp(),
@@ -367,12 +362,10 @@ async fn test_database_query_message_items_after_id() {
 
 #[tokio::test]
 async fn test_database_query_message_latest() {
-    async fn inner(database: &Database, item: MessageItem) -> Result<Option<MessageItem>> {
+    async fn inner(database: &Database, item: MessageItem) -> Result<Option<message::Model>> {
         database.create_table_message_if_not_exists().await?;
         database.insert_message_item(item).await?;
-        let items = database.query_message_latest().await;
-
-        Ok(items)
+        database.query_message_latest().await
     }
 
     let database = get_database().await;
@@ -401,7 +394,7 @@ async fn test_database_update_complete() {
 
         database.create_table_message_if_not_exists().await?;
         let id = database.insert_message_item(item).await?;
-        database.update_complete(id as i64).await?;
+        database.update_complete(id).await?;
 
         Ok(())
     }
@@ -420,9 +413,9 @@ async fn test_database_insert_device() {
     async fn inner(database: &Database) -> Result<()> {
         let device_item = DeviceItem {
             fingerprint: "fingerprint".to_string(),
-            browser: Some("browser".to_string()),
-            last_use_timestamp: Some(get_current_timestamp()),
-            expiration_timestamp: Some(get_current_timestamp()),
+            browser: "browser".to_string(),
+            last_use_timestamp: get_current_timestamp(),
+            expiration_timestamp: get_current_timestamp(),
         };
 
         database.create_table_device_if_not_exists().await?;
@@ -445,15 +438,15 @@ async fn test_database_update_device() {
     async fn inner(database: &Database) -> Result<()> {
         let device_item_old = DeviceItem {
             fingerprint: "fingerprint".to_string(),
-            browser: Some("browser_old".to_string()),
-            last_use_timestamp: Some(get_current_timestamp()),
-            expiration_timestamp: Some(get_current_timestamp()),
+            browser: "browser_old".to_string(),
+            last_use_timestamp: get_current_timestamp(),
+            expiration_timestamp: get_current_timestamp(),
         };
 
         database.create_table_device_if_not_exists().await?;
         database.insert_device(device_item_old).await?;
 
-        let device_item_new = DeviceItem {
+        let device_item_new = DeviceUpdateItem {
             fingerprint: "fingerprint".to_string(),
             browser: Some("browser_new".to_string()),
             last_use_timestamp: Some(get_current_timestamp()),
@@ -476,27 +469,33 @@ async fn test_database_update_device() {
 
 #[tokio::test]
 async fn test_database_query_device_items() {
-    async fn inner(database: &Database, device_item: DeviceItem) -> Result<Vec<DeviceItem>> {
+    async fn inner(database: &Database, device_item: DeviceItem) -> Result<Vec<device::Model>> {
         database.create_table_device_if_not_exists().await?;
         database.insert_device(device_item).await?;
-        let result = database.query_device_items().await?;
-
-        Ok(result)
+        database.query_device_items().await
     }
 
     let database = get_database().await;
 
     let device_item = DeviceItem {
         fingerprint: "fingerprint".to_string(),
-        browser: Some("browser".to_string()),
-        last_use_timestamp: Some(get_current_timestamp()),
-        expiration_timestamp: Some(get_current_timestamp()),
+        browser: "browser".to_string(),
+        last_use_timestamp: get_current_timestamp(),
+        expiration_timestamp: get_current_timestamp(),
     };
 
     let result = inner(&database, device_item.clone()).await;
     reset(database).await;
+    let result = result.unwrap();
 
-    assert_eq!(result.unwrap(), vec![device_item]);
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].fingerprint, device_item.fingerprint);
+    assert_eq!(result[0].browser, device_item.browser);
+    assert_eq!(result[0].last_use_timestamp, device_item.last_use_timestamp);
+    assert_eq!(
+        result[0].expiration_timestamp,
+        device_item.expiration_timestamp
+    );
 
     sleep_async(1).await;
 }
@@ -508,9 +507,9 @@ async fn test_database_remove_device() {
 
         let device_item = DeviceItem {
             fingerprint: fingerprint.to_string(),
-            browser: Some("browser".to_string()),
-            last_use_timestamp: Some(get_current_timestamp()),
-            expiration_timestamp: Some(get_current_timestamp()),
+            browser: "browser".to_string(),
+            last_use_timestamp: get_current_timestamp(),
+            expiration_timestamp: get_current_timestamp(),
         };
 
         database.create_table_device_if_not_exists().await?;
@@ -534,7 +533,7 @@ async fn test_database_remove_device() {
 async fn test_database_insert_token() {
     async fn inner(database: &Database) -> Result<()> {
         database.create_table_token_if_not_exists().await?;
-        let new_token_item = NewTokenItem {
+        let new_token_item = TokenNewItem {
             token: "test_token".to_string(),
             name: "test name".to_string(),
             expiration_timestamp: get_current_timestamp(),
@@ -560,7 +559,7 @@ async fn test_database_update_token() {
         let timestamp = get_current_timestamp();
         let token = "test_token".to_string();
 
-        let new_token_item = NewTokenItem {
+        let new_token_item = TokenNewItem {
             token: token.clone(),
             name: "test name".to_string(),
             expiration_timestamp: timestamp,
@@ -582,7 +581,7 @@ async fn test_database_update_token() {
 
 #[tokio::test]
 async fn test_database_query_token_items() {
-    async fn inner(database: &Database, new_token_item: NewTokenItem) -> Result<Vec<TokenItem>> {
+    async fn inner(database: &Database, new_token_item: TokenNewItem) -> Result<Vec<token::Model>> {
         database.create_table_token_if_not_exists().await?;
         database.insert_token(new_token_item).await?;
 
@@ -593,7 +592,7 @@ async fn test_database_query_token_items() {
 
     let database = get_database().await;
 
-    let new_token_item = NewTokenItem {
+    let new_token_item = TokenNewItem {
         token: "test_token".to_string(),
         name: "test name".to_string(),
         expiration_timestamp: get_current_timestamp(),
@@ -615,7 +614,7 @@ async fn test_database_remove_token() {
     async fn inner(database: &Database) -> Result<()> {
         database.create_table_token_if_not_exists().await?;
 
-        let new_token_item = NewTokenItem {
+        let new_token_item = TokenNewItem {
             token: "test_token".to_string(),
             name: "test name".to_string(),
             expiration_timestamp: get_current_timestamp(),

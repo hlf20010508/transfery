@@ -5,159 +5,123 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use sqlx::mysql::MySql;
-use sqlx::Executor;
+use sea_orm::sea_query::Expr;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Set};
 
-use super::{Database, MessageItem};
-
-use crate::env::MYSQL_TABLE_MESSAGE;
+use super::models::message::{self, MessageItem};
+use super::Database;
 use crate::error::Error::{SqlExecuteError, SqlQueryError};
 use crate::error::Result;
 
 impl Database {
     pub async fn query_message_items(
         &self,
-        start: u32,
-        number: u8,
+        start: i64,
+        number: i64,
         access_private: bool,
-    ) -> Result<Vec<MessageItem>> {
-        let sql = {
-            let mut sql = format!("select * from `{}` ", MYSQL_TABLE_MESSAGE);
-            if !access_private {
-                sql.push_str("where isPrivate = false ");
-            }
-            sql.push_str("order by timestamp desc, id desc limit ?, ?");
+    ) -> Result<Vec<message::Model>> {
+        let query = {
+            let mut query = message::Entity::find()
+                .order_by_desc(message::Column::Timestamp)
+                .order_by_desc(message::Column::Id)
+                .limit(Some(number as u64))
+                .offset(Some(start as u64));
 
-            sql
+            if !access_private {
+                query = query.filter(message::Column::IsPrivate.eq(false));
+            }
+
+            query
         };
 
-        let query = sqlx::query::<MySql>(&sql)
-            .bind(start)
-            .bind(number)
-            .fetch_all(&self.pool)
+        let items = query
+            .all(&self.connection)
             .await
-            .map_err(|e| SqlQueryError(format!("MySql query message items failed: {}", e)))?;
+            .map_err(|e| SqlQueryError(format!("failed to query message items: {}", e)))?;
 
-        let result: Vec<MessageItem> = query
-            .into_iter()
-            .map(|row| MessageItem::from(row))
-            .collect();
-
-        Ok(result)
+        Ok(items)
     }
 
     pub async fn query_message_items_after_id(
         &self,
-        id: u32,
+        id: i64,
         access_private: bool,
-    ) -> Result<Vec<MessageItem>> {
-        let sql = {
-            let mut sql = format!("select * from `{}` where id > ?", MYSQL_TABLE_MESSAGE);
+    ) -> Result<Vec<message::Model>> {
+        let query = {
+            let mut query = message::Entity::find().filter(message::Column::Id.gt(id));
+
             if !access_private {
-                sql.push_str(" and isPrivate = false ");
+                query = query.filter(message::Column::IsPrivate.eq(false));
             }
 
-            sql
+            query
         };
 
-        let query = sqlx::query::<MySql>(&sql)
-            .bind(id)
-            .fetch_all(&self.pool)
+        let items = query
+            .all(&self.connection)
             .await
-            .map_err(|e| {
-                SqlQueryError(format!("MySql query message items after id failed: {}", e))
-            })?;
+            .map_err(|e| SqlQueryError(format!("failed to query message items after id: {}", e)))?;
 
-        let result: Vec<MessageItem> = query
-            .into_iter()
-            .map(|row| MessageItem::from(row))
-            .collect();
-
-        Ok(result)
+        Ok(items)
     }
 
-    pub async fn query_message_latest(&self) -> Option<MessageItem> {
-        let sql = format!(
-            "select * from `{}` where isPrivate = true order by timestamp desc, id desc limit 1",
-            MYSQL_TABLE_MESSAGE
-        );
+    pub async fn query_message_latest(&self) -> Result<Option<message::Model>> {
+        let message = message::Entity::find()
+            .order_by_desc(message::Column::Timestamp)
+            .order_by_desc(message::Column::Id)
+            .filter(message::Column::IsPrivate.eq(true))
+            .one(&self.connection)
+            .await
+            .map_err(|e| SqlQueryError(format!("failed to query message latest: {}", e)))?;
 
-        match sqlx::query::<MySql>(&sql).fetch_one(&self.pool).await {
-            Ok(row) => Some(MessageItem::from(row)),
-            Err(_) => None,
-        }
+        Ok(message)
     }
 
-    pub async fn insert_message_item(&self, item: MessageItem) -> Result<u64> {
-        let sql = format!(
-            "insert into `{}` (
-                content,
-                timestamp,
-                isPrivate,
-                type,
-                fileName,
-                isComplete
-            )
-            values (?, ?, ?, ?, ?, ?)",
-            MYSQL_TABLE_MESSAGE
-        );
+    pub async fn insert_message_item(&self, item: MessageItem) -> Result<i64> {
+        let insert_item = message::ActiveModel {
+            content: Set(item.content),
+            timestamp: Set(item.timestamp),
+            is_private: Set(item.is_private),
+            type_field: Set(item.type_field),
+            file_name: Set(item.file_name),
+            is_complete: Set(item.is_complete),
+            ..Default::default()
+        };
 
-        let query = sqlx::query::<MySql>(&sql)
-            .bind(item.content)
-            .bind(item.timestamp)
-            .bind(item.is_private)
-            .bind(item.type_field)
-            .bind(item.file_name)
-            .bind(item.is_complete);
-
-        let id = self
-            .pool
-            .execute(query)
+        let id = message::Entity::insert(insert_item)
+            .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("MySql insert message item failed: {}", e)))?
-            .last_insert_id();
+            .map_err(|e| SqlExecuteError(format!("failed to insert message item: {}", e)))?
+            .last_insert_id;
 
         Ok(id)
     }
 
     pub async fn remove_message_item(&self, id: i64) -> Result<()> {
-        let sql = format!("delete from `{}` where id = ?", MYSQL_TABLE_MESSAGE);
-
-        let query = sqlx::query(&sql).bind(id);
-
-        self.pool
-            .execute(query)
+        message::Entity::delete_by_id(id)
+            .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("MySql remove message item failed: {}", e)))?;
+            .map_err(|e| SqlExecuteError(format!("failed to remove message item: {}", e)))?;
 
         Ok(())
     }
 
     pub async fn remove_message_all(&self) -> Result<()> {
-        let sql = format!("delete from `{}`", MYSQL_TABLE_MESSAGE);
-
-        let query = sqlx::query(&sql);
-
-        self.pool
-            .execute(query)
+        message::Entity::delete_many()
+            .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("MySql remove message all failed: {}", e)))?;
+            .map_err(|e| SqlExecuteError(format!("failed to remove message all: {}", e)))?;
 
         Ok(())
     }
 
     pub async fn update_complete(&self, id: i64) -> Result<()> {
-        let sql = format!(
-            "update `{}` set isComplete = true where id = ?",
-            MYSQL_TABLE_MESSAGE
-        );
-
-        let query = sqlx::query(&sql).bind(id);
-
-        self.pool
-            .execute(query)
+        message::Entity::update_many()
+            .filter(message::Column::Id.eq(id))
+            .col_expr(message::Column::IsComplete, Expr::value(true))
+            .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("MySql update complete failed: {}", e)))?;
+            .map_err(|e| SqlExecuteError(format!("failed to update message complete: {}", e)))?;
 
         Ok(())
     }

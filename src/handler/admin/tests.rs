@@ -26,8 +26,10 @@ use super::{
 
 use crate::auth::tests::gen_auth;
 use crate::auth::Authorization;
+use crate::client::database::models::device::DeviceItem;
+use crate::client::database::models::token::{TokenItem, TokenNewItem};
 use crate::client::database::tests::{get_database, reset as reset_database};
-use crate::client::database::{Database, DeviceItem, NewTokenItem, TokenItem};
+use crate::client::database::Database;
 use crate::crypto::tests::get_crypto;
 use crate::env::tests::get_env;
 use crate::error::Error::DefaultError;
@@ -188,9 +190,9 @@ async fn test_admin_sign_out() {
         database
             .insert_device(DeviceItem {
                 fingerprint,
-                browser: Some("browser".to_string()),
-                last_use_timestamp: Some(get_current_timestamp()),
-                expiration_timestamp: Some(get_current_timestamp() + 1000 * 60),
+                browser: "browser".to_string(),
+                last_use_timestamp: get_current_timestamp(),
+                expiration_timestamp: get_current_timestamp() + 1000 * 60,
             })
             .await?;
 
@@ -244,9 +246,9 @@ async fn test_admin_device() {
     async fn inner(database: &Database) -> Result<Response> {
         let device_item = DeviceItem {
             fingerprint: "fingerprint".to_string(),
-            browser: Some("browser".to_string()),
-            last_use_timestamp: Some(get_current_timestamp()),
-            expiration_timestamp: Some(get_current_timestamp()),
+            browser: "browser".to_string(),
+            last_use_timestamp: get_current_timestamp(),
+            expiration_timestamp: get_current_timestamp(),
         };
 
         database.create_table_device_if_not_exists().await?;
@@ -421,7 +423,7 @@ async fn test_admin_create_token() {
 
 #[tokio::test]
 async fn test_admin_get_token() {
-    async fn inner(database: &Database, new_token_item: NewTokenItem) -> Result<Response> {
+    async fn inner(database: &Database, new_token_item: TokenNewItem) -> Result<Response> {
         database.create_table_token_if_not_exists().await?;
 
         database.insert_token(new_token_item).await?;
@@ -451,7 +453,7 @@ async fn test_admin_get_token() {
 
     let database = get_database().await;
 
-    let new_token_item = NewTokenItem {
+    let new_token_item = TokenNewItem {
         token: "test_token".to_string(),
         name: "test name".to_string(),
         expiration_timestamp: get_current_timestamp(),
@@ -478,7 +480,7 @@ async fn test_admin_remove_token() {
     async fn inner(database: &Database) -> Result<reqwest::Response> {
         database.create_table_token_if_not_exists().await?;
 
-        let new_token_item = NewTokenItem {
+        let new_token_item = TokenNewItem {
             token: "test_token".to_string(),
             name: "test name".to_string(),
             expiration_timestamp: get_current_timestamp(),

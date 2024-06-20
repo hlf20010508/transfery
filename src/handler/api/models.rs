@@ -10,11 +10,39 @@ use axum::http::Method;
 use axum::{async_trait, Json};
 use serde::{Deserialize, Serialize};
 
+use crate::client::database::models::message::{self, MessageItem};
 use crate::crypto::Crypto;
 use crate::env::Env;
 use crate::error::Error::{self, FieldParseError, FromRequestError, UnauthorizedError};
 use crate::error::Result;
 use crate::utils::get_current_timestamp;
+
+impl From<(i64, MessageItem)> for message::Model {
+    fn from(
+        (
+            id,
+            MessageItem {
+                content,
+                timestamp,
+                is_private,
+                file_name,
+                is_complete,
+                type_field,
+                ..
+            },
+        ): (i64, MessageItem),
+    ) -> Self {
+        Self {
+            id,
+            content,
+            timestamp,
+            is_private,
+            file_name,
+            is_complete,
+            type_field,
+        }
+    }
+}
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Account {
