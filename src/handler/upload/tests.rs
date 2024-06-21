@@ -28,6 +28,7 @@ use crate::client::database::tests::{get_database, reset as reset_database};
 use crate::client::storage::tests::{get_storage, init, reset as reset_storage};
 use crate::client::{Database, Storage};
 use crate::crypto::tests::get_crypto;
+use crate::env::tests::DBType;
 use crate::error::Error::{DefaultError, ToStrError};
 use crate::error::Result;
 use crate::utils::tests::sleep_async;
@@ -314,7 +315,7 @@ async fn test_upload_complete_upload() {
     }
 
     let storage = get_storage();
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
 
     let result = inner(&storage, &database).await;
     reset_storage(&storage).await;

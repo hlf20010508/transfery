@@ -35,7 +35,7 @@ use crate::client::storage::tests::{
 use crate::client::Database;
 use crate::client::Storage;
 use crate::crypto::tests::get_crypto;
-use crate::env::tests::get_env;
+use crate::env::tests::{get_env, DBType};
 use crate::error::Error::DefaultError;
 use crate::error::Result;
 use crate::utils::tests::sleep_async;
@@ -120,7 +120,7 @@ fn remove_item_handler(
 async fn test_message_page() {
     async fn inner(database: &Database) -> Result<Response> {
         let crypto = get_crypto();
-        let env = get_env();
+        let env = get_env(DBType::Sqlite);
 
         fake_message_item(&database).await;
 
@@ -147,7 +147,7 @@ async fn test_message_page() {
         Ok(res)
     }
 
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
     let result = inner(&database).await;
     reset_database(database).await;
     assert_eq!(result.unwrap().status(), StatusCode::OK);
@@ -184,7 +184,7 @@ async fn test_message_sync() {
         Ok(res)
     }
 
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
     let result = inner(&database).await;
     reset_database(database).await;
     assert_eq!(result.unwrap().status(), StatusCode::OK);
@@ -249,7 +249,7 @@ async fn test_message_new_item() {
         Ok(res)
     }
 
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
     let result = inner(&database).await;
     reset_database(database).await;
 
@@ -324,7 +324,7 @@ async fn test_message_remove_item() {
         Ok(res)
     }
 
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
     let storage = get_storage();
 
     let result = inner(&database, &storage).await;
@@ -394,7 +394,7 @@ async fn test_message_remove_all() {
         Ok(res)
     }
 
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
     let storage = get_storage();
 
     let result = inner(&database, &storage).await;

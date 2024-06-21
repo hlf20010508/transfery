@@ -11,7 +11,7 @@ use std::io::Cursor;
 
 use super::Storage;
 
-use crate::env::tests::get_env;
+use crate::env::tests::{get_env, DBType};
 use crate::error::Error::StorageObjectError;
 use crate::error::Result;
 use crate::utils::tests::{sleep, sleep_async};
@@ -20,7 +20,7 @@ use crate::utils::tests::{sleep, sleep_async};
 pub static PART_SIZE: u32 = 5 * 1024 * 1024; // 5MB
 
 pub fn get_storage() -> Storage {
-    let env = get_env();
+    let env = get_env(DBType::Sqlite);
 
     let storage = Storage::new(
         &env.minio_endpoint,
@@ -74,15 +74,7 @@ pub async fn upload_data(storage: &Storage, remote_path: &str) -> Result<()> {
 
 #[test]
 fn test_storage_new() {
-    let env = get_env();
-
-    Storage::new(
-        &env.minio_endpoint,
-        &env.minio_username,
-        &env.minio_password,
-        &env.minio_bucket,
-    )
-    .unwrap();
+    get_storage();
 
     sleep(1);
 }

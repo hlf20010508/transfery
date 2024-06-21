@@ -185,6 +185,11 @@ pub mod tests {
     use dotenv::dotenv;
     use std::env;
 
+    pub enum DBType {
+        MySql,
+        Sqlite,
+    }
+
     fn get_env_value<T>(key: &str) -> Result<T>
     where
         T: std::str::FromStr,
@@ -199,14 +204,12 @@ pub mod tests {
     }
 
     impl DatabaseEnv {
-        fn new_test() -> Result<Self> {
-            if get_env_value::<bool>("MYSQL")? {
-                Ok(Self::MySql(MySqlEnv::new_test()?))
-            } else if get_env_value::<bool>("SQLITE")? {
-                Ok(Self::Sqlite(SqliteEnv::new_test()?))
-            } else {
-                Err(DefaultError("no database specified".to_string()))
-            }
+        fn new_mysql() -> Result<Self> {
+            Ok(Self::MySql(MySqlEnv::new_test()?))
+        }
+
+        fn new_sqlite() -> Result<Self> {
+            Ok(Self::Sqlite(SqliteEnv::new_test()?))
         }
     }
 
@@ -234,10 +237,10 @@ pub mod tests {
         }
     }
 
-    pub fn get_env() -> Env {
+    pub fn get_env(db_type: DBType) -> Env {
         dotenv().ok();
 
-        let mode = EnvMode::Dev;
+        let mode: EnvMode = EnvMode::Dev;
         let port = env::var("PORT")
             .unwrap_or("8080".to_string())
             .parse()
@@ -252,7 +255,10 @@ pub mod tests {
         let minio_username = env::var("MINIO_USERNAME").unwrap();
         let minio_password = env::var("MINIO_PASSWORD").unwrap();
         let minio_bucket = env::var("MINIO_BUCKET").unwrap();
-        let database = DatabaseEnv::new_test().unwrap();
+        let database = match db_type {
+            DBType::MySql => DatabaseEnv::new_mysql().unwrap(),
+            DBType::Sqlite => DatabaseEnv::new_sqlite().unwrap(),
+        };
 
         Env {
             mode,

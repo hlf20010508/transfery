@@ -11,14 +11,14 @@ use super::models::message::{self, MessageItem};
 use super::models::token::{self, TokenNewItem};
 use super::Database;
 use crate::client::database::models::device::DeviceUpdateItem;
-use crate::env::tests::get_env;
+use crate::env::tests::{get_env, DBType};
 use crate::env::{DatabaseEnv, Env};
 use crate::error::Result;
 use crate::utils::get_current_timestamp;
 use crate::utils::tests::sleep_async;
 
-pub async fn get_database() -> Database {
-    let Env { database, .. } = get_env();
+pub async fn get_database(db_type: DBType) -> Database {
+    let Env { database, .. } = get_env(db_type);
 
     match database {
         DatabaseEnv::MySql(env) => {
@@ -41,14 +41,15 @@ pub async fn reset(database: Database) {
 
 #[tokio::test]
 async fn test_database_new() {
-    get_database().await;
+    get_database(DBType::MySql).await;
+    get_database(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
 
 #[tokio::test]
 async fn test_database_create_database_if_not_exists() {
-    let database = get_database().await;
+    let database = get_database(DBType::MySql).await;
 
     let result =
         Database::create_database_if_not_exists(&database.connection, &database._name).await;
@@ -60,55 +61,85 @@ async fn test_database_create_database_if_not_exists() {
 
 #[tokio::test]
 async fn test_database_init() {
-    let database = get_database().await;
+    async fn check(db_type: DBType) -> Result<()> {
+        let database = get_database(db_type).await;
 
-    let result = database.init().await;
-    reset(database).await;
-    result.unwrap();
+        let result = database.init().await;
+        reset(database).await;
+
+        result
+    }
+
+    check(DBType::MySql).await.unwrap();
+    check(DBType::Sqlite).await.unwrap();
 
     sleep_async(1).await;
 }
 
 #[tokio::test]
 async fn test_database_create_table_message_if_not_exists() {
-    let database = get_database().await;
+    async fn check(db_type: DBType) -> Result<()> {
+        let database = get_database(db_type).await;
 
-    let result = database.create_table_message_if_not_exists().await;
-    reset(database).await;
-    result.unwrap();
+        let result = database.create_table_message_if_not_exists().await;
+        reset(database).await;
+
+        result
+    }
+
+    check(DBType::MySql).await.unwrap();
+    check(DBType::Sqlite).await.unwrap();
 
     sleep_async(1).await;
 }
 
 #[tokio::test]
 async fn test_database_create_table_auth_if_not_exists() {
-    let database = get_database().await;
+    async fn check(db_type: DBType) -> Result<()> {
+        let database = get_database(db_type).await;
 
-    let result = database.create_table_auth_if_not_exists().await;
-    reset(database).await;
-    result.unwrap();
+        let result = database.create_table_auth_if_not_exists().await;
+        reset(database).await;
+
+        result
+    }
+
+    check(DBType::MySql).await.unwrap();
+    check(DBType::Sqlite).await.unwrap();
 
     sleep_async(1).await;
 }
 
 #[tokio::test]
 async fn test_database_create_table_device_if_not_exists() {
-    let database = get_database().await;
+    async fn check(db_type: DBType) -> Result<()> {
+        let database = get_database(db_type).await;
 
-    let result = database.create_table_device_if_not_exists().await;
-    reset(database).await;
-    result.unwrap();
+        let result = database.create_table_device_if_not_exists().await;
+        reset(database).await;
+
+        result
+    }
+
+    check(DBType::MySql).await.unwrap();
+    check(DBType::Sqlite).await.unwrap();
 
     sleep_async(1).await;
 }
 
 #[tokio::test]
 async fn test_database_create_table_token_if_not_exists() {
-    let database = get_database().await;
+    async fn check(db_type: DBType) -> Result<()> {
+        let database = get_database(db_type).await;
 
-    let result = database.create_table_token_if_not_exists().await;
-    reset(database).await;
-    result.unwrap();
+        let result = database.create_table_token_if_not_exists().await;
+        reset(database).await;
+
+        result
+    }
+
+    check(DBType::MySql).await.unwrap();
+    check(DBType::Sqlite).await.unwrap();
 
     sleep_async(1).await;
 }
@@ -117,16 +148,19 @@ async fn test_database_create_table_token_if_not_exists() {
 async fn test_database_create_secret_key_if_not_exists() {
     async fn inner(database: &Database) -> Result<()> {
         database.create_table_auth_if_not_exists().await?;
-        database.create_secret_key_if_not_exists().await?;
-
-        Ok(())
+        database.create_secret_key_if_not_exists().await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let result = inner(&database).await;
-    reset(database).await;
-    result.unwrap();
+        let result = inner(&database).await;
+        reset(database).await;
+        result.unwrap();
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -134,9 +168,7 @@ async fn test_database_create_secret_key_if_not_exists() {
 #[tokio::test]
 async fn test_database_is_secret_key_exist() {
     async fn inner(database: &Database) -> Result<()> {
-        database.create_table_auth_if_not_exists().await?;
-
-        Ok(())
+        database.create_table_auth_if_not_exists().await
     }
 
     async fn inner_true(database: &Database) -> Result<bool> {
@@ -144,27 +176,28 @@ async fn test_database_is_secret_key_exist() {
 
         database.create_secret_key_if_not_exists().await?;
 
-        let result = database.is_secret_key_exist().await?;
-
-        Ok(result)
+        database.is_secret_key_exist().await
     }
 
     async fn inner_false(database: &Database) -> Result<bool> {
         inner(database).await?;
 
-        let result = database.is_secret_key_exist().await?;
-
-        Ok(result)
+        database.is_secret_key_exist().await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let result_false = inner_false(&database).await;
-    let result_true = inner_true(&database).await;
-    reset(database).await;
+        let result_false = inner_false(&database).await;
+        let result_true = inner_true(&database).await;
+        reset(database).await;
 
-    assert_eq!(result_true.unwrap(), true);
-    assert_eq!(result_false.unwrap(), false);
+        assert_eq!(result_true.unwrap(), true);
+        assert_eq!(result_false.unwrap(), false);
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -175,26 +208,34 @@ async fn test_database_get_secret_key() {
         database.create_table_auth_if_not_exists().await?;
         database.create_secret_key_if_not_exists().await?;
 
-        let secret_key = database.get_secret_key().await?;
-
-        Ok(secret_key)
+        database.get_secret_key().await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let result = inner(&database).await;
-    reset(database).await;
+        let result = inner(&database).await;
+        reset(database).await;
 
-    assert_eq!(result.unwrap().len(), 44);
+        assert_eq!(result.unwrap().len(), 44);
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
 
 #[tokio::test]
 async fn test_database_drop_database_if_exists() {
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    database._drop_database_if_exists().await.unwrap();
+        database._drop_database_if_exists().await.unwrap();
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -203,9 +244,7 @@ async fn test_database_drop_database_if_exists() {
 async fn test_database_insert_message_item() {
     async fn inner(database: &Database, item: MessageItem) -> Result<i64> {
         database.create_table_message_if_not_exists().await?;
-        let id = database.insert_message_item(item).await?;
-
-        Ok(id)
+        database.insert_message_item(item).await
     }
 
     async fn inner_text(database: &Database) -> Result<i64> {
@@ -230,14 +269,19 @@ async fn test_database_insert_message_item() {
         inner(database, item).await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let result_text = inner_text(&database).await;
-    let result_file = inner_file(&database).await;
-    reset(database).await;
+        let result_text = inner_text(&database).await;
+        let result_file = inner_file(&database).await;
+        reset(database).await;
 
-    assert_eq!(result_text.unwrap(), 1);
-    assert_eq!(result_file.unwrap(), 2);
+        assert_eq!(result_text.unwrap(), 1);
+        assert_eq!(result_file.unwrap(), 2);
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -253,16 +297,19 @@ async fn test_database_remove_message_item() {
 
         database.create_table_message_if_not_exists().await?;
         database.insert_message_item(item).await?;
-        database.remove_message_item(1).await?;
-
-        Ok(())
+        database.remove_message_item(1).await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let result = inner(&database).await;
-    reset(database).await;
-    result.unwrap();
+        let result = inner(&database).await;
+        reset(database).await;
+        result.unwrap();
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -278,16 +325,19 @@ async fn test_database_remove_message_all() {
 
         database.create_table_message_if_not_exists().await?;
         database.insert_message_item(item).await?;
-        database.remove_message_all().await?;
-
-        Ok(())
+        database.remove_message_all().await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let result = inner(&database).await;
-    reset(database).await;
-    result.unwrap();
+        let result = inner(&database).await;
+        reset(database).await;
+        result.unwrap();
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -306,14 +356,19 @@ async fn test_database_query_message_items() {
         database.query_message_items(0, 1, false).await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let result = inner(&database).await;
-    reset(database).await;
-    assert_eq!(
-        result.unwrap().get(0).unwrap().content,
-        "test database query message items"
-    );
+        let result = inner(&database).await;
+        reset(database).await;
+        assert_eq!(
+            result.unwrap().get(0).unwrap().content,
+            "test database query message items"
+        );
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -336,26 +391,29 @@ async fn test_database_query_message_items_after_id() {
         database.create_table_message_if_not_exists().await?;
         database.insert_message_item(item1).await?;
         database.insert_message_item(item2).await?;
-        let items = database.query_message_items_after_id(0, false).await?;
-
-        Ok(items)
+        database.query_message_items_after_id(0, false).await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let result = inner(&database).await;
-    reset(database).await;
+        let result = inner(&database).await;
+        reset(database).await;
 
-    let result = result.unwrap();
-    assert_eq!(result.len(), 2);
-    assert_eq!(
-        result.get(0).unwrap().content,
-        "test database query message items after id 1"
-    );
-    assert_eq!(
-        result.get(1).unwrap().content,
-        "test database query message items after id 2"
-    );
+        let result = result.unwrap();
+        assert_eq!(result.len(), 2);
+        assert_eq!(
+            result.get(0).unwrap().content,
+            "test database query message items after id 1"
+        );
+        assert_eq!(
+            result.get(1).unwrap().content,
+            "test database query message items after id 2"
+        );
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -368,20 +426,25 @@ async fn test_database_query_message_latest() {
         database.query_message_latest().await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let item = MessageItem::new_text(
-        "test database query message latest",
-        get_current_timestamp(),
-        true,
-    );
+        let item = MessageItem::new_text(
+            "test database query message latest",
+            get_current_timestamp(),
+            true,
+        );
 
-    let result = inner(&database, item.clone()).await;
-    reset(database).await;
+        let result = inner(&database, item.clone()).await;
+        reset(database).await;
 
-    let result = result.unwrap();
+        let result = result.unwrap();
 
-    assert_eq!(result.unwrap().content, item.content);
+        assert_eq!(result.unwrap().content, item.content);
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -394,16 +457,19 @@ async fn test_database_update_complete() {
 
         database.create_table_message_if_not_exists().await?;
         let id = database.insert_message_item(item).await?;
-        database.update_complete(id).await?;
-
-        Ok(())
+        database.update_complete(id).await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let result = inner(&database).await;
-    reset(database).await;
-    result.unwrap();
+        let result = inner(&database).await;
+        reset(database).await;
+        result.unwrap();
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -419,16 +485,19 @@ async fn test_database_insert_device() {
         };
 
         database.create_table_device_if_not_exists().await?;
-        database.insert_device(device_item).await?;
-
-        Ok(())
+        database.insert_device(device_item).await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let result = inner(&database).await;
-    reset(database).await;
-    result.unwrap();
+        let result = inner(&database).await;
+        reset(database).await;
+        result.unwrap();
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -453,16 +522,19 @@ async fn test_database_update_device() {
             expiration_timestamp: Some(get_current_timestamp()),
         };
 
-        database.update_device(device_item_new).await?;
-
-        Ok(())
+        database.update_device(device_item_new).await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let result = inner(&database).await;
-    reset(database).await;
-    result.unwrap();
+        let result = inner(&database).await;
+        reset(database).await;
+        result.unwrap();
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -475,27 +547,32 @@ async fn test_database_query_device_items() {
         database.query_device_items().await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let device_item = DeviceItem {
-        fingerprint: "fingerprint".to_string(),
-        browser: "browser".to_string(),
-        last_use_timestamp: get_current_timestamp(),
-        expiration_timestamp: get_current_timestamp(),
-    };
+        let device_item = DeviceItem {
+            fingerprint: "fingerprint".to_string(),
+            browser: "browser".to_string(),
+            last_use_timestamp: get_current_timestamp(),
+            expiration_timestamp: get_current_timestamp(),
+        };
 
-    let result = inner(&database, device_item.clone()).await;
-    reset(database).await;
-    let result = result.unwrap();
+        let result = inner(&database, device_item.clone()).await;
+        reset(database).await;
+        let result = result.unwrap();
 
-    assert_eq!(result.len(), 1);
-    assert_eq!(result[0].fingerprint, device_item.fingerprint);
-    assert_eq!(result[0].browser, device_item.browser);
-    assert_eq!(result[0].last_use_timestamp, device_item.last_use_timestamp);
-    assert_eq!(
-        result[0].expiration_timestamp,
-        device_item.expiration_timestamp
-    );
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].fingerprint, device_item.fingerprint);
+        assert_eq!(result[0].browser, device_item.browser);
+        assert_eq!(result[0].last_use_timestamp, device_item.last_use_timestamp);
+        assert_eq!(
+            result[0].expiration_timestamp,
+            device_item.expiration_timestamp
+        );
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -514,17 +591,20 @@ async fn test_database_remove_device() {
 
         database.create_table_device_if_not_exists().await?;
         database.insert_device(device_item).await?;
-        database.remove_device(fingerprint).await?;
-
-        Ok(())
+        database.remove_device(fingerprint).await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let result = inner(&database).await;
-    reset(database).await;
+        let result = inner(&database).await;
+        reset(database).await;
 
-    result.unwrap();
+        result.unwrap();
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -538,15 +618,18 @@ async fn test_database_insert_token() {
             name: "test name".to_string(),
             expiration_timestamp: get_current_timestamp(),
         };
-        database.insert_token(new_token_item).await?;
-
-        Ok(())
+        database.insert_token(new_token_item).await
     }
 
-    let database = get_database().await;
-    let result = inner(&database).await;
-    reset(database).await;
-    result.unwrap();
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
+        let result = inner(&database).await;
+        reset(database).await;
+        result.unwrap();
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -566,15 +649,18 @@ async fn test_database_update_token() {
         };
         database.insert_token(new_token_item).await?;
 
-        database.update_token(&token, timestamp + 1000).await?;
-
-        Ok(())
+        database.update_token(&token, timestamp + 1000).await
     }
 
-    let database = get_database().await;
-    let result = inner(&database).await;
-    reset(database).await;
-    result.unwrap();
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
+        let result = inner(&database).await;
+        reset(database).await;
+        result.unwrap();
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -585,26 +671,29 @@ async fn test_database_query_token_items() {
         database.create_table_token_if_not_exists().await?;
         database.insert_token(new_token_item).await?;
 
-        let result = database.query_token_items().await?;
-
-        Ok(result)
+        database.query_token_items().await
     }
 
-    let database = get_database().await;
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
 
-    let new_token_item = TokenNewItem {
-        token: "test_token".to_string(),
-        name: "test name".to_string(),
-        expiration_timestamp: get_current_timestamp(),
-    };
+        let new_token_item = TokenNewItem {
+            token: "test_token".to_string(),
+            name: "test name".to_string(),
+            expiration_timestamp: get_current_timestamp(),
+        };
 
-    let result = inner(&database, new_token_item.clone()).await;
-    reset(database).await;
+        let result = inner(&database, new_token_item.clone()).await;
+        reset(database).await;
 
-    let result = result.unwrap();
-    assert_eq!(result.len(), 1);
-    assert_eq!(result[0].token, new_token_item.token);
-    assert_eq!(result[0].name, new_token_item.name);
+        let result = result.unwrap();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].token, new_token_item.token);
+        assert_eq!(result[0].name, new_token_item.name);
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }
@@ -621,15 +710,18 @@ async fn test_database_remove_token() {
         };
         database.insert_token(new_token_item.clone()).await?;
 
-        database.remove_token(new_token_item.token).await?;
-
-        Ok(())
+        database.remove_token(new_token_item.token).await
     }
 
-    let database = get_database().await;
-    let result = inner(&database).await;
-    reset(database).await;
-    result.unwrap();
+    async fn check(db_type: DBType) {
+        let database = get_database(db_type).await;
+        let result = inner(&database).await;
+        reset(database).await;
+        result.unwrap();
+    }
+
+    check(DBType::MySql).await;
+    check(DBType::Sqlite).await;
 
     sleep_async(1).await;
 }

@@ -31,7 +31,7 @@ use crate::client::database::models::token::{TokenItem, TokenNewItem};
 use crate::client::database::tests::{get_database, reset as reset_database};
 use crate::client::database::Database;
 use crate::crypto::tests::get_crypto;
-use crate::env::tests::get_env;
+use crate::env::tests::{get_env, DBType};
 use crate::error::Error::DefaultError;
 use crate::error::Result;
 use crate::handler::admin::models::{
@@ -54,7 +54,7 @@ async fn test_admin_auth() {
         socketio.ns("/", |_socket: SocketRef| {});
 
         let crypto = get_crypto();
-        let env = get_env();
+        let env = get_env(DBType::Sqlite);
 
         let router = Router::new()
             .route(AUTH_PATH, post(auth))
@@ -105,7 +105,7 @@ async fn test_admin_auth() {
         Ok(res)
     }
 
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
     let result = inner(&database).await;
     reset_database(database).await;
 
@@ -162,7 +162,7 @@ async fn test_admin_auto_login() {
         Ok(res)
     }
 
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
     let result = inner(&database).await;
     reset_database(database).await;
 
@@ -232,7 +232,7 @@ async fn test_admin_sign_out() {
         Ok(res)
     }
 
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
     let result = inner(&database).await;
     reset_database(database).await;
 
@@ -277,7 +277,7 @@ async fn test_admin_device() {
         Ok(res)
     }
 
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
 
     let result = inner(&database).await;
     reset_database(database).await;
@@ -344,7 +344,7 @@ async fn test_admin_device_sign_out() {
         Ok(res)
     }
 
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
     let result = inner(&database).await;
     reset_database(database).await;
 
@@ -364,7 +364,7 @@ async fn test_admin_create_token() {
 
         let crypto = get_crypto();
         let auth = gen_auth(&crypto);
-        let env = get_env();
+        let env = get_env(DBType::Sqlite);
 
         let router = Router::new()
             .route(CREATE_TOKEN_PATH, post(create_token))
@@ -412,7 +412,7 @@ async fn test_admin_create_token() {
         Ok(res)
     }
 
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
     let result = inner(&database).await;
     reset_database(database).await;
 
@@ -451,7 +451,7 @@ async fn test_admin_get_token() {
         Ok(res)
     }
 
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
 
     let new_token_item = TokenNewItem {
         token: "test_token".to_string(),
@@ -538,7 +538,7 @@ async fn test_admin_remove_token() {
         Ok(res)
     }
 
-    let database = get_database().await;
+    let database = get_database(DBType::Sqlite).await;
     let result = inner(&database).await;
     reset_database(database).await;
 
