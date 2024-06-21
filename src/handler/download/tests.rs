@@ -16,8 +16,8 @@ use super::{download_url, DOWNLOAD_URL_PATH};
 
 use crate::client::storage::tests::{get_storage, init, reset, upload_data};
 use crate::client::storage::Storage;
-use crate::error::Error::DefaultError;
-use crate::error::Result;
+use crate::error::tests::ServerExt;
+use crate::error::{Error, Result};
 use crate::utils::into_layer;
 use crate::utils::tests::sleep_async;
 
@@ -37,12 +37,12 @@ async fn test_download_download_url() {
             .method(Method::GET)
             .uri(&format!("{}?fileName={}", DOWNLOAD_URL_PATH, remote_path))
             .body(Body::empty())
-            .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+            .map_err(|e| Error::req_build_error(e))?;
 
         let res = router
             .oneshot(req)
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         Ok(res)
     }

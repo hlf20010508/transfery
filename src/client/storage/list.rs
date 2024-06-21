@@ -10,20 +10,24 @@ use minio::s3::types::Item;
 
 use super::Storage;
 
-use crate::error::Error::StorageObjectError;
-use crate::error::Result;
+use crate::error::ErrorType::InternalServerError;
+use crate::error::{Error, Result};
 
 impl Storage {
     pub async fn list_objects(&self) -> Result<Vec<Item>> {
         let args = ListObjectsV2Args::new(&self.bucket).map_err(|e| {
-            StorageObjectError(format!("Storage create list objects v2 args failed: {}", e))
+            Error::context(
+                InternalServerError,
+                e,
+                "failed to create list objects v2 args",
+            )
         })?;
 
         let response = self
             .client
             .list_objects_v2(&args)
             .await
-            .map_err(|e| StorageObjectError(format!("Storage list objects failed: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to list objects"))?;
 
         let objects = response.contents;
 

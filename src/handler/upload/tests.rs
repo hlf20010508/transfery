@@ -29,7 +29,8 @@ use crate::client::storage::tests::{get_storage, init, reset as reset_storage};
 use crate::client::{Database, Storage};
 use crate::crypto::tests::get_crypto;
 use crate::env::tests::DBType;
-use crate::error::Error::{DefaultError, ToStrError};
+use crate::error::tests::ServerExt;
+use crate::error::Error;
 use crate::error::Result;
 use crate::utils::tests::sleep_async;
 use crate::utils::tests::ResponseExt;
@@ -94,8 +95,7 @@ async fn test_upload_fetch_upload_id() {
             timestamp: get_current_timestamp(),
         };
 
-        let body = serde_json::to_string(&data)
-            .map_err(|e| ToStrError(format!("failed to build request: {}", e)))?;
+        let body = serde_json::to_string(&data).map_err(|e| Error::serialize_error(e))?;
 
         let req = Request::builder()
             .method(Method::POST)
@@ -103,12 +103,12 @@ async fn test_upload_fetch_upload_id() {
             .header("Authorization", auth)
             .header(header::CONTENT_TYPE, "application/json")
             .body(Body::from(body))
-            .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+            .map_err(|e| Error::req_build_error(e))?;
 
         let res = router
             .oneshot(req)
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         Ok(res)
     }
@@ -142,8 +142,7 @@ async fn test_upload_upload_part() {
             timestamp: get_current_timestamp(),
         };
 
-        let body = serde_json::to_string(&data)
-            .map_err(|e| ToStrError(format!("failed to build request: {}", e)))?;
+        let body = serde_json::to_string(&data).map_err(|e| Error::serialize_error(e))?;
 
         let req = Request::builder()
             .method(Method::POST)
@@ -151,17 +150,17 @@ async fn test_upload_upload_part() {
             .header("Authorization", auth.clone())
             .header(header::CONTENT_TYPE, "application/json")
             .body(Body::from(body))
-            .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+            .map_err(|e| Error::req_build_error(e))?;
 
         let res = router
             .clone()
             .oneshot(req)
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         let res_content = res.to_string().await?;
-        let res_data: FetchUploadIdResponse = serde_json::from_str(&res_content)
-            .map_err(|e| ToStrError(format!("failed to parse response: {}", e)))?;
+        let res_data: FetchUploadIdResponse =
+            serde_json::from_str(&res_content).map_err(|e| Error::deserialize_error(e))?;
 
         let FetchUploadIdResponse {
             upload_id,
@@ -185,13 +184,13 @@ async fn test_upload_upload_part() {
             .header("Authorization", auth.clone())
             .header(upload_header_key, upload_header_value)
             .body(Body::from(payload))
-            .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+            .map_err(|e| Error::req_build_error(e))?;
 
         let res = router
             .clone()
             .oneshot(req)
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         Ok(res)
     }
@@ -228,8 +227,7 @@ async fn test_upload_complete_upload() {
             timestamp: get_current_timestamp(),
         };
 
-        let body = serde_json::to_string(&data)
-            .map_err(|e| ToStrError(format!("failed to build request: {}", e)))?;
+        let body = serde_json::to_string(&data).map_err(|e| Error::serialize_error(e))?;
 
         let req = Request::builder()
             .method(Method::POST)
@@ -237,17 +235,17 @@ async fn test_upload_complete_upload() {
             .header("Authorization", auth.clone())
             .header(header::CONTENT_TYPE, "application/json")
             .body(Body::from(body))
-            .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+            .map_err(|e| Error::req_build_error(e))?;
 
         let res = router
             .clone()
             .oneshot(req)
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         let res_content = res.to_string().await?;
-        let res_data: FetchUploadIdResponse = serde_json::from_str(&res_content)
-            .map_err(|e| ToStrError(format!("failed to parse response: {}", e)))?;
+        let res_data: FetchUploadIdResponse =
+            serde_json::from_str(&res_content).map_err(|e| Error::deserialize_error(e))?;
 
         let FetchUploadIdResponse {
             upload_id,
@@ -277,13 +275,13 @@ async fn test_upload_complete_upload() {
             .header("Authorization", auth.clone())
             .header(upload_header_key, upload_header_value)
             .body(Body::from(payload))
-            .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+            .map_err(|e| Error::req_build_error(e))?;
 
         let res = router
             .clone()
             .oneshot(req)
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         let etag = res.to_string().await?;
 
@@ -294,8 +292,7 @@ async fn test_upload_complete_upload() {
             parts: vec![Part { number: 1, etag }],
         };
 
-        let body = serde_json::to_string(&data)
-            .map_err(|e| ToStrError(format!("failed to build request: {}", e)))?;
+        let body = serde_json::to_string(&data).map_err(|e| Error::serialize_error(e))?;
 
         let req = Request::builder()
             .method(Method::POST)
@@ -303,13 +300,13 @@ async fn test_upload_complete_upload() {
             .header("Authorization", auth.clone())
             .header(header::CONTENT_TYPE, "application/json")
             .body(Body::from(body))
-            .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+            .map_err(|e| Error::req_build_error(e))?;
 
         let res = router
             .clone()
             .oneshot(req)
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         Ok(res)
     }

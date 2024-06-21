@@ -36,7 +36,8 @@ use crate::client::Database;
 use crate::client::Storage;
 use crate::crypto::tests::get_crypto;
 use crate::env::tests::{get_env, DBType};
-use crate::error::Error::DefaultError;
+use crate::error::tests::ServerExt;
+use crate::error::Error;
 use crate::error::Result;
 use crate::utils::tests::sleep_async;
 use crate::utils::{get_current_timestamp, into_layer};
@@ -137,12 +138,12 @@ async fn test_message_page() {
             .uri(format!("{}?size=0", PAGE_PATH))
             .header("Authorization", authorization)
             .body(Body::empty())
-            .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+            .map_err(|e| Error::req_build_error(e))?;
 
         let res = router
             .oneshot(req)
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         Ok(res)
     }
@@ -174,12 +175,12 @@ async fn test_message_sync() {
             .uri(format!("{}?latestId=0", SYNC_PATH))
             .header("Authorization", authorization)
             .body(Body::empty())
-            .map_err(|e| DefaultError(format!("failed to build request: {}", e)))?;
+            .map_err(|e| Error::req_build_error(e))?;
 
         let res = router
             .oneshot(req)
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         Ok(res)
     }
@@ -209,10 +210,10 @@ async fn test_message_new_item() {
 
         let server = TcpListener::bind("127.0.0.1:0")
             .await
-            .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+            .map_err(|e| Error::tcp_listener_create_error(e))?;
         let addr = server
             .local_addr()
-            .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+            .map_err(|e| Error::tcp_get_address_error(e))?;
 
         tokio::spawn(async move {
             axum::serve(server, router).await.unwrap();
@@ -222,7 +223,7 @@ async fn test_message_new_item() {
             .on("newItem", new_item_handler)
             .connect()
             .await
-            .map_err(|e| DefaultError(format!("failed to connect to socketio server: {}", e)))?;
+            .map_err(|e| Error::socketio_connect_error(e))?;
 
         sleep_async(1).await;
 
@@ -242,7 +243,7 @@ async fn test_message_new_item() {
             .json(&data)
             .send()
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         sleep_async(1).await;
 
@@ -286,10 +287,10 @@ async fn test_message_remove_item() {
 
         let server = TcpListener::bind("127.0.0.1:0")
             .await
-            .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+            .map_err(|e| Error::tcp_listener_create_error(e))?;
         let addr = server
             .local_addr()
-            .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+            .map_err(|e| Error::tcp_get_address_error(e))?;
 
         tokio::spawn(async move {
             axum::serve(server, router).await.unwrap();
@@ -299,7 +300,7 @@ async fn test_message_remove_item() {
             .on("removeItem", remove_item_handler)
             .connect()
             .await
-            .map_err(|e| DefaultError(format!("failed to connect to socketio server: {}", e)))?;
+            .map_err(|e| Error::socketio_connect_error(e))?;
 
         sleep_async(1).await;
 
@@ -317,7 +318,7 @@ async fn test_message_remove_item() {
             .header("Authorization", auth)
             .send()
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         sleep_async(1).await;
 
@@ -361,10 +362,10 @@ async fn test_message_remove_all() {
 
         let server = TcpListener::bind("127.0.0.1:0")
             .await
-            .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+            .map_err(|e| Error::tcp_listener_create_error(e))?;
         let addr = server
             .local_addr()
-            .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+            .map_err(|e| Error::tcp_get_address_error(e))?;
 
         tokio::spawn(async move {
             axum::serve(server, router).await.unwrap();
@@ -374,7 +375,7 @@ async fn test_message_remove_all() {
             .on("removeAll", |_payload, _socket| async {}.boxed())
             .connect()
             .await
-            .map_err(|e| DefaultError(format!("failed to connect to socketio server: {}", e)))?;
+            .map_err(|e| Error::socketio_connect_error(e))?;
 
         sleep_async(1).await;
 
@@ -387,7 +388,7 @@ async fn test_message_remove_all() {
             .header("Authorization", auth)
             .send()
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         sleep_async(1).await;
 

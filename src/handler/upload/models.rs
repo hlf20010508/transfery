@@ -9,7 +9,8 @@ use axum::async_trait;
 use axum::extract::{FromRequest, Multipart, Request};
 use serde::{Deserialize, Serialize};
 
-use crate::error::Error::{self, FieldParseError, FromRequestError};
+use crate::error::Error;
+use crate::error::ErrorType::InternalServerError;
 use crate::error::Result;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -61,47 +62,48 @@ where
     type Rejection = Error;
 
     async fn from_request(req: Request, state: &S) -> Result<Self> {
-        let mut multipart = Multipart::from_request(req, state)
-            .await
-            .map_err(|e| FromRequestError(format!("failed to parse multipart form: {}", e)))?;
+        let mut multipart = Multipart::from_request(req, state).await.map_err(|e| {
+            Error::context(InternalServerError, e, "failed to parse multipart form")
+        })?;
 
         let mut file_name = String::new();
         let mut upload_id = String::new();
         let mut part_number = u16::default();
         let mut file_part = Vec::<u8>::new();
 
-        while let Some(field) = multipart
-            .next_field()
-            .await
-            .map_err(|e| FieldParseError(format!("failed to parse multipart field: {}", e)))?
-        {
+        while let Some(field) = multipart.next_field().await.map_err(|e| {
+            Error::context(InternalServerError, e, "failed to parse multipart field")
+        })? {
             let name = match field.name() {
                 Some(name) => name.to_string(),
                 None => continue,
             };
 
-            let data = field
-                .bytes()
-                .await
-                .map_err(|e| FieldParseError(format!("failed to read field bytes: {}", e)))?;
+            let data = field.bytes().await.map_err(|e| {
+                Error::context(InternalServerError, e, "failed to read field bytes")
+            })?;
 
             match name.as_str() {
                 "fileName" => {
                     file_name = String::from_utf8(data.to_vec()).map_err(|e| {
-                        FieldParseError(format!("failed to parse field fileName: {}", e))
+                        Error::context(InternalServerError, e, "failed to parse field fileName")
                     })?;
                 }
                 "uploadId" => {
                     upload_id = String::from_utf8(data.to_vec()).map_err(|e| {
-                        FieldParseError(format!("failed to parse field uploadId: {}", e))
+                        Error::context(InternalServerError, e, "failed to parse field uploadId")
                     })?;
                 }
                 "partNumber" => {
                     let part_number_str = String::from_utf8(data.to_vec()).map_err(|e| {
-                        FieldParseError(format!("failed to parse field partNumber: {}", e))
+                        Error::context(InternalServerError, e, "failed to parse field partNumber")
                     })?;
                     part_number = part_number_str.parse::<u16>().map_err(|e| {
-                        FieldParseError(format!("failed to parse field partNumber to u16: {}", e))
+                        Error::context(
+                            InternalServerError,
+                            e,
+                            "failed to parse field partNumber to u16",
+                        )
                     })?;
                 }
                 "filePart" => {

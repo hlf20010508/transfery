@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
 use socketioxide::socket::Sid;
 
 use crate::client::database::models::message::{MessageItem, MessageItemType, Model};
-use crate::error::Error::FieldParseError;
+use crate::error::Error;
+use crate::error::ErrorType::InternalServerError;
 use crate::error::Result;
 
 impl From<(i64, NewItemParams)> for Model {
@@ -77,8 +78,9 @@ impl From<&NewItemParams> for Result<MessageItem> {
                 let file_name = match new_item.file_name.clone() {
                     Some(file_name) => file_name,
                     None => {
-                        return Err(FieldParseError(
-                            "MessageItem field fileName missed for file type".to_string(),
+                        return Err(Error::new(
+                            InternalServerError,
+                            "missed field fileName for file type in MessageItem",
                         ));
                     }
                 };
@@ -86,8 +88,9 @@ impl From<&NewItemParams> for Result<MessageItem> {
                 let is_complete = match new_item.is_complete {
                     Some(is_complete) => is_complete,
                     None => {
-                        return Err(FieldParseError(
-                            "MessageItem field isComplete missed for file type".to_string(),
+                        return Err(Error::new(
+                            InternalServerError,
+                            "missed field isComplete for file type in MessageItem",
                         ));
                     }
                 };

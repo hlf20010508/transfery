@@ -13,7 +13,8 @@ use serde::{Deserialize, Serialize};
 use crate::client::database::models::message::{self, MessageItem};
 use crate::crypto::Crypto;
 use crate::env::Env;
-use crate::error::Error::{self, FieldParseError, FromRequestError, UnauthorizedError};
+use crate::error::Error;
+use crate::error::ErrorType::{InternalServerError, UnauthorizedError};
 use crate::error::Result;
 use crate::utils::get_current_timestamp;
 
@@ -56,10 +57,11 @@ impl Account {
     pub fn from(token: &str, crypto: &Crypto) -> Result<Self> {
         let account_json = crypto
             .decrypt(token)
-            .map_err(|e| UnauthorizedError(format!("failed to decrypt token: {}", e)))?;
+            .map_err(|e| Error::context(UnauthorizedError, e, "failed to decrypt token"))?;
 
-        let account = serde_json::from_str::<Account>(&account_json)
-            .map_err(|e| FieldParseError(format!("failed to parse account from token: {}", e)))?;
+        let account = serde_json::from_str::<Account>(&account_json).map_err(|e| {
+            Error::context(InternalServerError, e, "failed to parse account from token")
+        })?;
 
         Ok(account)
     }
@@ -92,7 +94,11 @@ where
                 let Query(data) = Query::<PushTextParams>::from_request(req, state)
                     .await
                     .map_err(|e| {
-                        FromRequestError(format!("failed to parse query for PushTextParams: {}", e))
+                        Error::context(
+                            InternalServerError,
+                            e,
+                            "failed to parse query for PushTextParams",
+                        )
                     })?;
 
                 data
@@ -101,14 +107,19 @@ where
                 let Json(data) = Json::<PushTextParams>::from_request(req, state)
                     .await
                     .map_err(|e| {
-                        FromRequestError(format!("failed to parse json for PushTextParams: {}", e))
+                        Error::context(
+                            InternalServerError,
+                            e,
+                            "failed to parse json for PushTextParams",
+                        )
                     })?;
 
                 data
             }
             _ => {
-                return Err(FromRequestError(
-                    "unsupported method for PushTextParams".to_string(),
+                return Err(Error::new(
+                    InternalServerError,
+                    "unsupported method for PushTextParams",
                 ))
             }
         };

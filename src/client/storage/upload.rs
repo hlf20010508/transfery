@@ -9,16 +9,17 @@ use minio::s3::types::Part;
 
 use super::Storage;
 
-use crate::error::Error::StorageObjectError;
-use crate::error::Result;
+use crate::error::ErrorType::InternalServerError;
+use crate::error::{Error, Result};
 
 impl Storage {
     pub async fn create_multipart_upload_id(&self, remote_path: &str) -> Result<String> {
         let args = CreateMultipartUploadArgs::new(&self.bucket, remote_path).map_err(|e| {
-            StorageObjectError(format!(
-                "Storage create multipart upload args failed: {}",
-                e
-            ))
+            Error::context(
+                InternalServerError,
+                e,
+                "failed to create multipart upload args",
+            )
         })?;
 
         let multipart_upload_response =
@@ -26,10 +27,11 @@ impl Storage {
                 .create_multipart_upload(&args)
                 .await
                 .map_err(|e| {
-                    StorageObjectError(format!(
-                        "Storage get multipart upload response failed: {}",
-                        e
-                    ))
+                    Error::context(
+                        InternalServerError,
+                        e,
+                        "failed to get multipart upload response",
+                    )
                 })?;
 
         let upload_id = multipart_upload_response.upload_id;
@@ -47,14 +49,14 @@ impl Storage {
         let args =
             UploadPartArgs::new(&self.bucket, remote_path, upload_id, part_number, part_data)
                 .map_err(|e| {
-                    StorageObjectError(format!("Storage create upload part args failed: {}", e))
+                    Error::context(InternalServerError, e, "failed to create upload part args")
                 })?;
 
         let response = self
             .client
             .upload_part(&args)
             .await
-            .map_err(|e| StorageObjectError(format!("Storage upload part failed: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to upload part"))?;
 
         let etag = response.etag;
 
@@ -72,17 +74,22 @@ impl Storage {
     ) -> Result<()> {
         let args = CompleteMultipartUploadArgs::new(&self.bucket, remote_path, upload_id, parts)
             .map_err(|e| {
-                StorageObjectError(format!(
-                    "Storage create complete multipart upload args failed: {}",
-                    e
-                ))
+                Error::context(
+                    InternalServerError,
+                    e,
+                    "failed to create complete multipart upload args",
+                )
             })?;
 
         self.client
             .complete_multipart_upload(&args)
             .await
             .map_err(|e| {
-                StorageObjectError(format!("Storage complete multipart upload failed: {}", e))
+                Error::context(
+                    InternalServerError,
+                    e,
+                    "failed to complete multipart upload",
+                )
             })?;
 
         Ok(())

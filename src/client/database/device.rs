@@ -10,8 +10,8 @@ use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, Set};
 
 use super::models::device::{self, DeviceItem, DeviceUpdateItem};
 use super::Database;
-use crate::error::Error::{SqlExecuteError, SqlQueryError};
-use crate::error::Result;
+use crate::error::ErrorType::InternalServerError;
+use crate::error::{Error, Result};
 
 impl Database {
     pub async fn insert_device(&self, device_item: DeviceItem) -> Result<()> {
@@ -35,7 +35,7 @@ impl Database {
             device::Entity::insert(insert_item)
                 .exec(&self.connection)
                 .await
-                .map_err(|e| SqlExecuteError(format!("failed to insert device: {}", e)))?;
+                .map_err(|e| Error::context(InternalServerError, e, "failed to insert device"))?;
         }
 
         Ok(())
@@ -46,7 +46,7 @@ impl Database {
             .filter(device::Column::Fingerprint.eq(fingerprint))
             .count(&self.connection)
             .await
-            .map_err(|e| SqlQueryError(format!("failed to count fingerprint: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to count fingerprint"))?;
 
         Ok(count > 0)
     }
@@ -88,7 +88,7 @@ impl Database {
         query
             .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("failed  to update device: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to update device"))?;
 
         Ok(())
     }
@@ -97,7 +97,7 @@ impl Database {
         let items = device::Entity::find()
             .all(&self.connection)
             .await
-            .map_err(|e| SqlQueryError(format!("failed to query device items: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to query device items"))?;
 
         Ok(items)
     }
@@ -107,7 +107,7 @@ impl Database {
             .filter(device::Column::Fingerprint.eq(fingerprint))
             .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("failed to remove device: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to remove device"))?;
 
         Ok(())
     }

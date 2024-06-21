@@ -25,7 +25,8 @@ use crate::client::database::tests::{get_database, reset};
 use crate::client::Database;
 use crate::crypto::tests::get_crypto;
 use crate::env::tests::{get_env, DBType};
-use crate::error::Error::{DefaultError, ToStrError};
+use crate::error::tests::ServerExt;
+use crate::error::Error;
 use crate::error::Result;
 use crate::utils::tests::{sleep_async, ResponseExt};
 use crate::utils::{get_current_timestamp, into_layer};
@@ -45,10 +46,8 @@ async fn test_api_push_text() {
             expiration_timestamp: get_current_timestamp() + 1000 * 60,
         };
 
-        let token = crypto.encrypt(
-            &serde_json::to_string(&account)
-                .map_err(|e| ToStrError(format!("failed to serialize account: {}", e)))?,
-        )?;
+        let token = crypto
+            .encrypt(&serde_json::to_string(&account).map_err(|e| Error::serialize_error(e))?)?;
 
         let new_token_item = TokenNewItem {
             token: token.clone(),
@@ -72,10 +71,10 @@ async fn test_api_push_text() {
 
         let server = TcpListener::bind("127.0.0.1:0")
             .await
-            .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+            .map_err(|e| Error::tcp_listener_create_error(e))?;
         let addr = server
             .local_addr()
-            .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+            .map_err(|e| Error::tcp_get_address_error(e))?;
 
         tokio::spawn(async move {
             axum::serve(server, router).await.unwrap();
@@ -85,7 +84,7 @@ async fn test_api_push_text() {
             .on("newItem", |_, _| async {}.boxed())
             .connect()
             .await
-            .map_err(|e| DefaultError(format!("failed to connect to socketio server: {}", e)))?;
+            .map_err(|e| Error::socketio_connect_error(e))?;
 
         sleep_async(1).await;
 
@@ -100,7 +99,7 @@ async fn test_api_push_text() {
             .query(&params)
             .send()
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         sleep_async(1).await;
 
@@ -134,10 +133,8 @@ async fn test_api_latest_text() {
             expiration_timestamp: get_current_timestamp() + 1000 * 60,
         };
 
-        let token = crypto.encrypt(
-            &serde_json::to_string(&account)
-                .map_err(|e| ToStrError(format!("failed to serialize account: {}", e)))?,
-        )?;
+        let token = crypto
+            .encrypt(&serde_json::to_string(&account).map_err(|e| Error::serialize_error(e))?)?;
 
         let router = Router::new()
             .route(LATEST_TEXT_PATH, get(latest_text))
@@ -152,12 +149,12 @@ async fn test_api_latest_text() {
             .method(Method::GET)
             .uri(format!("{}?token={}", LATEST_TEXT_PATH, token.to_string()))
             .body(Body::empty())
-            .map_err(|e| DefaultError(format!("failed to create request: {}", e)))?;
+            .map_err(|e| Error::req_build_error(e))?;
 
         let res = router
             .oneshot(req)
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         Ok(res)
     }

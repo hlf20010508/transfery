@@ -25,7 +25,8 @@ use crate::auth::{AuthChecker, AuthState};
 use crate::client::database::models::message::{MessageItem, MessageItemType, Model};
 use crate::client::{Database, Storage};
 use crate::env::Env;
-use crate::error::Error::{FieldParseError, SocketEmitError};
+use crate::error::Error;
+use crate::error::ErrorType::InternalServerError;
 use crate::error::Result;
 use crate::handler::socket::Room;
 
@@ -104,20 +105,22 @@ pub async fn new_item(
             .except(sid)
             .emit("newItem", Model::from((item_id, item)))
             .map_err(|e| {
-                SocketEmitError(format!(
-                    "socketio emit error for event newItem private: {}",
-                    e
-                ))
+                Error::context(
+                    InternalServerError,
+                    e,
+                    "failed to emit event newItem in private room",
+                )
             })?,
         false => socketio
             .to(Room::Public)
             .except(sid)
             .emit("newItem", Model::from((item_id, item)))
             .map_err(|e| {
-                SocketEmitError(format!(
-                    "socketio emit error for event newItem public: {}",
-                    e
-                ))
+                Error::context(
+                    InternalServerError,
+                    e,
+                    "failed to emit event newItem in public room",
+                )
             })?,
     };
 
@@ -155,8 +158,9 @@ pub async fn remove_item(
                     tracing::info!("removed item in storage");
                 }
                 None => {
-                    return Err(FieldParseError(
-                        "RemoveItemParams field fileName missed for file type".to_string(),
+                    return Err(Error::new(
+                        InternalServerError,
+                        "missed field fileName for file type in RemoveItemParams",
                     ));
                 }
             }
@@ -168,7 +172,7 @@ pub async fn remove_item(
         .to(Room::Public)
         .except(sid)
         .emit("removeItem", item.id)
-        .map_err(|e| SocketEmitError(format!("socketio emit error for event removeItem: {}", e)))?;
+        .map_err(|e| Error::context(InternalServerError, e, "failed to emit event removeItem"))?;
 
     tracing::info!("broadcasted");
 
@@ -201,7 +205,7 @@ pub async fn remove_all(
         .to(Room::Public)
         .except(sid)
         .emit("removeAll", ())
-        .map_err(|e| SocketEmitError(format!("socketio emit error for event removeAll: {}", e)))?;
+        .map_err(|e| Error::context(InternalServerError, e, "failed to emit event removeAll"))?;
 
     tracing::info!("broadcasted");
 

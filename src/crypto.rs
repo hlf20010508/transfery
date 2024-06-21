@@ -10,10 +10,8 @@ use base64::Engine;
 use ring::aead::{Aad, LessSafeKey, Nonce, UnboundKey, AES_256_GCM};
 use ring::rand::{SecureRandom, SystemRandom};
 
-use crate::error::Error::{
-    Base64DecodeError, CryptoDecryptError, CryptoEncryptError, CryptoKeyGenError,
-    CryptoLoadKeyError, CryptoNonceError, ToStrError,
-};
+use crate::error::Error;
+use crate::error::ErrorType::InternalServerError;
 use crate::error::Result;
 
 const NONCE_SIZE: usize = 12;
@@ -30,12 +28,21 @@ struct NoncePack {
 
 impl Crypto {
     pub fn new(key_base64: &str) -> Result<Self> {
-        let key_byte = base64
-            .decode(key_base64)
-            .map_err(|e| Base64DecodeError(format!("Base64 decode crypto key failed: {}", e)))?;
+        let key_byte = base64.decode(key_base64).map_err(|e| {
+            Error::context(
+                InternalServerError,
+                e,
+                "failed to decode crypto key into Base64",
+            )
+        })?;
 
-        let key_unbound = UnboundKey::new(&AES_256_GCM, &key_byte)
-            .map_err(|e| CryptoLoadKeyError(format!("Crypto unbound key failed: {}", e)))?;
+        let key_unbound = UnboundKey::new(&AES_256_GCM, &key_byte).map_err(|e| {
+            Error::context(
+                InternalServerError,
+                e,
+                "failed to create Crypto unbound key",
+            )
+        })?;
 
         let key = LessSafeKey::new(key_unbound);
 
@@ -52,7 +59,7 @@ impl Crypto {
 
         self.key
             .seal_in_place_append_tag(nonce, Aad::from(b""), &mut buffer)
-            .map_err(|e| CryptoEncryptError(format!("Crypto encrypt failed: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to encrypt in Crypto"))?;
 
         // insert nonce to the head of the output
         buffer.splice(..0, nonce_raw.into_iter());
@@ -64,7 +71,11 @@ impl Crypto {
 
     pub fn decrypt(&self, text: &str) -> Result<String> {
         let mut text_raw = base64.decode(text).map_err(|e| {
-            Base64DecodeError(format!("Base64 decode encrypted text failed: {}", e))
+            Error::context(
+                InternalServerError,
+                e,
+                "failed to decode encrypted text from Base64",
+            )
         })?;
 
         let mut buffer = text_raw.split_off(NONCE_SIZE);
@@ -75,23 +86,24 @@ impl Crypto {
         let buffer = self
             .key
             .open_in_place(nonce, Aad::from(b""), &mut buffer)
-            .map_err(|e| CryptoDecryptError(format!("Crypto decrypt failed: {}", e)))?
+            .map_err(|e| Error::context(InternalServerError, e, "failed to decrypt in Crypto"))?
             .to_vec();
 
         let result = String::from_utf8(buffer).map_err(|e| {
-            ToStrError(format!(
-                "Failed to convert decrypted text buffer Vec<u8> to String: {}",
-                e
-            ))
+            Error::context(
+                InternalServerError,
+                e,
+                "failed to convert decrypted text buffer Vec<u8> to String",
+            )
         })?;
 
         Ok(result)
     }
 
     fn nonce_raw_to_nonce(nonce_raw: &Vec<u8>) -> Result<Nonce> {
-        let nonce: [u8; NONCE_SIZE] = nonce_raw[..NONCE_SIZE]
-            .try_into()
-            .map_err(|e| CryptoNonceError(format!("Crypto nonce creation failed: {}", e)))?;
+        let nonce: [u8; NONCE_SIZE] = nonce_raw[..NONCE_SIZE].try_into().map_err(|e| {
+            Error::context(InternalServerError, e, "failed to create nonce in Crypto")
+        })?;
 
         let nonce = Nonce::assume_unique_for_key(nonce);
 
@@ -121,7 +133,7 @@ impl Crypto {
         let mut key = vec![0u8; size];
 
         rng.fill(&mut key)
-            .map_err(|_| CryptoKeyGenError("Secret key filling failed".to_string()))?;
+            .map_err(|_| Error::new(InternalServerError, "failed to fill key"))?;
 
         Ok(key)
     }

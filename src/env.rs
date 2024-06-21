@@ -9,7 +9,8 @@ use pico_args::Arguments;
 use std::fmt::Display;
 use std::str::FromStr;
 
-use crate::error::Error::{self, DefaultError};
+use crate::error::Error;
+use crate::error::ErrorType::InternalServerError;
 use crate::error::Result;
 
 fn get_arg_value<T>(arg_name: &'static str) -> Result<T>
@@ -20,7 +21,7 @@ where
     let mut args = Arguments::from_env();
     let value: T = args
         .value_from_str(arg_name)
-        .map_err(|e| DefaultError(format!("failed to get arg {}: {}", arg_name, e)))?;
+        .map_err(|e| Error::context(InternalServerError, e, "failed to get arg"))?;
 
     Ok(value)
 }
@@ -66,8 +67,9 @@ impl FromStr for EnvMode {
         } else if s == "dev" {
             Ok(Self::Dev)
         } else {
-            Err(DefaultError(
-                "EnvMode must be one of 'pro' or 'dev'".to_string(),
+            Err(Error::new(
+                InternalServerError,
+                "EnvMode must be one of pro or dev",
             ))
         }
     }
@@ -95,7 +97,7 @@ impl DatabaseEnv {
         } else if args_contains("--sqlite") {
             Ok(Self::Sqlite(SqliteEnv::new()?))
         } else {
-            Err(DefaultError("no database specified".to_string()))
+            Err(Error::new(InternalServerError, "no database specified"))
         }
     }
 }
@@ -195,12 +197,12 @@ pub mod tests {
         T: std::str::FromStr,
         T::Err: std::fmt::Display,
     {
-        let value =
-            env::var(key).map_err(|e| DefaultError(format!("failed to get env {}: {}", key, e)))?;
+        let value = env::var(key)
+            .map_err(|e| Error::context(InternalServerError, e, "failed to get env"))?;
 
         value
             .parse::<T>()
-            .map_err(|e| DefaultError(format!("failed to parse env {}: {}", key, e)))
+            .map_err(|e| Error::context(InternalServerError, e, "failed to parse env"))
     }
 
     impl DatabaseEnv {

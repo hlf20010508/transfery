@@ -10,19 +10,23 @@ use minio::s3::types::{DeleteObject, Item};
 
 use super::Storage;
 
-use crate::error::Error::StorageObjectError;
-use crate::error::Result;
+use crate::error::ErrorType::InternalServerError;
+use crate::error::{Error, Result};
 
 impl Storage {
     pub async fn remove_object(&self, remote_path: &str) -> Result<()> {
         let args = ObjectVersionArgs::new(&self.bucket, remote_path).map_err(|e| {
-            StorageObjectError(format!("Storage create object version args failed: {}", e))
+            Error::context(
+                InternalServerError,
+                e,
+                "failed to create object version args",
+            )
         })?;
 
         self.client
             .remove_object(&args)
             .await
-            .map_err(|e| StorageObjectError(format!("Storage remove object failed: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to remove object"))?;
 
         Ok(())
     }
@@ -44,22 +48,29 @@ impl Storage {
 
         let mut args =
             RemoveObjectsArgs::new(&self.bucket, &mut objects_delete_iter).map_err(|e| {
-                StorageObjectError(format!("Storage create remove objects args failed: {}", e))
+                Error::context(
+                    InternalServerError,
+                    e,
+                    "failed to create remove objects args",
+                )
             })?;
 
         let response = self
             .client
             .remove_objects(&mut args)
             .await
-            .map_err(|e| StorageObjectError(format!("Storage remove objects failed: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to remove objects"))?;
 
         if response.errors.len() == 0 {
             return Ok(());
         } else {
-            return Err(StorageObjectError(format!(
-                "Storage remove objects success but got errors:\nobjects: {:#?}\nerrors: {:#?}",
-                response.objects, response.errors
-            )));
+            return Err(Error::new(
+                InternalServerError,
+                format!(
+                    "successfully removed objects but got errors:\nobjects: {:#?}\nerrors: {:#?}",
+                    response.objects, response.errors
+                ),
+            ));
         }
     }
 
@@ -67,12 +78,12 @@ impl Storage {
         self.remove_objects_all().await?;
 
         let args = BucketArgs::new(&self.bucket)
-            .map_err(|e| StorageObjectError(format!("Storage create bucket args failed: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to create bucket args"))?;
 
         self.client
             .remove_bucket(&args)
             .await
-            .map_err(|e| StorageObjectError(format!("Storage remove bucket failed: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to remove bucket"))?;
 
         Ok(())
     }

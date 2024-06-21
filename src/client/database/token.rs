@@ -10,8 +10,8 @@ use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
 
 use super::models::token::{self, TokenNewItem};
 use super::Database;
-use crate::error::Error::{SqlExecuteError, SqlQueryError};
-use crate::error::Result;
+use crate::error::ErrorType::InternalServerError;
+use crate::error::{Error, Result};
 use crate::utils::get_current_timestamp;
 
 impl Database {
@@ -34,7 +34,7 @@ impl Database {
         token::Entity::insert(insert_item)
             .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("failed to insert token: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to insert token"))?;
 
         Ok(())
     }
@@ -43,7 +43,7 @@ impl Database {
         let token_items = token::Entity::find()
             .all(&self.connection)
             .await
-            .map_err(|e| SqlQueryError(format!("failed to query token items: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to query token items"))?;
 
         Ok(token_items)
     }
@@ -53,7 +53,7 @@ impl Database {
             .filter(token::Column::Token.eq(token))
             .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("failed to remove token: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to remove token"))?;
 
         Ok(())
     }
@@ -67,7 +67,7 @@ impl Database {
             )
             .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("failed to update token: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to update token"))?;
 
         Ok(())
     }

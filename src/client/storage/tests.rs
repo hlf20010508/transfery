@@ -12,8 +12,8 @@ use std::io::Cursor;
 use super::Storage;
 
 use crate::env::tests::{get_env, DBType};
-use crate::error::Error::StorageObjectError;
-use crate::error::Result;
+use crate::error::ErrorType::InternalServerError;
+use crate::error::{Error, Result};
 use crate::utils::tests::{sleep, sleep_async};
 
 // s3 minimum allowed size is 5MB
@@ -61,13 +61,13 @@ pub async fn upload_data(storage: &Storage, remote_path: &str) -> Result<()> {
     let size = data.clone().into_inner().len();
 
     let mut args = PutObjectArgs::new(&storage.bucket, remote_path, &mut data, Some(size), None)
-        .map_err(|e| StorageObjectError(format!("Storage create put object args failed: {}", e)))?;
+        .map_err(|e| Error::context(InternalServerError, e, "failed to create put object args"))?;
 
     storage
         .client
         .put_object(&mut args)
         .await
-        .map_err(|e| StorageObjectError(format!("Storage put object failed: {}", e)))?;
+        .map_err(|e| Error::context(InternalServerError, e, "failed to put object"))?;
 
     Ok(())
 }

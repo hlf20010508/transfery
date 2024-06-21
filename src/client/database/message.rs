@@ -10,8 +10,8 @@ use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder, QuerySelect, Se
 
 use super::models::message::{self, MessageItem};
 use super::Database;
-use crate::error::Error::{SqlExecuteError, SqlQueryError};
-use crate::error::Result;
+use crate::error::ErrorType::InternalServerError;
+use crate::error::{Error, Result};
 
 impl Database {
     pub async fn query_message_items(
@@ -37,7 +37,7 @@ impl Database {
         let items = query
             .all(&self.connection)
             .await
-            .map_err(|e| SqlQueryError(format!("failed to query message items: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to query message items"))?;
 
         Ok(items)
     }
@@ -57,10 +57,13 @@ impl Database {
             query
         };
 
-        let items = query
-            .all(&self.connection)
-            .await
-            .map_err(|e| SqlQueryError(format!("failed to query message items after id: {}", e)))?;
+        let items = query.all(&self.connection).await.map_err(|e| {
+            Error::context(
+                InternalServerError,
+                e,
+                "failed to query message items after id",
+            )
+        })?;
 
         Ok(items)
     }
@@ -72,7 +75,9 @@ impl Database {
             .filter(message::Column::IsPrivate.eq(true))
             .one(&self.connection)
             .await
-            .map_err(|e| SqlQueryError(format!("failed to query message latest: {}", e)))?;
+            .map_err(|e| {
+                Error::context(InternalServerError, e, "failed to query message latest")
+            })?;
 
         Ok(message)
     }
@@ -91,7 +96,7 @@ impl Database {
         let id = message::Entity::insert(insert_item)
             .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("failed to insert message item: {}", e)))?
+            .map_err(|e| Error::context(InternalServerError, e, "failed to insert message item"))?
             .last_insert_id;
 
         Ok(id)
@@ -101,7 +106,7 @@ impl Database {
         message::Entity::delete_by_id(id)
             .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("failed to remove message item: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to remove message item"))?;
 
         Ok(())
     }
@@ -110,7 +115,7 @@ impl Database {
         message::Entity::delete_many()
             .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("failed to remove message all: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to remove message all"))?;
 
         Ok(())
     }
@@ -121,7 +126,9 @@ impl Database {
             .col_expr(message::Column::IsComplete, Expr::value(true))
             .exec(&self.connection)
             .await
-            .map_err(|e| SqlExecuteError(format!("failed to update message complete: {}", e)))?;
+            .map_err(|e| {
+                Error::context(InternalServerError, e, "failed to update message complete")
+            })?;
 
         Ok(())
     }

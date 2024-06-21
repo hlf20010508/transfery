@@ -32,7 +32,8 @@ use crate::client::database::tests::{get_database, reset as reset_database};
 use crate::client::database::Database;
 use crate::crypto::tests::get_crypto;
 use crate::env::tests::{get_env, DBType};
-use crate::error::Error::DefaultError;
+use crate::error::tests::ServerExt;
+use crate::error::Error;
 use crate::error::Result;
 use crate::handler::admin::models::{
     AutoLoginParams, CreateTokenParams, RemoveTokenParams, SignOutParams,
@@ -66,10 +67,10 @@ async fn test_admin_auth() {
 
         let server = TcpListener::bind("127.0.0.1:0")
             .await
-            .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+            .map_err(|e| Error::tcp_listener_create_error(e))?;
         let addr = server
             .local_addr()
-            .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+            .map_err(|e| Error::tcp_get_address_error(e))?;
 
         tokio::spawn(async move {
             axum::serve(server, router).await.unwrap();
@@ -79,7 +80,7 @@ async fn test_admin_auth() {
             .on("device", |_payload, _socket| async {}.boxed())
             .connect()
             .await
-            .map_err(|e| DefaultError(format!("failed to connect to socketio server: {}", e)))?;
+            .map_err(|e| Error::socketio_connect_error(e))?;
 
         sleep_async(1).await;
 
@@ -98,7 +99,7 @@ async fn test_admin_auth() {
             .json(&data)
             .send()
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         sleep_async(1).await;
 
@@ -135,10 +136,10 @@ async fn test_admin_auto_login() {
 
         let server = TcpListener::bind("127.0.0.1:0")
             .await
-            .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+            .map_err(|e| Error::tcp_listener_create_error(e))?;
         let addr = server
             .local_addr()
-            .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+            .map_err(|e| Error::tcp_get_address_error(e))?;
 
         tokio::spawn(async move {
             axum::serve(server, router).await.unwrap();
@@ -155,7 +156,7 @@ async fn test_admin_auto_login() {
             .header("Authorization", auth)
             .send()
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         sleep_async(1).await;
 
@@ -184,7 +185,7 @@ async fn test_admin_sign_out() {
         let auth = gen_auth(&crypto);
 
         let fingerprint = serde_json::from_str::<Authorization>(&auth)
-            .map_err(|e| DefaultError(format!("failed to parse authorization: {}", e)))?
+            .map_err(|e| Error::deserialize_error(e))?
             .fingerprint;
 
         database
@@ -205,10 +206,10 @@ async fn test_admin_sign_out() {
 
         let server = TcpListener::bind("127.0.0.1:0")
             .await
-            .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+            .map_err(|e| Error::tcp_listener_create_error(e))?;
         let addr = server
             .local_addr()
-            .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+            .map_err(|e| Error::tcp_get_address_error(e))?;
 
         tokio::spawn(async move {
             axum::serve(server, router).await.unwrap();
@@ -225,7 +226,7 @@ async fn test_admin_sign_out() {
             .header("Authorization", auth)
             .send()
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         sleep_async(1).await;
 
@@ -267,12 +268,12 @@ async fn test_admin_device() {
             .uri(DEVICE_PATH)
             .header("Authorization", auth)
             .body(Body::empty())
-            .map_err(|e| DefaultError(format!("failed to create request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         let res = router
             .oneshot(req)
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         Ok(res)
     }
@@ -308,10 +309,10 @@ async fn test_admin_device_sign_out() {
 
         let server = TcpListener::bind("127.0.0.1:0")
             .await
-            .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+            .map_err(|e| Error::tcp_listener_create_error(e))?;
         let addr = server
             .local_addr()
-            .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+            .map_err(|e| Error::tcp_get_address_error(e))?;
 
         tokio::spawn(async move {
             axum::serve(server, router).await.unwrap();
@@ -321,7 +322,7 @@ async fn test_admin_device_sign_out() {
             .on("signOut", |_payload, _socket| async {}.boxed())
             .connect()
             .await
-            .map_err(|e| DefaultError(format!("failed to connect to socketio server: {}", e)))?;
+            .map_err(|e| Error::socketio_connect_error(e))?;
 
         sleep_async(1).await;
 
@@ -337,7 +338,7 @@ async fn test_admin_device_sign_out() {
             .json(&data)
             .send()
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         sleep_async(1).await;
 
@@ -376,10 +377,10 @@ async fn test_admin_create_token() {
 
         let server = TcpListener::bind("127.0.0.1:0")
             .await
-            .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+            .map_err(|e| Error::tcp_listener_create_error(e))?;
         let addr = server
             .local_addr()
-            .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+            .map_err(|e| Error::tcp_get_address_error(e))?;
 
         tokio::spawn(async move {
             axum::serve(server, router).await.unwrap();
@@ -389,7 +390,7 @@ async fn test_admin_create_token() {
             .on("token", |_payload, _socket| async {}.boxed())
             .connect()
             .await
-            .map_err(|e| DefaultError(format!("failed to connect to socketio server: {}", e)))?;
+            .map_err(|e| Error::socketio_connect_error(e))?;
 
         sleep_async(1).await;
 
@@ -405,7 +406,7 @@ async fn test_admin_create_token() {
             .header("Authorization", auth)
             .send()
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         sleep_async(1).await;
 
@@ -441,12 +442,12 @@ async fn test_admin_get_token() {
             .uri(GET_TOKEN_PATH)
             .header("Authorization", auth)
             .body(Body::empty())
-            .map_err(|e| DefaultError(format!("failed to create request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         let res = router
             .oneshot(req)
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         Ok(res)
     }
@@ -503,10 +504,10 @@ async fn test_admin_remove_token() {
 
         let server = TcpListener::bind("127.0.0.1:0")
             .await
-            .map_err(|e| DefaultError(format!("failed to create tcp listener: {}", e)))?;
+            .map_err(|e| Error::tcp_listener_create_error(e))?;
         let addr = server
             .local_addr()
-            .map_err(|e| DefaultError(format!("failed to get local address: {}", e)))?;
+            .map_err(|e| Error::tcp_get_address_error(e))?;
 
         tokio::spawn(async move {
             axum::serve(server, router).await.unwrap();
@@ -516,7 +517,7 @@ async fn test_admin_remove_token() {
             .on("token", |_payload, _socket| async {}.boxed())
             .connect()
             .await
-            .map_err(|e| DefaultError(format!("failed to connect to socketio server: {}", e)))?;
+            .map_err(|e| Error::socketio_connect_error(e))?;
 
         sleep_async(1).await;
 
@@ -531,7 +532,7 @@ async fn test_admin_remove_token() {
             .header("Authorization", auth)
             .send()
             .await
-            .map_err(|e| DefaultError(format!("failed to make request: {}", e)))?;
+            .map_err(|e| Error::req_send_error(e))?;
 
         sleep_async(1).await;
 

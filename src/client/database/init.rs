@@ -15,8 +15,8 @@ use super::models::config::Config;
 use super::Database;
 use crate::client::database::models::{auth, device, message, token};
 use crate::crypto::Crypto;
-use crate::error::Error::{DatabaseClientError, DefaultError, SqlExecuteError, SqlQueryError};
-use crate::error::Result;
+use crate::error::ErrorType::InternalServerError;
+use crate::error::{Error, Result};
 
 impl Database {
     pub async fn new(config: Config) -> Result<Self> {
@@ -28,7 +28,7 @@ impl Database {
                 ))
                 .await
                 .map_err(|e| {
-                    DatabaseClientError(format!("failed to connect to MySql partial: {}", e))
+                    Error::context(InternalServerError, e, "failed to connect to MySql partial")
                 })?;
 
                 Database::create_database_if_not_exists(&connection, &config.name).await?;
@@ -38,7 +38,9 @@ impl Database {
                     config.username, config.password, config.endpoint, config.name
                 ))
                 .await
-                .map_err(|e| DatabaseClientError(format!("failed to connect to MySql: {}", e)))?;
+                .map_err(|e| {
+                    Error::context(InternalServerError, e, "failed to connect to MySql")
+                })?;
 
                 Ok(Self {
                     connection,
@@ -50,7 +52,7 @@ impl Database {
                     sea_orm::Database::connect(format!("sqlite://{}?mode=rwc", config.path))
                         .await
                         .map_err(|e| {
-                            DatabaseClientError(format!("failed to connect to Sqlite: {}", e))
+                            Error::context(InternalServerError, e, "failed to connect to Sqlite")
                         })?;
 
                 Ok(Self {
@@ -63,7 +65,11 @@ impl Database {
 
     pub async fn _close(self) -> Result<()> {
         self.connection.close().await.map_err(|e| {
-            DatabaseClientError(format!("failed to close database connection: {}", e))
+            Error::context(
+                InternalServerError,
+                e,
+                "failed to close database connection",
+            )
         })?;
 
         Ok(())
@@ -82,7 +88,7 @@ impl Database {
                     sql,
                 ))
                 .await
-                .map_err(|e| SqlExecuteError(format!("failed to create database: {}", e)))?;
+                .map_err(|e| Error::context(InternalServerError, e, "failed to create database"))?;
         }
 
         Ok(())
@@ -124,11 +130,11 @@ impl Database {
                 .execute(backend.build(&table_create_statement))
                 .await
                 .map_err(|e| {
-                    SqlExecuteError(format!(
-                        "failed to create table {}: {}",
-                        entity.table_name(),
-                        e
-                    ))
+                    Error::context(
+                        InternalServerError,
+                        e,
+                        format!("failed to create table {}", entity.table_name()),
+                    )
                 })?;
         }
 
@@ -171,7 +177,9 @@ impl Database {
             auth::Entity::insert(insert_item)
                 .exec(&self.connection)
                 .await
-                .map_err(|e| SqlExecuteError(format!("failed to create secret key: {}", e)))?;
+                .map_err(|e| {
+                    Error::context(InternalServerError, e, "failed to create secret key")
+                })?;
         }
 
         Ok(())
@@ -181,7 +189,7 @@ impl Database {
         let count = auth::Entity::find()
             .count(&self.connection)
             .await
-            .map_err(|e| SqlQueryError(format!("failed to count secret key: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to count secret key"))?;
 
         Ok(count > 0)
     }
@@ -190,8 +198,8 @@ impl Database {
         let auth::Model { secret_key, .. } = auth::Entity::find()
             .one(&self.connection)
             .await
-            .map_err(|e| SqlQueryError(format!("failed to get secret key: {}", e)))?
-            .ok_or_else(|| SqlQueryError("secret key not found".to_string()))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to get secret key"))?
+            .ok_or_else(|| Error::new(InternalServerError, "secret key not found"))?;
 
         Ok(secret_key)
     }
@@ -207,7 +215,9 @@ impl Database {
                         sql,
                     ))
                     .await
-                    .map_err(|e| SqlExecuteError(format!("failed to drop database: {}", e)))?;
+                    .map_err(|e| {
+                        Error::context(InternalServerError, e, "failed to drop database")
+                    })?;
 
                 self._close().await?;
             }
@@ -218,12 +228,15 @@ impl Database {
                     self._close().await?;
 
                     fs::remove_file(&path).await.map_err(|e| {
-                        DefaultError(format!("failed to remove sqlite file: {}", e))
+                        Error::context(InternalServerError, e, "failed to remove sqlite file")
                     })?;
                 }
             }
             _ => {
-                return Err(DefaultError("unsupported database backend".to_string()));
+                return Err(Error::new(
+                    InternalServerError,
+                    "unsupported database backend",
+                ));
             }
         }
 

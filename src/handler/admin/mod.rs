@@ -27,7 +27,8 @@ use crate::client::database::models::token::{self, TokenNewItem};
 use crate::client::Database;
 use crate::crypto::Crypto;
 use crate::env::Env;
-use crate::error::Error::{SocketEmitError, ToJsonError};
+use crate::error::Error;
+use crate::error::ErrorType::InternalServerError;
 use crate::error::Result;
 use crate::handler::socket::Room;
 use crate::utils::get_current_timestamp;
@@ -62,7 +63,11 @@ pub async fn auth(
             };
 
             let certificate_raw = serde_json::to_string(&certificate).map_err(|e| {
-                ToJsonError(format!("Failed to convert certificate to json: {}", e))
+                Error::context(
+                    InternalServerError,
+                    e,
+                    "failed to convert certificate to json",
+                )
             })?;
 
             let certificate = crypto.encrypt(&certificate_raw)?;
@@ -84,7 +89,7 @@ pub async fn auth(
         socketio
             .to(params.sid)
             .join(Room::Private)
-            .map_err(|e| SocketEmitError(format!("socketio join private error: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to join private room"))?;
 
         tracing::info!("client {} joined room private", params.sid);
 
@@ -92,7 +97,7 @@ pub async fn auth(
             .within(Room::Private)
             .except(params.sid)
             .emit("device", ())
-            .map_err(|e| SocketEmitError(format!("socketio emit error for event device: {}", e)))?;
+            .map_err(|e| Error::context(InternalServerError, e, "failed to emit event device"))?;
 
         tracing::info!("broadcasted");
 
@@ -117,7 +122,7 @@ pub async fn auto_login(
     socketio
         .to(sid)
         .join(Room::Private)
-        .map_err(|e| SocketEmitError(format!("socketio join private error: {}", e)))?;
+        .map_err(|e| Error::context(InternalServerError, e, "failed to join private room"))?;
 
     tracing::info!("client {} joined room private", sid);
 
@@ -148,7 +153,7 @@ pub async fn sign_out(
     socketio
         .to(sid)
         .leave(Room::Private)
-        .map_err(|e| SocketEmitError(format!("socketio leave private error: {}", e)))?;
+        .map_err(|e| Error::context(InternalServerError, e, "failed to  leave private room"))?;
 
     tracing::info!("client {} left room private", sid);
 
@@ -156,7 +161,7 @@ pub async fn sign_out(
         .within(Room::Private)
         .except(sid)
         .emit("device", ())
-        .map_err(|e| SocketEmitError(format!("socketio emit error for event device: {}", e)))?;
+        .map_err(|e| Error::context(InternalServerError, e, "failed to emit event device"))?;
 
     database.remove_device(&fingerprint).await?;
 
@@ -197,7 +202,7 @@ pub async fn device_sign_out(
         .to(Room::Private)
         .except(sid)
         .emit("signOut", fingerprint)
-        .map_err(|e| SocketEmitError(format!("socketio emit error for event signOut: {}", e)))?;
+        .map_err(|e| Error::context(InternalServerError, e, "failed to emit event signOut"))?;
 
     tracing::info!("broadcasted");
 
@@ -220,8 +225,13 @@ pub async fn create_token(
 
     let token = {
         let token_raw = TokenRaw::new(&env.username, &env.password, params.expiration_timestamp);
-        let token_json = serde_json::to_string(&token_raw)
-            .map_err(|e| ToJsonError(format!("failed to convert token raw to json: {}", e)))?;
+        let token_json = serde_json::to_string(&token_raw).map_err(|e| {
+            Error::context(
+                InternalServerError,
+                e,
+                "failed to convert token raw to json",
+            )
+        })?;
 
         crypto.encrypt(&token_json)?
     };
@@ -237,7 +247,7 @@ pub async fn create_token(
     socketio
         .to(Room::Public)
         .emit("token", ())
-        .map_err(|e| SocketEmitError(format!("socketio emit error for event token: {}", e)))?;
+        .map_err(|e| Error::context(InternalServerError, e, "failed to emit event token"))?;
 
     Ok(StatusCode::OK.into_response())
 }
@@ -275,7 +285,7 @@ pub async fn remove_token(
     socketio
         .to(Room::Public)
         .emit("token", ())
-        .map_err(|e| SocketEmitError(format!("socketio emit error for event token: {}", e)))?;
+        .map_err(|e| Error::context(InternalServerError, e, "failed to emit event token"))?;
 
     Ok(StatusCode::OK.into_response())
 }

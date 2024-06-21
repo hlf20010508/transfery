@@ -43,7 +43,8 @@ pub mod tests {
     use axum::response::Response;
     use http_body_util::BodyExt;
 
-    use crate::error::Error::{DefaultError, ToStrError};
+    use crate::error::Error;
+    use crate::error::ErrorType::InternalServerError;
     use crate::error::Result;
 
     pub trait ResponseExt {
@@ -56,11 +57,19 @@ pub mod tests {
                 self.into_body()
                     .collect()
                     .await
-                    .map_err(|e| DefaultError(format!("failed to collect response body: {}", e)))?
+                    .map_err(|e| {
+                        Error::context(InternalServerError, e, "failed to collect response body")
+                    })?
                     .to_bytes()
                     .to_vec(),
             )
-            .map_err(|e| ToStrError(format!("failed to convert response body to string: {}", e)))?;
+            .map_err(|e| {
+                Error::context(
+                    InternalServerError,
+                    e,
+                    "failed to convert response body to string",
+                )
+            })?;
 
             Ok(result)
         }

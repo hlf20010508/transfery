@@ -13,7 +13,8 @@ use std::sync::Arc;
 
 use crate::client::Database;
 use crate::crypto::Crypto;
-use crate::error::Error::{self, UnauthorizedError};
+use crate::error::Error;
+use crate::error::ErrorType::UnauthorizedError;
 use crate::error::Result;
 use crate::utils::get_current_timestamp;
 
@@ -40,16 +41,25 @@ where
         let authorization = req
             .headers
             .get("Authorization")
-            .ok_or(UnauthorizedError(
-                "Failed to parse Authorization".to_string(),
+            .ok_or(Error::new(
+                UnauthorizedError,
+                "failed to parse Authorization",
             ))?
             .to_str()
             .map_err(|e| {
-                UnauthorizedError(format!("Failed to convert auth header to &str: {}", e))
+                Error::context(
+                    UnauthorizedError,
+                    e,
+                    "failed to convert auth header to &str",
+                )
             })?;
 
         let auth_json = serde_json::from_str::<Authorization>(authorization).map_err(|e| {
-            UnauthorizedError(format!("Failed to convert auth header &str to json: {}", e))
+            Error::context(
+                UnauthorizedError,
+                e,
+                "failed to convert auth header &str to json",
+            )
         })?;
 
         Ok(auth_json)
@@ -75,7 +85,7 @@ where
                 let crypto = req
                     .extensions
                     .get::<Arc<Crypto>>()
-                    .ok_or(UnauthorizedError("Crypto data not found".to_string()))?;
+                    .ok_or(Error::new(UnauthorizedError, "Crypto data not found"))?;
 
                 if let Ok(certificate) = crypto.decrypt(&certificate) {
                     if let Ok(certificate) = serde_json::from_str::<Certificate>(&certificate) {
@@ -97,7 +107,7 @@ where
             let database = req
                 .extensions
                 .get::<Arc<Database>>()
-                .ok_or(UnauthorizedError("Database data not found".to_string()))?;
+                .ok_or(Error::new(UnauthorizedError, "Database data not found"))?;
 
             database.remove_device(&fingerprint).await.ok();
         }
@@ -121,7 +131,7 @@ where
         if is_authorized {
             Ok(Self)
         } else {
-            Err(UnauthorizedError("Unauthorized".to_string()))
+            Err(Error::new(UnauthorizedError, "Unauthorized"))
         }
     }
 }

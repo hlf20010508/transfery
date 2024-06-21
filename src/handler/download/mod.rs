@@ -16,7 +16,7 @@ use axum::extract::{Extension, Query};
 use std::sync::Arc;
 
 use crate::client::Storage;
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 pub static DOWNLOAD_URL_PATH: &str = "/downloadUrl";
 
@@ -29,10 +29,7 @@ pub async fn download_url(
 
     let file_name = params.file_name.clone();
 
-    let url = storage
-        .get_download_url(&file_name)
-        .await
-        .map_err(|e| Error::from(e.context("download url")))?;
+    let url = storage.get_download_url(&file_name).await?;
 
     tracing::info!("download url pushed");
     tracing::debug!("download url: {}", url);

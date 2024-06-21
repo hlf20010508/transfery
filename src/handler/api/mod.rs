@@ -24,7 +24,8 @@ use crate::client::database::models::message::{self, MessageItem};
 use crate::client::Database;
 use crate::crypto::Crypto;
 use crate::env::Env;
-use crate::error::Error::SocketEmitError;
+use crate::error::Error;
+use crate::error::ErrorType::InternalServerError;
 use crate::error::Result;
 use crate::utils::get_current_timestamp;
 
@@ -60,7 +61,9 @@ pub async fn push_text(
             socketio
                 .to(Room::Private)
                 .emit("newItem", message::Model::from((id, message_item)))
-                .map_err(|e| SocketEmitError(format!("failed to emit newItem: {}", e)))?;
+                .map_err(|e| {
+                    Error::context(InternalServerError, e, "failed to emit event newItem")
+                })?;
 
             tracing::info!("text uploaded");
 
