@@ -6,3 +6,5 @@ devrc.*
 index.html
 /static
 actions-runner
+*.sqlite
+/uploaded

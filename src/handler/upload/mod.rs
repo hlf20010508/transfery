@@ -87,15 +87,12 @@ pub async fn complete_upload(
     tracing::info!("received complete upload request");
     tracing::debug!("complete upload params: {:#?}", params);
 
-    let id = params.clone().id;
-    let file_name = params.clone().file_name;
-    let upload_id = params.clone().upload_id;
-    let parts = params
-        .clone()
-        .parts
-        .into_iter()
-        .map(|part| part.into())
-        .collect();
+    let CompleteUploadFormParams {
+        id,
+        file_name,
+        upload_id,
+        parts,
+    } = params;
 
     storage
         .complete_multipart_upload(&file_name, &upload_id, &parts)

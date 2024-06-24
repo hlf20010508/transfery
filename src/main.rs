@@ -16,7 +16,7 @@ mod utils;
 
 use client::{get_database, get_storage};
 use crypto::Crypto;
-use env::Env;
+use env::{args_contains, Env};
 use handler::{admin, api, download, index, message, socket, upload};
 use utils::into_layer;
 
@@ -27,7 +27,6 @@ use axum::middleware::{self, Next};
 use axum::response::Response;
 use axum::routing::{get, post};
 use axum::Router;
-use pico_args::Arguments;
 use socketioxide::extract::{SocketRef, State};
 use socketioxide::SocketIo;
 use tokio::time::Instant;
@@ -69,9 +68,7 @@ async fn trace_middleware(req: Request<Body>, next: Next) -> Response {
 async fn main() {
     let env = Env::new();
 
-    let mut args = Arguments::from_env();
-
-    if args.contains("--init") {
+    if args_contains("--init") {
         init::init(&env).await;
     }
 

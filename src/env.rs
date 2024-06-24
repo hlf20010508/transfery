@@ -38,7 +38,7 @@ where
     };
 }
 
-fn args_contains(arg_name: &'static str) -> bool {
+pub fn args_contains(arg_name: &'static str) -> bool {
     let mut args = Arguments::from_env();
     args.contains(arg_name)
 }
@@ -134,7 +134,7 @@ pub struct SqliteEnv {
 impl SqliteEnv {
     fn new() -> Result<Self> {
         Ok(Self {
-            path: "./data/db.sqlite".to_string(),
+            path: "./db.sqlite".to_string(),
         })
     }
 }
@@ -189,7 +189,7 @@ pub struct LocalStorageEnv {
 impl LocalStorageEnv {
     fn new() -> Result<Self> {
         Ok(Self {
-            path: "./data/storage".to_string(),
+            path: "./uploaded".to_string(),
         })
     }
 }
@@ -323,7 +323,7 @@ pub mod tests {
     impl LocalStorageEnv {
         fn new_test() -> Result<Self> {
             Ok(Self {
-                path: "./dev.storage".to_string(),
+                path: "./dev.uploaded".to_string(),
             })
         }
     }
