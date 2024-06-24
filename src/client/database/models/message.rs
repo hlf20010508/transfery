@@ -20,16 +20,16 @@ pub struct Model {
     pub id: i64,
     pub content: String,
     pub timestamp: i64,
-    #[sea_orm(rename = "isPrivate")]
+    #[sea_orm(column_name = "isPrivate")]
     #[serde(rename = "isPrivate")]
     pub is_private: bool,
-    #[sea_orm(rename = "type")]
+    #[sea_orm(column_name = "type")]
     #[serde(rename = "type")]
     pub type_field: MessageItemType,
-    #[sea_orm(rename = "fileName")]
+    #[sea_orm(column_name = "fileName")]
     #[serde(rename = "fileName")]
     pub file_name: Option<String>,
-    #[sea_orm(rename = "isComplete")]
+    #[sea_orm(column_name = "isComplete")]
     #[serde(rename = "isComplete")]
     pub is_complete: Option<bool>,
 }

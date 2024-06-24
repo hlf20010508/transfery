@@ -15,7 +15,7 @@ use sea_orm::{
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
-    #[sea_orm(unique, rename = "secretKey")]
+    #[sea_orm(unique, column_name = "secretKey")]
     pub secret_key: String,
 }
 

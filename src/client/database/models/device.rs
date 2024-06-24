@@ -19,10 +19,10 @@ pub struct Model {
     #[sea_orm(unique)]
     pub fingerprint: String,
     pub browser: String,
-    #[sea_orm(rename = "lastUseTimestamp")]
+    #[sea_orm(column_name = "lastUseTimestamp")]
     #[serde(rename = "lastUseTimestamp")]
     pub last_use_timestamp: i64,
-    #[sea_orm(rename = "expirationTimestamp")]
+    #[sea_orm(column_name = "expirationTimestamp")]
     #[serde(rename = "expirationTimestamp")]
     pub expiration_timestamp: i64,
 }
