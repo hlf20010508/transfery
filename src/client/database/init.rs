@@ -11,17 +11,17 @@ use sea_orm::{
 };
 use tokio::fs;
 
-use super::models::config::Config;
 use super::Database;
 use crate::client::database::models::{auth, device, message, token};
 use crate::crypto::Crypto;
+use crate::env::DatabaseEnv;
 use crate::error::ErrorType::InternalServerError;
 use crate::error::{Error, Result};
 
 impl Database {
-    pub async fn new(config: Config) -> Result<Self> {
+    pub async fn new(config: &DatabaseEnv) -> Result<Self> {
         match config {
-            Config::MySql(config) => {
+            DatabaseEnv::MySql(config) => {
                 let connection = sea_orm::Database::connect(format!(
                     "mysql://{}:{}@{}",
                     config.username, config.password, config.endpoint
@@ -31,11 +31,11 @@ impl Database {
                     Error::context(InternalServerError, e, "failed to connect to MySql partial")
                 })?;
 
-                Database::create_database_if_not_exists(&connection, &config.name).await?;
+                Database::create_database_if_not_exists(&connection, &config.database).await?;
 
                 let connection = sea_orm::Database::connect(format!(
                     "mysql://{}:{}@{}/{}",
-                    config.username, config.password, config.endpoint, config.name
+                    config.username, config.password, config.endpoint, config.database
                 ))
                 .await
                 .map_err(|e| {
@@ -44,10 +44,10 @@ impl Database {
 
                 Ok(Self {
                     connection,
-                    _name: config.name,
+                    _name: config.database.clone(),
                 })
             }
-            Config::Sqlite(config) => {
+            DatabaseEnv::Sqlite(config) => {
                 let connection =
                     sea_orm::Database::connect(format!("sqlite://{}?mode=rwc", config.path))
                         .await
@@ -57,7 +57,7 @@ impl Database {
 
                 Ok(Self {
                     connection,
-                    _name: config.path,
+                    _name: config.path.clone(),
                 })
             }
         }

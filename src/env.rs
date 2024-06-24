@@ -235,6 +235,7 @@ pub mod tests {
     use std::env;
     use strum::EnumIter;
 
+    #[derive(EnumIter)]
     pub enum DBType {
         MySql,
         Sqlite,

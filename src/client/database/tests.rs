@@ -5,34 +5,25 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use super::models::config::{Config, MySqlConfig, SqliteConfig};
+use strum::IntoEnumIterator;
+
 use super::models::device::{self, DeviceItem};
 use super::models::message::{self, MessageItem};
 use super::models::token::{self, TokenNewItem};
 use super::Database;
 use crate::client::database::models::device::DeviceUpdateItem;
 use crate::env::tests::{get_env, DBType, STType};
-use crate::env::{DatabaseEnv, Env};
+use crate::env::Env;
 use crate::error::Result;
 use crate::utils::get_current_timestamp;
 use crate::utils::tests::sleep_async;
 
 pub async fn get_database(db_type: DBType) -> Database {
-    let Env { database, .. } = get_env(db_type, STType::LocalStorage);
+    let Env {
+        database: config, ..
+    } = get_env(db_type, STType::LocalStorage);
 
-    match database {
-        DatabaseEnv::MySql(env) => {
-            let config =
-                MySqlConfig::new(&env.endpoint, &env.username, &env.password, &env.database);
-
-            Database::new(Config::MySql(config)).await.unwrap()
-        }
-        DatabaseEnv::Sqlite(env) => {
-            let config = SqliteConfig::new(&env.path);
-
-            Database::new(Config::Sqlite(config)).await.unwrap()
-        }
-    }
+    Database::new(&config).await.unwrap()
 }
 
 pub async fn reset(database: Database) {
@@ -70,8 +61,9 @@ async fn test_database_init() {
         result
     }
 
-    check(DBType::MySql).await.unwrap();
-    check(DBType::Sqlite).await.unwrap();
+    for db_type in DBType::iter() {
+        check(db_type).await.unwrap();
+    }
 
     sleep_async(1).await;
 }
@@ -87,8 +79,9 @@ async fn test_database_create_table_message_if_not_exists() {
         result
     }
 
-    check(DBType::MySql).await.unwrap();
-    check(DBType::Sqlite).await.unwrap();
+    for db_type in DBType::iter() {
+        check(db_type).await.unwrap();
+    }
 
     sleep_async(1).await;
 }
@@ -104,8 +97,9 @@ async fn test_database_create_table_auth_if_not_exists() {
         result
     }
 
-    check(DBType::MySql).await.unwrap();
-    check(DBType::Sqlite).await.unwrap();
+    for db_type in DBType::iter() {
+        check(db_type).await.unwrap();
+    }
 
     sleep_async(1).await;
 }
@@ -121,8 +115,9 @@ async fn test_database_create_table_device_if_not_exists() {
         result
     }
 
-    check(DBType::MySql).await.unwrap();
-    check(DBType::Sqlite).await.unwrap();
+    for db_type in DBType::iter() {
+        check(db_type).await.unwrap();
+    }
 
     sleep_async(1).await;
 }
@@ -138,8 +133,9 @@ async fn test_database_create_table_token_if_not_exists() {
         result
     }
 
-    check(DBType::MySql).await.unwrap();
-    check(DBType::Sqlite).await.unwrap();
+    for db_type in DBType::iter() {
+        check(db_type).await.unwrap();
+    }
 
     sleep_async(1).await;
 }
@@ -159,8 +155,9 @@ async fn test_database_create_secret_key_if_not_exists() {
         result.unwrap();
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -196,8 +193,9 @@ async fn test_database_is_secret_key_exist() {
         assert_eq!(result_false.unwrap(), false);
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -220,8 +218,9 @@ async fn test_database_get_secret_key() {
         assert_eq!(result.unwrap().len(), 44);
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -234,8 +233,9 @@ async fn test_database_drop_database_if_exists() {
         database._drop_database_if_exists().await.unwrap();
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -280,8 +280,9 @@ async fn test_database_insert_message_item() {
         assert_eq!(result_file.unwrap(), 2);
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -308,8 +309,9 @@ async fn test_database_remove_message_item() {
         result.unwrap();
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -336,8 +338,9 @@ async fn test_database_remove_message_all() {
         result.unwrap();
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -367,8 +370,9 @@ async fn test_database_query_message_items() {
         );
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -412,8 +416,9 @@ async fn test_database_query_message_items_after_id() {
         );
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -443,8 +448,9 @@ async fn test_database_query_message_latest() {
         assert_eq!(result.unwrap().content, item.content);
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -468,8 +474,9 @@ async fn test_database_update_complete() {
         result.unwrap();
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -496,8 +503,9 @@ async fn test_database_insert_device() {
         result.unwrap();
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -533,8 +541,9 @@ async fn test_database_update_device() {
         result.unwrap();
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -571,8 +580,9 @@ async fn test_database_query_device_items() {
         );
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -603,8 +613,9 @@ async fn test_database_remove_device() {
         result.unwrap();
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -628,8 +639,9 @@ async fn test_database_insert_token() {
         result.unwrap();
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -659,8 +671,9 @@ async fn test_database_update_token() {
         result.unwrap();
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -692,8 +705,9 @@ async fn test_database_query_token_items() {
         assert_eq!(result[0].name, new_token_item.name);
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -720,8 +734,9 @@ async fn test_database_remove_token() {
         result.unwrap();
     }
 
-    check(DBType::MySql).await;
-    check(DBType::Sqlite).await;
+    for db_type in DBType::iter() {
+        check(db_type).await;
+    }
 
     sleep_async(1).await;
 }

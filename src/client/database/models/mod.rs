@@ -6,7 +6,6 @@
 */
 
 pub mod auth;
-pub mod config;
 pub mod device;
 pub mod message;
 pub mod token;
