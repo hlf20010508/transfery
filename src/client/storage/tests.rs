@@ -183,14 +183,14 @@ async fn test_storage_complete_multipart_upload() {
 }
 
 #[tokio::test]
-async fn test_storage_get_download_url() {
+async fn test_storage_get_download_response() {
     async fn inner(storage: &Storage) -> Result<()> {
         let remote_path = "get_download_url.txt";
 
         init(storage).await?;
 
         upload_data(storage, remote_path).await?;
-        storage.get_download_url(remote_path).await?;
+        storage.get_download_response(remote_path).await?;
 
         Ok(())
     }

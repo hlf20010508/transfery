@@ -12,6 +12,7 @@ pub mod models;
 pub mod tests;
 mod utils;
 
+use axum::response::Response;
 use local::LocalStorage;
 use minio::Minio;
 use models::{Part, StorageClient};
@@ -41,10 +42,10 @@ impl Storage {
         }
     }
 
-    pub async fn get_download_url(&self, object: &str) -> Result<String> {
+    pub async fn get_download_response(&self, object: &str) -> Result<Response> {
         match &self.client {
-            StorageClient::Local(storage) => storage.get_download_url(object).await,
-            StorageClient::Minio(storage) => storage.get_download_url(object).await,
+            StorageClient::Local(storage) => storage.get_download_response(object).await,
+            StorageClient::Minio(storage) => storage.get_download_response(object).await,
         }
     }
 

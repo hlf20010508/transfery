@@ -11,20 +11,12 @@ use axum::response::Response;
 use tokio::fs;
 use tokio_util::io::ReaderStream;
 
-use super::models::PathExt;
 use super::utils::LocalStorageUtils;
 use super::LocalStorage;
 use crate::error::ErrorType::InternalServerError;
 use crate::error::{Error, Result};
 
 impl LocalStorage {
-    pub async fn get_download_url(&self, file_name: &str) -> Result<String> {
-        Ok(format!(
-            "/download/{}",
-            self.get_path(&file_name).to_string()
-        ))
-    }
-
     pub async fn get_download_response(&self, file_name: &str) -> Result<Response> {
         let file_path = self.get_path(file_name);
 

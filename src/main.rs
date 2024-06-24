@@ -114,7 +114,6 @@ async fn server(env: Env) {
     let router = Router::new()
         .nest_service("/static", ServeDir::new("./static"))
         .route(index::INDEX_PATH, get(index::index))
-        .route(download::DOWNLOAD_URL_PATH, get(download::download_url))
         .route(download::DOWNLOAD_PATH, get(download::download))
         .route(message::PAGE_PATH, get(message::page))
         .route(message::SYNC_PATH, get(message::sync))
