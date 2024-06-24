@@ -101,7 +101,7 @@ impl LocalStorage {
                 Error::context(InternalServerError, e, "failed to write part to buffer")
             })?;
 
-            final_file.write(&buffer).await.map_err(|e| {
+            final_file.write_all(&buffer).await.map_err(|e| {
                 Error::context(InternalServerError, e, "failed to write part to final file")
             })?;
 
@@ -109,6 +109,12 @@ impl LocalStorage {
                 Error::context(InternalServerError, e, "failed to remove part file")
             })?;
         }
+
+        fs::remove_dir_all(self.get_parts_dir(file_name, upload_id))
+            .await
+            .map_err(|e| {
+                Error::context(InternalServerError, e, "failed to remove parts directory")
+            })?;
 
         final_file
             .flush()
