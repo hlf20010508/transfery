@@ -1,10 +1,10 @@
-name: Publish Docker
+name: Publish Docker 
 
 on:
   release:
     types: [published]
     branches:
-      - "master"
+      - 'master'
   workflow_dispatch:
 
 env:
@@ -22,93 +22,68 @@ run-name: ${{ github.event_name == 'workflow_dispatch' && 'build dev' || github.
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: github.repository_owner == 'hlf20010508'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ env.GITHUB_TOKEN }}
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        token: ${{ env.GITHUB_TOKEN }}
+    
+    - name: Update Version
+      run: |
+        PROJECT_NAME=$(grep '^name = ' Cargo.toml | awk -F'"' '{print $2}')
+        sed -i "/^name = \"$PROJECT_NAME\"$/{N; s/version = \".*\"/version = \"$RELEASE_VERSION\"/}" Cargo.toml
+        sed -i "/^name = \"$PROJECT_NAME\"$/{N; s/version = \".*\"/version = \"$RELEASE_VERSION\"/}" Cargo.lock
+      if: github.event_name == 'release' && github.event.action == 'published'
 
-      - name: Update Version(Unix Like)
-        run: |
-          PROJECT_NAME=$(grep '^name = ' Cargo.toml | awk -F'"' '{print $2}')
-          sed -i "/^name = \"$PROJECT_NAME\"$/{N; s/version = \".*\"/version = \"$RELEASE_VERSION\"/}" Cargo.toml
-          sed -i "/^name = \"$PROJECT_NAME\"$/{N; s/version = \".*\"/version = \"$RELEASE_VERSION\"/}" Cargo.lock
-
-          git config --global user.name $NAME
-          git config --global user.email $EMAIL
-          git add -A
-          if git diff-index --quiet HEAD --; then
+    - name: Commit and Push
+      run: |
+        git config --global user.name $NAME
+        git config --global user.email $EMAIL
+        git add -A
+        if git diff-index --quiet HEAD --; then
             echo "Bypass commit."
-          else
+        else
             git commit -m "chore: update version to $RELEASE_VERSION"
             git tag -f $RELEASE_VERSION
             git push origin HEAD:master
             git push origin HEAD:master --tags -f
-          fi
-        if: runner.os != 'Windows' && github.event_name == 'release' && github.event.action == 'published'
+        fi
+      if: github.event_name == 'release' && github.event.action == 'published'
 
-      - name: Update Version(Windows)
-        run: |
-          $PROJECT_NAME = (Select-String -Path Cargo.toml -Pattern '^name = ' | ForEach-Object { $_.Line.Split('"')[1] })
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-          $cargoTomlContent = Get-Content Cargo.toml -Raw
-          $cargoTomlContent = $cargoTomlContent -replace "(?ms)^name = `"$PROJECT_NAME`"`r?`nversion = `".*?`"", "name = `"$PROJECT_NAME`"`r`nversion = `"$env:RELEASE_VERSION`""
-          Set-Content -Path Cargo.toml -Value $cargoTomlContent -NoNewline
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-          $cargoLockContent = Get-Content Cargo.lock -Raw
-          $cargoLockContent = $cargoLockContent -replace "(?ms)^name = `"$PROJECT_NAME`"`r?`nversion = `".*?`"", "name = `"$PROJECT_NAME`"`r`nversion = `"$env:RELEASE_VERSION`""
-          Set-Content -Path Cargo.lock -Value $cargoLockContent -NoNewline
+    - name: Build and push image
+      uses: docker/build-push-action@v5
+      with:
+        file: Dockerfile
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ env.REPO }}:${{ env.RELEASE_VERSION }},${{ env.REPO }}:latest,${{ env.REPO }}:dev
+      if: github.event_name == 'release' && github.event.action == 'published'
 
-          git config --global user.name $env:NAME
-          git config --global user.email $env:EMAIL
-
-          git add -A
-          git diff-index --quiet HEAD --
-          
-          if ($LASTEXITCODE -ne 0) {
-            git commit -m "chore: update version to $env:RELEASE_VERSION"
-            git tag -f $env:RELEASE_VERSION
-            git push origin HEAD:master
-            git push origin HEAD:master --tags -f
-          } else {
-            Write-Host "Bypass commit."
-          }
-        if: runner.os == 'Windows' && github.event_name == 'release' && github.event.action == 'published'
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and push image
-        uses: docker/build-push-action@v5
-        with:
-          file: Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ env.REPO }}:${{ env.RELEASE_VERSION }},${{ env.REPO }}:latest,${{ env.REPO }}:dev
-        if: github.event_name == 'release' && github.event.action == 'published'
-
-      - name: Build and push image dev
-        uses: docker/build-push-action@v5
-        with:
-          file: Dockerfile
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ env.REPO }}:dev
-        if: github.event_name == 'workflow_dispatch'
-
-      - name: Send Notification
-        run: |
-          docker run --rm alpine/curl -X POST -d "title=Github Actions Notification&body=${{ github.repository }}@${{ env.TAG_NAME }} build completed." ${{ secrets.WEBHOOK_URL }}
+    - name: Build and push image dev
+      uses: docker/build-push-action@v5
+      with:
+        file: Dockerfile
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ env.REPO }}:dev
+      if: github.event_name == 'workflow_dispatch'
+    
+    - name: Send Notification
+      run: |
+        curl -X POST -d "title=Github Actions Notification&body=$GITHUB_REPOSITORY@$TAG_NAME build completed." ${{ secrets.WEBHOOK_URL }}
