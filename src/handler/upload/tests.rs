@@ -14,8 +14,7 @@ use axum::Router;
 use tower::ServiceExt;
 
 use super::models::{
-    CompleteUploadFormParams, FetchUploadIdJsonParams, FetchUploadIdResponse, Part,
-    UploadPartFormParams,
+    CompleteUploadFormParams, FetchUploadIdJsonParams, FetchUploadIdResponse, UploadPartFormParams,
 };
 use super::{
     complete_upload, fetch_upload_id, upload_part, COMPLETE_UPLOAD_PATH, FETCH_UPLOAD_ID_PATH,
@@ -25,10 +24,11 @@ use super::{
 use crate::auth::tests::gen_auth;
 use crate::client::database::models::message::MessageItem;
 use crate::client::database::tests::{get_database, reset as reset_database};
+use crate::client::storage::models::Part;
 use crate::client::storage::tests::{get_storage, init, reset as reset_storage};
 use crate::client::{Database, Storage};
 use crate::crypto::tests::get_crypto;
-use crate::env::tests::DBType;
+use crate::env::tests::{DBType, STType};
 use crate::error::tests::ServerExt;
 use crate::error::Error;
 use crate::error::Result;
@@ -113,7 +113,7 @@ async fn test_upload_fetch_upload_id() {
         Ok(res)
     }
 
-    let storage = get_storage();
+    let storage = get_storage(STType::LocalStorage).await;
 
     let result = inner(&storage).await;
     reset_storage(&storage).await;
@@ -195,7 +195,7 @@ async fn test_upload_upload_part() {
         Ok(res)
     }
 
-    let storage = get_storage();
+    let storage = get_storage(STType::LocalStorage).await;
 
     let result = inner(&storage).await;
     reset_storage(&storage).await;
@@ -311,7 +311,7 @@ async fn test_upload_complete_upload() {
         Ok(res)
     }
 
-    let storage = get_storage();
+    let storage = get_storage(STType::LocalStorage).await;
     let database = get_database(DBType::Sqlite).await;
 
     let result = inner(&storage, &database).await;

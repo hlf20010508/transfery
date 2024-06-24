@@ -10,13 +10,21 @@ use minio::s3::client::Client;
 use minio::s3::creds::StaticProvider;
 use minio::s3::http::BaseUrl;
 
-use super::Storage;
+use super::Minio;
 
+use crate::env::MinioEnv;
 use crate::error::ErrorType::InternalServerError;
 use crate::error::{Error, Result};
 
-impl Storage {
-    pub fn new(endpoint: &str, username: &str, password: &str, bucket: &str) -> Result<Self> {
+impl Minio {
+    pub fn new(
+        MinioEnv {
+            endpoint,
+            username,
+            password,
+            bucket,
+        }: &MinioEnv,
+    ) -> Result<Self> {
         let base_url = endpoint.parse::<BaseUrl>().map_err(|e| {
             Error::context(InternalServerError, e, "failed to parse Minio endpoint")
         })?;

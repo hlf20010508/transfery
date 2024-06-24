@@ -24,7 +24,7 @@ use crate::client::database::models::token::TokenNewItem;
 use crate::client::database::tests::{get_database, reset};
 use crate::client::Database;
 use crate::crypto::tests::get_crypto;
-use crate::env::tests::{get_env, DBType};
+use crate::env::tests::{get_env, DBType, STType};
 use crate::error::tests::ServerExt;
 use crate::error::Error;
 use crate::error::Result;
@@ -38,7 +38,7 @@ async fn test_api_push_text() {
         database.create_table_token_if_not_exists().await?;
 
         let crypto = get_crypto();
-        let env = get_env(DBType::Sqlite);
+        let env = get_env(DBType::Sqlite, STType::LocalStorage);
 
         let account = Account {
             username: env.username.clone(),
@@ -125,7 +125,7 @@ async fn test_api_latest_text() {
         database.create_table_message_if_not_exists().await?;
 
         let crypto = get_crypto();
-        let env = get_env(DBType::Sqlite);
+        let env = get_env(DBType::Sqlite, STType::LocalStorage);
 
         let account = Account {
             username: env.username.clone(),

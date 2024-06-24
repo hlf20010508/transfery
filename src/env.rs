@@ -140,16 +140,68 @@ impl SqliteEnv {
 }
 
 #[derive(Debug, Clone)]
+pub enum StorageEnv {
+    Minio(MinioEnv),
+    LocalStorage(LocalStorageEnv),
+}
+
+impl StorageEnv {
+    fn new() -> Result<Self> {
+        if args_contains("--minio") {
+            Ok(Self::Minio(MinioEnv::new()?))
+        } else if args_contains("--local-storage") {
+            Ok(Self::LocalStorage(LocalStorageEnv::new()?))
+        } else {
+            Err(Error::new(InternalServerError, "no storage specified"))
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct MinioEnv {
+    pub endpoint: String,
+    pub username: String,
+    pub password: String,
+    pub bucket: String,
+}
+
+impl MinioEnv {
+    fn new() -> Result<Self> {
+        let endpoint = get_arg_value::<String>("--minio-endpoint")?;
+        let username = get_arg_value::<String>("--minio-username")?;
+        let password = get_arg_value::<String>("--minio-password")?;
+        let bucket = get_arg_value::<String>("--minio-bucket")?;
+
+        Ok(Self {
+            endpoint,
+            username,
+            password,
+            bucket,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LocalStorageEnv {
+    pub path: String,
+}
+
+impl LocalStorageEnv {
+    fn new() -> Result<Self> {
+        Ok(Self {
+            path: "./data/storage".to_string(),
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Env {
     pub mode: EnvMode,
     pub port: u16,
     pub item_per_page: i64,
     pub username: String,
     pub password: String,
-    pub minio_endpoint: String,
-    pub minio_username: String,
-    pub minio_password: String,
-    pub minio_bucket: String,
+    pub storage: StorageEnv,
     pub database: DatabaseEnv,
 }
 
@@ -160,10 +212,7 @@ impl Env {
         let item_per_page = get_arg_value_option("--item-per-page", 15);
         let username = get_arg_value::<String>("--username").unwrap();
         let password = get_arg_value::<String>("--password").unwrap();
-        let minio_endpoint = get_arg_value::<String>("--minio-endpoint").unwrap();
-        let minio_username = get_arg_value::<String>("--minio-username").unwrap();
-        let minio_password = get_arg_value::<String>("--minio-password").unwrap();
-        let minio_bucket = get_arg_value::<String>("--minio-bucket").unwrap();
+        let storage = StorageEnv::new().unwrap();
         let database = DatabaseEnv::new().unwrap();
 
         Self {
@@ -172,10 +221,7 @@ impl Env {
             item_per_page,
             username,
             password,
-            minio_endpoint,
-            minio_username,
-            minio_password,
-            minio_bucket,
+            storage,
             database,
         }
     }
@@ -184,12 +230,20 @@ impl Env {
 #[cfg(test)]
 pub mod tests {
     use super::*;
+
     use dotenv::dotenv;
     use std::env;
+    use strum::EnumIter;
 
     pub enum DBType {
         MySql,
         Sqlite,
+    }
+
+    #[derive(EnumIter)]
+    pub enum STType {
+        Minio,
+        LocalStorage,
     }
 
     fn get_env_value<T>(key: &str) -> Result<T>
@@ -239,7 +293,41 @@ pub mod tests {
         }
     }
 
-    pub fn get_env(db_type: DBType) -> Env {
+    impl StorageEnv {
+        fn new_minio() -> Result<Self> {
+            Ok(Self::Minio(MinioEnv::new_test()?))
+        }
+
+        fn new_local_storage() -> Result<Self> {
+            Ok(Self::LocalStorage(LocalStorageEnv::new_test()?))
+        }
+    }
+
+    impl MinioEnv {
+        fn new_test() -> Result<Self> {
+            let endpoint = get_env_value("MINIO_ENDPOINT")?;
+            let username = get_env_value("MINIO_USERNAME")?;
+            let password = get_env_value("MINIO_PASSWORD")?;
+            let bucket = get_env_value("MINIO_BUCKET")?;
+
+            Ok(Self {
+                endpoint,
+                username,
+                password,
+                bucket,
+            })
+        }
+    }
+
+    impl LocalStorageEnv {
+        fn new_test() -> Result<Self> {
+            Ok(Self {
+                path: "./dev.storage".to_string(),
+            })
+        }
+    }
+
+    pub fn get_env(db_type: DBType, st_type: STType) -> Env {
         dotenv().ok();
 
         let mode: EnvMode = EnvMode::Dev;
@@ -253,10 +341,10 @@ pub mod tests {
             .unwrap();
         let username = env::var("USERNAME").unwrap();
         let password = env::var("PASSWORD").unwrap();
-        let minio_endpoint = env::var("MINIO_ENDPOINT").unwrap();
-        let minio_username = env::var("MINIO_USERNAME").unwrap();
-        let minio_password = env::var("MINIO_PASSWORD").unwrap();
-        let minio_bucket = env::var("MINIO_BUCKET").unwrap();
+        let storage = match st_type {
+            STType::Minio => StorageEnv::new_minio().unwrap(),
+            STType::LocalStorage => StorageEnv::new_local_storage().unwrap(),
+        };
         let database = match db_type {
             DBType::MySql => DatabaseEnv::new_mysql().unwrap(),
             DBType::Sqlite => DatabaseEnv::new_sqlite().unwrap(),
@@ -268,10 +356,7 @@ pub mod tests {
             item_per_page,
             username,
             password,
-            minio_endpoint,
-            minio_username,
-            minio_password,
-            minio_bucket,
+            storage,
             database,
         }
     }

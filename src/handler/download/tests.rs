@@ -12,10 +12,10 @@ use axum::routing::get;
 use axum::Router;
 use tower::ServiceExt;
 
-use super::{download_url, DOWNLOAD_URL_PATH};
-
+use super::{download, download_url, DOWNLOAD_PATH, DOWNLOAD_URL_PATH, _DOWNLOAD_PATH_ROOT};
 use crate::client::storage::tests::{get_storage, init, reset, upload_data};
 use crate::client::storage::Storage;
+use crate::env::tests::STType;
 use crate::error::tests::ServerExt;
 use crate::error::{Error, Result};
 use crate::utils::into_layer;
@@ -24,7 +24,7 @@ use crate::utils::tests::sleep_async;
 #[tokio::test]
 async fn test_download_download_url() {
     async fn inner(storage: &Storage) -> Result<Response> {
-        let remote_path = "test_message_page.txt";
+        let remote_path = "test.txt";
 
         init(&storage).await?;
         upload_data(&storage, remote_path).await?;
@@ -47,7 +47,44 @@ async fn test_download_download_url() {
         Ok(res)
     }
 
-    let storage = get_storage();
+    let storage = get_storage(STType::LocalStorage).await;
+
+    let result = inner(&storage).await;
+
+    reset(&storage).await;
+
+    assert_eq!(result.unwrap().status(), StatusCode::OK);
+
+    sleep_async(1).await;
+}
+
+#[tokio::test]
+async fn test_download_download() {
+    async fn inner(storage: &Storage) -> Result<Response> {
+        let file_name = "test.txt";
+
+        init(&storage).await?;
+        upload_data(&storage, file_name).await?;
+
+        let router = Router::new()
+            .route(DOWNLOAD_PATH, get(download))
+            .layer(into_layer(storage.clone()));
+
+        let req = Request::builder()
+            .method(Method::GET)
+            .uri(&format!("{}/{}", _DOWNLOAD_PATH_ROOT, file_name))
+            .body(Body::empty())
+            .map_err(|e| Error::req_build_error(e))?;
+
+        let res = router
+            .oneshot(req)
+            .await
+            .map_err(|e| Error::req_send_error(e))?;
+
+        Ok(res)
+    }
+
+    let storage = get_storage(STType::LocalStorage).await;
 
     let result = inner(&storage).await;
 

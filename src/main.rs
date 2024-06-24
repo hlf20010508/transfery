@@ -95,7 +95,7 @@ async fn server(env: Env) {
 
     tracing::info!("listening on http://{}:{}", HOST, port);
 
-    let storage = get_storage(&env);
+    let storage = get_storage(&env).await;
     let database = get_database(&env).await;
 
     let secret_key = database.get_secret_key().await.unwrap();
@@ -118,6 +118,7 @@ async fn server(env: Env) {
         .nest_service("/static", ServeDir::new("./static"))
         .route(index::INDEX_PATH, get(index::index))
         .route(download::DOWNLOAD_URL_PATH, get(download::download_url))
+        .route(download::DOWNLOAD_PATH, get(download::download))
         .route(message::PAGE_PATH, get(message::page))
         .route(message::SYNC_PATH, get(message::sync))
         .route(message::NEW_ITEM_PATH, post(message::new_item))

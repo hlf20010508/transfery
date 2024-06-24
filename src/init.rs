@@ -9,24 +9,24 @@ use crate::client;
 use crate::env::Env;
 
 pub async fn init(env: &Env) {
-    println!("Initializing minio...");
-    init_minio(env).await;
-    println!("Minio initialized.");
+    println!("Initializing storage...");
+    init_storage(env).await;
+    println!("Storage initialized.");
 
-    println!("Initializing mysql...");
-    init_mysql(env).await;
-    println!("MySql initialized.");
+    println!("Initializing database...");
+    init_database(env).await;
+    println!("Database initialized.");
 
     println!("All initialization completed.");
 }
 
-async fn init_minio(env: &Env) {
-    let storage = client::get_storage(env);
+async fn init_storage(env: &Env) {
+    let storage = client::get_storage(env).await;
 
     storage.init().await.unwrap();
 }
 
-async fn init_mysql(env: &Env) {
+async fn init_database(env: &Env) {
     let database = client::get_database(env).await;
 
     database.init().await.unwrap();

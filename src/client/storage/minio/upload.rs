@@ -5,14 +5,13 @@
 :license: MIT, see LICENSE for more details.
 */
 use minio::s3::args::{CompleteMultipartUploadArgs, CreateMultipartUploadArgs, UploadPartArgs};
-use minio::s3::types::Part;
 
-use super::Storage;
-
+use super::super::models::Part;
+use super::Minio;
 use crate::error::ErrorType::InternalServerError;
 use crate::error::{Error, Result};
 
-impl Storage {
+impl Minio {
     pub async fn create_multipart_upload_id(&self, remote_path: &str) -> Result<String> {
         let args = CreateMultipartUploadArgs::new(&self.bucket, remote_path).map_err(|e| {
             Error::context(
@@ -72,14 +71,22 @@ impl Storage {
         upload_id: &str,
         parts: &Vec<Part>,
     ) -> Result<()> {
-        let args = CompleteMultipartUploadArgs::new(&self.bucket, remote_path, upload_id, parts)
+        let parts = parts
+            .iter()
+            .map(|part| minio::s3::types::Part {
+                number: part.number,
+                etag: part.etag.clone(),
+            })
+            .collect::<Vec<minio::s3::types::Part>>();
+
+        let args = CompleteMultipartUploadArgs::new(&self.bucket, remote_path, upload_id, &parts)
             .map_err(|e| {
-                Error::context(
-                    InternalServerError,
-                    e,
-                    "failed to create complete multipart upload args",
-                )
-            })?;
+            Error::context(
+                InternalServerError,
+                e,
+                "failed to create complete multipart upload args",
+            )
+        })?;
 
         self.client
             .complete_multipart_upload(&args)

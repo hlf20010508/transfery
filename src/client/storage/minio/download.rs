@@ -7,11 +7,11 @@
 
 use minio::s3::args::GetPresignedObjectUrlArgs;
 
-use super::Storage;
+use super::Minio;
 use crate::error::ErrorType::InternalServerError;
 use crate::error::{Error, Result};
 
-impl Storage {
+impl Minio {
     pub async fn get_download_url(&self, remote_path: &str) -> Result<String> {
         let args =
             GetPresignedObjectUrlArgs::new(&self.bucket, remote_path, http::method::Method::GET)

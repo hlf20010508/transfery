@@ -8,12 +8,12 @@
 use minio::s3::args::ListObjectsV2Args;
 use minio::s3::types::Item;
 
-use super::Storage;
+use super::Minio;
 
 use crate::error::ErrorType::InternalServerError;
 use crate::error::{Error, Result};
 
-impl Storage {
+impl Minio {
     pub async fn list_objects(&self) -> Result<Vec<Item>> {
         let args = ListObjectsV2Args::new(&self.bucket).map_err(|e| {
             Error::context(

@@ -9,24 +9,10 @@ use axum::async_trait;
 use axum::extract::{FromRequest, Multipart, Request};
 use serde::{Deserialize, Serialize};
 
+use crate::client::storage::models::Part;
 use crate::error::Error;
 use crate::error::ErrorType::InternalServerError;
 use crate::error::Result;
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct Part {
-    pub number: u16,
-    pub etag: String,
-}
-
-impl Into<minio::s3::types::Part> for Part {
-    fn into(self) -> minio::s3::types::Part {
-        minio::s3::types::Part {
-            number: self.number,
-            etag: self.etag,
-        }
-    }
-}
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct FetchUploadIdJsonParams {

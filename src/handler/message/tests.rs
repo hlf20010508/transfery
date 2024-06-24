@@ -35,7 +35,7 @@ use crate::client::storage::tests::{
 use crate::client::Database;
 use crate::client::Storage;
 use crate::crypto::tests::get_crypto;
-use crate::env::tests::{get_env, DBType};
+use crate::env::tests::{get_env, DBType, STType};
 use crate::error::tests::ServerExt;
 use crate::error::Error;
 use crate::error::Result;
@@ -121,7 +121,7 @@ fn remove_item_handler(
 async fn test_message_page() {
     async fn inner(database: &Database) -> Result<Response> {
         let crypto = get_crypto();
-        let env = get_env(DBType::Sqlite);
+        let env = get_env(DBType::Sqlite, STType::LocalStorage);
 
         fake_message_item(&database).await;
 
@@ -326,7 +326,7 @@ async fn test_message_remove_item() {
     }
 
     let database = get_database(DBType::Sqlite).await;
-    let storage = get_storage();
+    let storage = get_storage(STType::LocalStorage).await;
 
     let result = inner(&database, &storage).await;
 
@@ -396,7 +396,7 @@ async fn test_message_remove_all() {
     }
 
     let database = get_database(DBType::Sqlite).await;
-    let storage = get_storage();
+    let storage = get_storage(STType::LocalStorage).await;
 
     let result = inner(&database, &storage).await;
 

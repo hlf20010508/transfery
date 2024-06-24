@@ -14,14 +14,8 @@ pub use storage::Storage;
 
 use crate::env::{DatabaseEnv, Env};
 
-pub fn get_storage(env: &Env) -> Storage {
-    Storage::new(
-        &env.minio_endpoint,
-        &env.username,
-        &env.password,
-        &env.minio_bucket,
-    )
-    .unwrap()
+pub async fn get_storage(env: &Env) -> Storage {
+    Storage::new(&env.storage).await.unwrap()
 }
 
 pub async fn get_database(env: &Env) -> Database {

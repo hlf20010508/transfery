@@ -8,12 +8,12 @@
 use minio::s3::args::{BucketArgs, ObjectVersionArgs, RemoveObjectsArgs};
 use minio::s3::types::{DeleteObject, Item};
 
-use super::Storage;
+use super::Minio;
 
 use crate::error::ErrorType::InternalServerError;
 use crate::error::{Error, Result};
 
-impl Storage {
+impl Minio {
     pub async fn remove_object(&self, remote_path: &str) -> Result<()> {
         let args = ObjectVersionArgs::new(&self.bucket, remote_path).map_err(|e| {
             Error::context(

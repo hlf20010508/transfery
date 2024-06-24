@@ -31,7 +31,7 @@ use crate::client::database::models::token::{TokenItem, TokenNewItem};
 use crate::client::database::tests::{get_database, reset as reset_database};
 use crate::client::database::Database;
 use crate::crypto::tests::get_crypto;
-use crate::env::tests::{get_env, DBType};
+use crate::env::tests::{get_env, DBType, STType};
 use crate::error::tests::ServerExt;
 use crate::error::Error;
 use crate::error::Result;
@@ -55,7 +55,7 @@ async fn test_admin_auth() {
         socketio.ns("/", |_socket: SocketRef| {});
 
         let crypto = get_crypto();
-        let env = get_env(DBType::Sqlite);
+        let env = get_env(DBType::Sqlite, STType::LocalStorage);
 
         let router = Router::new()
             .route(AUTH_PATH, post(auth))
@@ -365,7 +365,7 @@ async fn test_admin_create_token() {
 
         let crypto = get_crypto();
         let auth = gen_auth(&crypto);
-        let env = get_env(DBType::Sqlite);
+        let env = get_env(DBType::Sqlite, STType::LocalStorage);
 
         let router = Router::new()
             .route(CREATE_TOKEN_PATH, post(create_token))

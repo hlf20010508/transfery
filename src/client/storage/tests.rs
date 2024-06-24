@@ -5,126 +5,79 @@
 :license: MIT, see LICENSE for more details.
 */
 
-use minio::s3::args::PutObjectArgs;
-use minio::s3::types::Part;
-use std::io::Cursor;
+use strum::IntoEnumIterator;
 
+use super::local::tests::{
+    get_storage as get_storage_local, init as init_local, reset as reset_local,
+    upload_data as upload_data_local,
+};
+use super::minio::tests::{
+    get_storage as get_storage_minio, init as init_minio, reset as reset_minio,
+    upload_data as upload_data_minio,
+};
+use super::models::StorageClient;
+use super::utils::tests::fake_data;
 use super::Storage;
-
-use crate::env::tests::{get_env, DBType};
-use crate::error::ErrorType::InternalServerError;
-use crate::error::{Error, Result};
+use crate::client::storage::models::Part;
+use crate::env::tests::STType;
+use crate::error::Result;
 use crate::utils::tests::{sleep, sleep_async};
 
 // s3 minimum allowed size is 5MB
 pub static PART_SIZE: u32 = 5 * 1024 * 1024; // 5MB
 
-pub fn get_storage() -> Storage {
-    let env = get_env(DBType::Sqlite);
+pub async fn get_storage(st_type: STType) -> Storage {
+    let client = match st_type {
+        STType::Minio => StorageClient::Minio(get_storage_minio().await),
+        STType::LocalStorage => StorageClient::Local(get_storage_local().await),
+    };
 
-    let storage = Storage::new(
-        &env.minio_endpoint,
-        &env.minio_username,
-        &env.minio_password,
-        &env.minio_bucket,
-    )
-    .unwrap();
-
-    storage
+    Storage { client }
 }
 
 pub async fn init(storage: &Storage) -> Result<()> {
-    storage.init().await
+    match &storage.client {
+        StorageClient::Minio(storage) => init_minio(storage).await,
+        StorageClient::Local(storage) => init_local(storage).await,
+    }
 }
 
 pub async fn reset(storage: &Storage) {
-    storage._remove_bucket().await.unwrap();
-}
-
-fn fake_data() -> Vec<u8> {
-    let data = Vec::from("hello world!");
-
-    let repeat_times: usize = 1024 * 1024;
-
-    let data = data
-        .iter()
-        .cycle()
-        .take(data.len() * repeat_times)
-        .cloned()
-        .collect();
-
-    data
+    match &storage.client {
+        StorageClient::Minio(storage) => reset_minio(storage).await,
+        StorageClient::Local(storage) => reset_local(storage).await,
+    }
 }
 
 pub async fn upload_data(storage: &Storage, remote_path: &str) -> Result<()> {
-    let mut data = Cursor::new(fake_data());
-    let size = data.clone().into_inner().len();
-
-    let mut args = PutObjectArgs::new(&storage.bucket, remote_path, &mut data, Some(size), None)
-        .map_err(|e| Error::context(InternalServerError, e, "failed to create put object args"))?;
-
-    storage
-        .client
-        .put_object(&mut args)
-        .await
-        .map_err(|e| Error::context(InternalServerError, e, "failed to put object"))?;
-
-    Ok(())
+    match &storage.client {
+        StorageClient::Minio(storage) => upload_data_minio(storage, remote_path).await,
+        StorageClient::Local(storage) => upload_data_local(storage, remote_path).await,
+    }
 }
 
-#[test]
-fn test_storage_new() {
-    get_storage();
+#[tokio::test]
+async fn test_storage_new() {
+    for st_type in STType::iter() {
+        get_storage(st_type).await;
+    }
 
     sleep(1);
 }
 
 #[tokio::test]
 async fn test_storage_init() {
-    let storage = get_storage();
+    async fn check(st_type: STType) {
+        let storage = get_storage(st_type).await;
 
-    let result = storage.init().await;
-    reset(&storage).await;
-    result.unwrap();
-
-    sleep_async(1).await;
-}
-
-#[tokio::test]
-async fn test_storage_create_buffer_if_not_exists() {
-    let storage = get_storage();
-
-    let result = storage.create_buffer_if_not_exists().await;
-    reset(&storage).await;
-    result.unwrap();
-
-    sleep_async(1).await;
-}
-
-#[tokio::test]
-async fn test_storage_is_bucket_exists() {
-    async fn inner_true(storage: &Storage) -> Result<bool> {
-        init(storage).await?;
-        let result = storage.is_bucket_exists().await?;
-
-        Ok(result)
+        let result = storage.init().await;
+        reset(&storage).await;
+        result.unwrap();
     }
 
-    async fn inner_false(storage: &Storage) -> Result<bool> {
-        let result = storage.is_bucket_exists().await?;
-
-        Ok(result)
+    for st_type in STType::iter() {
+        check(st_type).await;
     }
-
-    let storage = get_storage();
-
-    let result_false = inner_false(&storage).await;
-
-    let result_true = inner_true(&storage).await;
-    reset(&storage).await;
-
-    assert_eq!(result_false.unwrap(), false);
-    assert_eq!(result_true.unwrap(), true);
 
     sleep_async(1).await;
 }
@@ -140,11 +93,17 @@ async fn test_storage_create_multipart_upload_id() {
         Ok(())
     }
 
-    let storage = get_storage();
+    async fn check(st_type: STType) {
+        let storage = get_storage(st_type).await;
 
-    let result = inner(&storage).await;
-    reset(&storage).await;
-    result.unwrap();
+        let result = inner(&storage).await;
+        reset(&storage).await;
+        result.unwrap();
+    }
+
+    for st_type in STType::iter() {
+        check(st_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -167,11 +126,17 @@ async fn test_storage_multipart_upload() {
         Ok(())
     }
 
-    let storage = get_storage();
+    async fn check(st_type: STType) {
+        let storage = get_storage(st_type).await;
 
-    let result = inner(&storage).await;
-    reset(&storage).await;
-    result.unwrap();
+        let result = inner(&storage).await;
+        reset(&storage).await;
+        result.unwrap();
+    }
+
+    for st_type in STType::iter() {
+        check(st_type).await;
+    }
 
     sleep_async(1).await;
 }
@@ -199,90 +164,20 @@ async fn test_storage_complete_multipart_upload() {
 
         storage
             .complete_multipart_upload(remote_path, &upload_id, &parts)
-            .await?;
-
-        Ok(())
+            .await
     }
 
-    let storage = get_storage();
+    async fn check(st_type: STType) {
+        let storage = get_storage(st_type).await;
 
-    let result = inner(&storage).await;
-    reset(&storage).await;
-    result.unwrap();
-
-    sleep_async(1).await;
-}
-
-#[tokio::test]
-async fn test_storage_list_objects() {
-    async fn inner(storage: &Storage) -> Result<()> {
-        init(storage).await?;
-
-        storage.list_objects().await?;
-
-        Ok(())
+        let result = inner(&storage).await;
+        reset(&storage).await;
+        result.unwrap();
     }
 
-    let storage = get_storage();
-
-    let result = inner(&storage).await;
-    reset(&storage).await;
-    result.unwrap();
-
-    sleep_async(1).await;
-}
-
-#[tokio::test]
-async fn test_storage_remove_object() {
-    async fn inner(storage: &Storage) -> Result<()> {
-        let remote_path = "test_remove_object.txt";
-
-        init(storage).await?;
-
-        upload_data(storage, remote_path).await?;
-        storage.remove_object(remote_path).await?;
-
-        Ok(())
+    for st_type in STType::iter() {
+        check(st_type).await;
     }
-
-    let storage = get_storage();
-
-    let result = inner(&storage).await;
-    reset(&storage).await;
-    result.unwrap();
-
-    sleep_async(1).await;
-}
-
-#[tokio::test]
-async fn test_storage_remove_objects_all() {
-    async fn inner(storage: &Storage) -> Result<()> {
-        let remote_path = "test_remove_objects_all.txt";
-
-        init(storage).await?;
-
-        upload_data(storage, remote_path).await?;
-        storage.remove_objects_all().await?;
-
-        Ok(())
-    }
-
-    let storage = get_storage();
-
-    let result = inner(&storage).await;
-    reset(&storage).await;
-    result.unwrap();
-
-    sleep_async(1).await;
-}
-
-#[tokio::test]
-async fn test_storage_remove_bucket() {
-    let storage = get_storage();
-
-    init(&storage).await.unwrap();
-
-    storage._remove_bucket().await.unwrap();
 
     sleep_async(1).await;
 }
@@ -300,11 +195,69 @@ async fn test_storage_get_download_url() {
         Ok(())
     }
 
-    let storage = get_storage();
+    async fn check(st_type: STType) {
+        let storage = get_storage(st_type).await;
 
-    let result = inner(&storage).await;
-    reset(&storage).await;
-    result.unwrap();
+        let result = inner(&storage).await;
+        reset(&storage).await;
+        result.unwrap();
+    }
+
+    for st_type in STType::iter() {
+        check(st_type).await;
+    }
+
+    sleep_async(1).await;
+}
+
+#[tokio::test]
+async fn test_storage_remove_object() {
+    async fn inner(storage: &Storage) -> Result<()> {
+        let remote_path = "test_remove_object.txt";
+
+        init(storage).await?;
+
+        upload_data(storage, remote_path).await?;
+        storage.remove_object(remote_path).await
+    }
+
+    async fn check(st_type: STType) {
+        let storage = get_storage(st_type).await;
+
+        let result = inner(&storage).await;
+        reset(&storage).await;
+        result.unwrap();
+    }
+
+    for st_type in STType::iter() {
+        check(st_type).await;
+    }
+
+    sleep_async(1).await;
+}
+
+#[tokio::test]
+async fn test_storage_remove_objects_all() {
+    async fn inner(storage: &Storage) -> Result<()> {
+        let remote_path = "test_remove_objects_all.txt";
+
+        init(storage).await?;
+
+        upload_data(storage, remote_path).await?;
+        storage.remove_objects_all().await
+    }
+
+    async fn check(st_type: STType) {
+        let storage = get_storage(st_type).await;
+
+        let result = inner(&storage).await;
+        reset(&storage).await;
+        result.unwrap();
+    }
+
+    for st_type in STType::iter() {
+        check(st_type).await;
+    }
 
     sleep_async(1).await;
 }

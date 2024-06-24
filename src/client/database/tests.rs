@@ -11,14 +11,14 @@ use super::models::message::{self, MessageItem};
 use super::models::token::{self, TokenNewItem};
 use super::Database;
 use crate::client::database::models::device::DeviceUpdateItem;
-use crate::env::tests::{get_env, DBType};
+use crate::env::tests::{get_env, DBType, STType};
 use crate::env::{DatabaseEnv, Env};
 use crate::error::Result;
 use crate::utils::get_current_timestamp;
 use crate::utils::tests::sleep_async;
 
 pub async fn get_database(db_type: DBType) -> Database {
-    let Env { database, .. } = get_env(db_type);
+    let Env { database, .. } = get_env(db_type, STType::LocalStorage);
 
     match database {
         DatabaseEnv::MySql(env) => {
