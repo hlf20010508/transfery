@@ -94,10 +94,8 @@ impl DatabaseEnv {
     fn new() -> Result<Self> {
         if args_contains("--mysql") {
             Ok(Self::MySql(MySqlEnv::new()?))
-        } else if args_contains("--sqlite") {
-            Ok(Self::Sqlite(SqliteEnv::new()?))
         } else {
-            Err(Error::new(InternalServerError, "no database specified"))
+            Ok(Self::Sqlite(SqliteEnv::new()?))
         }
     }
 }
@@ -149,10 +147,8 @@ impl StorageEnv {
     fn new() -> Result<Self> {
         if args_contains("--minio") {
             Ok(Self::Minio(MinioEnv::new()?))
-        } else if args_contains("--local-storage") {
-            Ok(Self::LocalStorage(LocalStorageEnv::new()?))
         } else {
-            Err(Error::new(InternalServerError, "no storage specified"))
+            Ok(Self::LocalStorage(LocalStorageEnv::new()?))
         }
     }
 }

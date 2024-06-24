@@ -50,13 +50,11 @@ services:
     command: ^
       --username xxxx
       --password xxxx
-      --local-storage
       # --minio
       # --minio-endpoint https://example.com:9000
       # --minio-username xxxx
       # --minio-password xxxx
       # --minio-bucket xxxx
-      --sqlite
       # --mysql
       # --mysql-endpoint example.com:3306
       # --mysql-username xxxx
