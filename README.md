@@ -11,7 +11,7 @@
 - 删除消息和文件
 - 支持私密消息
 - 提供消息发送和接收的API
-- 自动初始化Minio和MySQL
+- 支持Minio和MySQL，也可本地存储
 
 ## API
 - `/push_text`
@@ -50,14 +50,18 @@ services:
     command: ^
       --username xxxx
       --password xxxx
-      --minio-endpoint https://example.com:9000
-      --minio-username xxxx
-      --minio-password xxxx
-      --minio-bucket xxxx
-      --mysql-endpoint example.com:3306
-      --mysql-username xxxx
-      --mysql-password xxxx
-      --mysql-database xxxx
+      --local-storage
+      # --minio
+      # --minio-endpoint https://example.com:9000
+      # --minio-username xxxx
+      # --minio-password xxxx
+      # --minio-bucket xxxx
+      --sqlite
+      # --mysql
+      # --mysql-endpoint example.com:3306
+      # --mysql-username xxxx
+      # --mysql-password xxxx
+      # --mysql-database xxxx
 ```
 
 部署
