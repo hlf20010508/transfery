@@ -27,6 +27,10 @@ impl LocalStorage {
             ));
         }
 
+        let file_metadata = fs::metadata(&file_path)
+            .await
+            .map_err(|e| Error::context(InternalServerError, e, "failed to get file metadata"))?;
+
         let file = fs::File::open(&file_path).await.map_err(|e| {
             Error::context(
                 InternalServerError,
@@ -46,6 +50,7 @@ impl LocalStorage {
                 header::CONTENT_DISPOSITION,
                 format!("attachment; filename=\"{}\"", file_name),
             )
+            .header(header::CONTENT_LENGTH, file_metadata.len())
             .body(body)
             .map_err(|e| {
                 Error::context(

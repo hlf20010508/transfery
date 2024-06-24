@@ -5,6 +5,7 @@
 :license: MIT, see LICENSE for more details.
 */
 use minio::s3::args::{CompleteMultipartUploadArgs, CreateMultipartUploadArgs, UploadPartArgs};
+use minio::s3::utils::urlencode;
 
 use super::super::models::Part;
 use super::Minio;
@@ -13,13 +14,16 @@ use crate::error::{Error, Result};
 
 impl Minio {
     pub async fn create_multipart_upload_id(&self, remote_path: &str) -> Result<String> {
-        let args = CreateMultipartUploadArgs::new(&self.bucket, remote_path).map_err(|e| {
-            Error::context(
-                InternalServerError,
-                e,
-                "failed to create multipart upload args",
-            )
-        })?;
+        let encoded_remote_path = urlencode(remote_path);
+
+        let args =
+            CreateMultipartUploadArgs::new(&self.bucket, &encoded_remote_path).map_err(|e| {
+                Error::context(
+                    InternalServerError,
+                    e,
+                    "failed to create multipart upload args",
+                )
+            })?;
 
         let multipart_upload_response =
             self.client
@@ -45,11 +49,16 @@ impl Minio {
         part_data: &[u8],
         part_number: u16,
     ) -> Result<Part> {
-        let args =
-            UploadPartArgs::new(&self.bucket, remote_path, upload_id, part_number, part_data)
-                .map_err(|e| {
-                    Error::context(InternalServerError, e, "failed to create upload part args")
-                })?;
+        let encoded_remote_path = urlencode(remote_path);
+
+        let args = UploadPartArgs::new(
+            &self.bucket,
+            &encoded_remote_path,
+            upload_id,
+            part_number,
+            part_data,
+        )
+        .map_err(|e| Error::context(InternalServerError, e, "failed to create upload part args"))?;
 
         let response = self
             .client
@@ -71,6 +80,8 @@ impl Minio {
         upload_id: &str,
         parts: &Vec<Part>,
     ) -> Result<()> {
+        let encoded_remote_path = urlencode(remote_path);
+
         let parts = parts
             .iter()
             .map(|part| minio::s3::types::Part {
@@ -79,14 +90,15 @@ impl Minio {
             })
             .collect::<Vec<minio::s3::types::Part>>();
 
-        let args = CompleteMultipartUploadArgs::new(&self.bucket, remote_path, upload_id, &parts)
-            .map_err(|e| {
-            Error::context(
-                InternalServerError,
-                e,
-                "failed to create complete multipart upload args",
-            )
-        })?;
+        let args =
+            CompleteMultipartUploadArgs::new(&self.bucket, &encoded_remote_path, upload_id, &parts)
+                .map_err(|e| {
+                    Error::context(
+                        InternalServerError,
+                        e,
+                        "failed to create complete multipart upload args",
+                    )
+                })?;
 
         self.client
             .complete_multipart_upload(&args)
