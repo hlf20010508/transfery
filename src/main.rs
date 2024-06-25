@@ -29,6 +29,7 @@ use axum::routing::{get, post};
 use axum::Router;
 use socketioxide::extract::{SocketRef, State};
 use socketioxide::SocketIo;
+use std::time::Duration;
 use tokio::time::Instant;
 use tower_http::services::ServeDir;
 use tracing_subscriber::layer::SubscriberExt;
@@ -99,6 +100,7 @@ async fn server(env: Env) {
     let crypto = Crypto::new(&secret_key).unwrap();
 
     let (socketio_layer, socketio) = SocketIo::builder()
+        .ping_interval(Duration::from_secs(env.socketio_ping_interval))
         .with_state(socket::ConnectionNumber::new())
         .build_layer();
 

@@ -42,7 +42,7 @@ impl From<(i64, NewItemParams)> for Model {
 
 #[derive(Deserialize)]
 pub struct PageQueryParams {
-    pub size: i64,
+    pub size: u64,
 }
 
 #[derive(Deserialize)]

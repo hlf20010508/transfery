@@ -16,16 +16,16 @@ use crate::error::{Error, Result};
 impl Database {
     pub async fn query_message_items(
         &self,
-        start: i64,
-        number: i64,
+        start: u64,
+        number: u64,
         access_private: bool,
     ) -> Result<Vec<message::Model>> {
         let query = {
             let mut query = message::Entity::find()
                 .order_by_desc(message::Column::Timestamp)
                 .order_by_desc(message::Column::Id)
-                .limit(Some(number as u64))
-                .offset(Some(start as u64));
+                .limit(Some(number))
+                .offset(Some(start));
 
             if !access_private {
                 query = query.filter(message::Column::IsPrivate.eq(false));
