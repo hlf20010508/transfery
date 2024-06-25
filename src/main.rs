@@ -100,7 +100,8 @@ async fn server(env: Env) {
     let crypto = Crypto::new(&secret_key).unwrap();
 
     let (socketio_layer, socketio) = SocketIo::builder()
-        .ping_interval(Duration::from_secs(env.socketio_ping_interval))
+        .ping_interval(Duration::from_secs(3))
+        .ping_timeout(Duration::from_secs(2))
         .with_state(socket::ConnectionNumber::new())
         .build_layer();
 

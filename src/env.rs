@@ -195,7 +195,6 @@ pub struct Env {
     pub mode: EnvMode,
     pub port: u16,
     pub item_per_page: u64,
-    pub socketio_ping_interval: u64,
     pub username: String,
     pub password: String,
     pub storage: StorageEnv,
@@ -207,7 +206,6 @@ impl Env {
         let mode = get_arg_value_option("--mode", EnvMode::Pro);
         let port = get_arg_value_option("--port", 8080);
         let item_per_page = get_arg_value_option("--item-per-page", 15);
-        let socketio_ping_interval = get_arg_value_option("--socketio-ping-interval", 25);
         let username = get_arg_value::<String>("--username").unwrap();
         let password = get_arg_value::<String>("--password").unwrap();
         let storage = StorageEnv::new().unwrap();
@@ -217,7 +215,6 @@ impl Env {
             mode,
             port,
             item_per_page,
-            socketio_ping_interval,
             username,
             password,
             storage,
@@ -339,10 +336,6 @@ pub mod tests {
             .unwrap_or("15".to_string())
             .parse()
             .unwrap();
-        let socketio_ping_interval = env::var("SOCKETIO_PING_INTERVAL")
-            .unwrap_or("25".to_string())
-            .parse()
-            .unwrap();
         let username = env::var("USERNAME").unwrap();
         let password = env::var("PASSWORD").unwrap();
         let storage = match st_type {
@@ -358,7 +351,6 @@ pub mod tests {
             mode,
             port,
             item_per_page,
-            socketio_ping_interval,
             username,
             password,
             storage,
