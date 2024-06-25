@@ -47,9 +47,15 @@ services:
     restart: always
     ports:
       - xxxx:8080
+    # 如果使用minio和mysql则可以不设置对应volume
+    volumes:
+      - /path/to/your/db.sqlite:/db.sqlite
+      - /path/to/your/uploaded:/uploaded
     command: ^
       --username xxxx
       --password xxxx
+      # --item-per-page 15 # 每次最多向服务器请求的消息数量，默认为15
+      # --socketio-ping-interval 25 # socketio心跳间隔，默认为25秒。此项影响在线设备数量灵敏度
       # --minio
       # --minio-endpoint https://example.com:9000
       # --minio-username xxxx
